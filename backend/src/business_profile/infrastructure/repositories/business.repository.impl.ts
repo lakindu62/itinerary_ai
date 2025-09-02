@@ -2,19 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { BusinessProfileRepository } from '../../domain/repositories/business-profile.repository';
-import { BusinessProfile } from '../../domain/entities/business-profile.entity';
-import { BusinessProfileDocument } from '../schemas/business-profile.schema';
+import { BusinessProfile as BusinessProfileEntity } from '../../domain/entities/business-profile.entity';
+import { BusinessProfileDocument, BusinessProfile as BusinessProfileSchema } from '../schemas/business.schema';
+
+// Business Profile Repository Implementation
 
 @Injectable()
 export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
   constructor(
-    @InjectModel(BusinessProfile.name)
+    @InjectModel(BusinessProfileSchema.name)
     private readonly businessProfileModel: Model<BusinessProfileDocument>,
   ) {
     super();
   }
 
-  async create(businessProfile: BusinessProfile): Promise<BusinessProfile> {
+  async create(businessProfile: BusinessProfileEntity): Promise<BusinessProfileEntity> {
     const doc = new this.businessProfileModel({
       business_name: businessProfile.businessName,
       business_type: businessProfile.businessType,
@@ -33,26 +35,26 @@ export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
     return this.toDomainEntity(saved);
   }
 
-  async findById(id: string): Promise<BusinessProfile | null> {
+  async findById(id: string): Promise<BusinessProfileEntity | null> {
     const doc = await this.businessProfileModel.findById(id).exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async findByOwnerId(ownerId: string): Promise<BusinessProfile[]> {
+  async findByOwnerId(ownerId: string): Promise<BusinessProfileEntity[]> {
     const docs = await this.businessProfileModel
       .find({ owner_id: ownerId })
       .exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  async findByBusinessType(businessType: string): Promise<BusinessProfile[]> {
+  async findByBusinessType(businessType: string): Promise<BusinessProfileEntity[]> {
     const docs = await this.businessProfileModel
       .find({ business_type: businessType, active_status: true })
       .exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  async findActiveBusinesses(): Promise<BusinessProfile[]> {
+  async findActiveBusinesses(): Promise<BusinessProfileEntity[]> {
     const docs = await this.businessProfileModel
       .find({ active_status: true })
       .sort({ average_rating: -1 })
@@ -60,7 +62,7 @@ export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  async update(id: string, updates: Partial<BusinessProfile>): Promise<BusinessProfile | null> {
+  async update(id: string, updates: Partial<BusinessProfileEntity>): Promise<BusinessProfileEntity | null> {
     const updateData: any = {};
     
     if (updates.businessName) updateData.business_name = updates.businessName;
@@ -81,7 +83,7 @@ export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async updateRating(id: string, newRating: number, reviewCount: number): Promise<BusinessProfile | null> {
+  async updateRating(id: string, newRating: number, reviewCount: number): Promise<BusinessProfileEntity | null> {
     const doc = await this.businessProfileModel
       .findByIdAndUpdate(
         id, 
@@ -101,14 +103,14 @@ export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
     return !!result;
   }
 
-  async findByEmail(email: string): Promise<BusinessProfile | null> {
+  async findByEmail(email: string): Promise<BusinessProfileEntity | null> {
     const doc = await this.businessProfileModel
       .findOne({ email: email.toLowerCase() })
       .exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async searchByName(searchTerm: string): Promise<BusinessProfile[]> {
+  async searchByName(searchTerm: string): Promise<BusinessProfileEntity[]> {
     const docs = await this.businessProfileModel
       .find({
         business_name: { $regex: searchTerm, $options: 'i' },
@@ -119,8 +121,8 @@ export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  private toDomainEntity(doc: BusinessProfileDocument): BusinessProfile {
-    return new BusinessProfile(
+  private toDomainEntity(doc: BusinessProfileDocument): BusinessProfileEntity {
+    return new BusinessProfileEntity(
       doc._id.toString(),
       doc.business_name,
       doc.business_type,
@@ -133,8 +135,8 @@ export class BusinessProfileRepositoryImpl extends BusinessProfileRepository {
       doc.average_rating,
       doc.total_reviews,
       doc.owner_id.toString(),
-      doc.createdAt,
-      doc.updatedAt,
+      doc.createdAt ? new Date(doc.createdAt) : undefined,
+      doc.updatedAt ? new Date(doc.updatedAt) : undefined,
     );
   }
 }

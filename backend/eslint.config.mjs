@@ -20,7 +20,8 @@ export default tseslint.config(
       ecmaVersion: 5,
       sourceType: 'module',
       parserOptions: {
-        projectService: true,
+        // Use explicit project to ensure ESLint can resolve TS files across folders
+        project: ['./tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
