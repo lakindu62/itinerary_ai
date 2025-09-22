@@ -24,6 +24,15 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
     return doc ? this.toDomainEntity(doc) : null;
   }
 
+  async update(eventRsvp: EventRsvp): Promise<any | null> {
+    const updatedDoc = await this.eventRsvpModel.findByIdAndUpdate(eventRsvp.id, eventRsvp, { new: true }).exec();
+    return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.eventRsvpModel.findByIdAndDelete(id).exec();
+  }
+
   private toDomainEntity(doc: EventRsvpDocument): any {
     return {
       id: doc._id.toString(),

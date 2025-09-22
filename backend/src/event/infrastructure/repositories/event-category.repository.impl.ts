@@ -24,6 +24,18 @@ export class EventCategoryRepositoryImpl extends EventCategoryRepository {
     return doc ? this.toDomainEntity(doc) : null;
   }
 
+  async update(eventCategory: EventCategory): Promise<any | null> {
+    const updatedDoc = await this.eventCategoryModel.findByIdAndUpdate(eventCategory.id, eventCategory, { new: true }).exec();
+    return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.eventCategoryModel.findByIdAndDelete(id).exec();
+  }
+
+
+  
+
   private toDomainEntity(doc: EventCategoryDocument): any {
     return {
       id: doc._id.toString(),
