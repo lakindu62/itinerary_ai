@@ -32,6 +32,28 @@
 $ npm install
 ```
 
+## Environment Configuration
+
+Create a `.env` file in the backend directory with the following variables:
+
+```bash
+# Google Generative AI API Key
+# Get your API key from: https://makersuite.google.com/app/apikey
+GOOGLE_GENAI_API_KEY=your_google_genai_api_key_here
+
+# Google Places API Key
+# Get your API key from: https://console.cloud.google.com/apis/credentials
+GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
+
+# MongoDB Connection String (if using MongoDB)
+MONGODB_URI=mongodb://localhost:27017/itinerary_ai
+
+# Application Port
+PORT=3000
+```
+
+**Important**: Replace the placeholder values with your actual API keys. The `GOOGLE_GENAI_API_KEY` is required for the application to start.
+
 ## Compile and run the project
 
 ```bash

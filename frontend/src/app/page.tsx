@@ -33,7 +33,7 @@ export default function Home() {
       </div>
     }>
       {React.createElement(
-        React.lazy(() => import("@/features/itinerary/components/TravelChatbot"))
+        React.lazy(() => import("@frontend/features/itinerary/components/TravelChatbot"))
       )}
     </React.Suspense>
   );

@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@frontend/components/ui/resizable';
 import ChatInterface from './ChatInterface';
 import MapComponent from './MapComponent';
 import ItineraryDisplay from './ItineraryDisplay';
-import { Card } from '@/components/ui/card';
+import { Card } from '@frontend/components/ui/card';
+import { ActivityDto, ConversationContextDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto'
 
+
+
+// Helper interface for map display
 export interface Place {
   id: string;
   name: string;
@@ -12,30 +16,24 @@ export interface Place {
   coordinates: [number, number];
   description: string;
   rating?: number;
-  photos?: string[];
   address?: string;
-}
-
-export interface ItineraryDay {
-  day: number;
-  title: string;
-  places: Place[];
-}
-
-export interface Itinerary {
-  id: string;
-  destination: string;
-  duration: number;
-  days: ItineraryDay[];
-  totalPlaces: number;
+  time?: string;
+  estimatedCost?: number;
+  duration?: number;
 }
 
 const TravelChatbot = () => {
-  const [currentItinerary, setCurrentItinerary] = useState<Itinerary | null>(null);
-  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [currentItinerary, setCurrentItinerary] = useState<ItineraryDto | null>(null);
+  const [context, setContext] = useState<ConversationContextDto>({ stage: 'initial' });
+  const [selectedPlace, setSelectedPlace] = useState<ActivityDto | null>(null);
+
+  const handleItineraryUpdate = (itinerary: ItineraryDto | null, newContext: ConversationContextDto) => {
+    setCurrentItinerary(itinerary);
+    setContext(newContext);
+  };
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen overflow-hidden bg-background">
       <header className="border-b bg-card px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -48,11 +46,14 @@ const TravelChatbot = () => {
             </div>
           </div>
           {currentItinerary && (
-            <Card className="px-4 py-2 ">
-              <div className='flex gap-4 items-center justify-center '>
-                <span className="text-sm font-medium">{currentItinerary.destination}</span>
-                <span className="text-xs text-muted-foreground">{currentItinerary.duration} days • {currentItinerary.totalPlaces} places</span>
-              </div> </Card>
+            <Card className="px-4 py-2">
+              <div className="flex gap-4 items-center justify-center">
+                <span className="text-sm font-medium">{context.destination || currentItinerary.title}</span>
+                <span className="text-xs text-muted-foreground">
+                  {currentItinerary.days.length} days • {currentItinerary.days.reduce((acc, day) => acc + day.activities.length, 0)} activities
+                </span>
+              </div>
+            </Card>
           )}
         </div>
       </header>
@@ -61,22 +62,31 @@ const TravelChatbot = () => {
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={35} minSize={30}>
             <div className="h-full flex flex-col">
-              <ChatInterface onItineraryGenerated={setCurrentItinerary} />
-              {currentItinerary && (
-                <div className="flex-1 border-t" style={{ minHeight: '300px' }}>
-                  <ItineraryDisplay
-                    itinerary={currentItinerary}
-                    onPlaceSelect={setSelectedPlace}
-                    selectedPlace={selectedPlace}
-                  />
-                </div>
-              )}
+              <ChatInterface
+                onItineraryGenerated={handleItineraryUpdate}
+                context={context}
+              />
+
             </div>
           </ResizablePanel>
+          {currentItinerary &&
+            <ResizablePanel defaultSize={35} minSize={30}>
+
+              <div className="flex-1 border-t h-full" style={{ minHeight: '300px' }}>
+                <ItineraryDisplay
+                  itinerary={currentItinerary}
+                  context={context}
+                  onPlaceSelect={setSelectedPlace}
+                  selectedPlace={selectedPlace}
+                />
+              </div>
+
+            </ResizablePanel>
+          }
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={65} minSize={40}>
+          <ResizablePanel defaultSize={30} minSize={40}>
             <MapComponent
               itinerary={currentItinerary}
               selectedPlace={selectedPlace}
