@@ -1,8 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type PostDocument = Post &
-  Document & { _id: Types.ObjectId; createdAt: string; updatedAt: string };
+export type PostDocument = Post & Document;
 
 @Schema({
   timestamps: true,
@@ -10,7 +9,7 @@ export type PostDocument = Post &
 })
 export class Post {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  user: Types.ObjectId;
+  authorId: Types.ObjectId;
 
   @Prop({ type: String })
   content?: string;
@@ -18,24 +17,16 @@ export class Post {
   @Prop({ type: String })
   image?: string;
 
-  @Prop({ type: Number, default: 0 })
-  likeCount: number;
-
-  @Prop({ type: Number, default: 0 })
-  commentCount: number;
-
-  // @Prop({ type: [Types.ObjectId], ref: 'Like', default: [] })
-  // likes?: Types.ObjectId[];
-
   // Virtual fields for relations
-  // author?: Types.ObjectId;
-  // // comments?: Types.ObjectId[];
-  // notifications?: Types.ObjectId[];
+  author?: Types.ObjectId;
+  comments?: Types.ObjectId[];
+  likes?: Types.ObjectId[];
+  notifications?: Types.ObjectId[];
 }
 
 export const PostSchema = SchemaFactory.createForClass(Post);
 
-// // Add indexes
-PostSchema.index({ user: 1 });
+// Add indexes
+PostSchema.index({ authorId: 1 });
 PostSchema.index({ createdAt: -1 });
-PostSchema.index({ user: 1, createdAt: -1 });
+PostSchema.index({ authorId: 1, createdAt: -1 });

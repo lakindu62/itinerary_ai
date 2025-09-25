@@ -1,31 +1,30 @@
 import React, { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Card } from '@frontend/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { MapPin, Navigation } from 'lucide-react';
-import { ActivityDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { Itinerary, Place } from './TravelChatbot';
 
 interface MapComponentProps {
-  itinerary: ItineraryDto | null;
-  selectedPlace: ActivityDto | null;
-  onPlaceSelect: (place: ActivityDto | null) => void;
+  itinerary: Itinerary | null;
+  selectedPlace: Place | null;
+  onPlaceSelect: (place: Place | null) => void;
 }
 
-const MapComponent: React.FC<MapComponentProps> = ({
-  itinerary,
-  selectedPlace,
-  onPlaceSelect
+const MapComponent: React.FC<MapComponentProps> = ({ 
+  itinerary, 
+  selectedPlace, 
+  onPlaceSelect 
 }) => {
-  console.log("🚀 ~ MapComponent ~ selectedPlace:", selectedPlace)
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   useEffect(() => {
     if (!mapContainer.current) return;
-
+    
     mapboxgl.accessToken = "pk.eyJ1IjoibGFraW5kdTYyIiwiYSI6ImNtZjExZ2IycTFpbDkya3M3Y3plM3J6M24ifQ.zyO0dcbxZbMArJvMwfPX6w";
-
+    
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/streets-v12',
@@ -55,12 +54,10 @@ const MapComponent: React.FC<MapComponentProps> = ({
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    const allPlaces = itinerary.days.flatMap(day => day.activities);
-    console.log("🚀 ~ MapComponent ~ allPlaces:", allPlaces)
-
+    const allPlaces = itinerary.days.flatMap(day => day.places);
+    
     // Add markers for all places
     allPlaces.forEach((place, index) => {
-
       const el = document.createElement('div');
       el.className = 'marker-pin';
       el.style.cssText = `
@@ -80,16 +77,16 @@ const MapComponent: React.FC<MapComponentProps> = ({
         transition: all 0.2s ease;
       `;
       el.textContent = (index + 1).toString();
-
-      // el.addEventListener('mouseenter', () => {
-      //   el.style.transform = 'scale(1.1)';
-      //   el.style.zIndex = '1000';
-      // });
-
-      // el.addEventListener('mouseleave', () => {
-      //   el.style.transform = 'scale(1)';
-      //   el.style.zIndex = '1';
-      // });
+      
+      el.addEventListener('mouseenter', () => {
+        el.style.transform = 'scale(1.1)';
+        el.style.zIndex = '1000';
+      });
+      
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = 'scale(1)';
+        el.style.zIndex = '1';
+      });
 
       const marker = new mapboxgl.Marker(el)
         .setLngLat(place.coordinates)
@@ -98,7 +95,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
             .setHTML(`
               <div style="padding: 8px;">
                 <h3 style="margin: 0 0 4px 0; font-weight: bold;">${place.name}</h3>
-
+                <p style="margin: 0; color: #666; font-size: 12px;">${place.type}</p>
                 ${place.description ? `<p style="margin: 4px 0 0 0; font-size: 12px;">${place.description}</p>` : ''}
               </div>
             `)
@@ -121,9 +118,8 @@ const MapComponent: React.FC<MapComponentProps> = ({
   }, [itinerary, onPlaceSelect]);
 
   useEffect(() => {
-
-    console.log("🚀 ~ MapComponent ~ selectedPlace:", selectedPlace)
     if (!map.current || !selectedPlace) return;
+
     map.current.flyTo({
       center: selectedPlace.coordinates,
       zoom: 15,
@@ -133,20 +129,20 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
   return (
     <div className="h-full relative" style={{ minHeight: '400px' }}>
-      <div
-        ref={mapContainer}
-        className="absolute inset-0"
+      <div 
+        ref={mapContainer} 
+        className="absolute inset-0" 
         style={{ width: '100%', height: '100%' }}
       />
-
+      
       {itinerary && (
         <Card className="absolute top-4 left-4 p-3 bg-background/95 backdrop-blur-sm">
           <div className="flex items-center space-x-2">
             <Navigation className="w-4 h-4 text-primary" />
             <div>
-
+              <p className="font-medium text-sm">{itinerary.destination}</p>
               <p className="text-xs text-muted-foreground">
-
+                {itinerary.totalPlaces} places • {itinerary.duration} days
               </p>
             </div>
           </div>
@@ -161,11 +157,15 @@ const MapComponent: React.FC<MapComponentProps> = ({
             </div>
             <div className="flex-1">
               <h3 className="font-semibold">{selectedPlace.name}</h3>
-
+              <p className="text-sm text-muted-foreground">{selectedPlace.type}</p>
               {selectedPlace.description && (
                 <p className="text-sm mt-1">{selectedPlace.description}</p>
               )}
-
+              {selectedPlace.rating && (
+                <div className="flex items-center mt-2">
+                  <span className="text-sm font-medium">⭐ {selectedPlace.rating}</span>
+                </div>
+              )}
             </div>
           </div>
         </Card>

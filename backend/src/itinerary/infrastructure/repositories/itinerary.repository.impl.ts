@@ -14,43 +14,30 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
     super();
   }
 
-  async create(itinerary: Itinerary): Promise<void> {
-    console.log(JSON.stringify(itinerary, null, 2));
+  async create(itinerary: Itinerary): Promise<Itinerary> {
+    const doc = new this.itineraryModel({
+      title: itinerary.title,
+      destination: itinerary.destination,
+      isActive: itinerary.isActive,
+    });
 
-    const doc = new this.itineraryModel(itinerary);
-    await doc.save();
-    // return this.toDomainEntity(saved);
+    const saved = await doc.save();
+    return this.toDomainEntity(saved);
   }
 
-  // private toDomainEntity(doc: ItineraryDocument): Itinerary {
-  //   // Reconstruct domain value objects from the saved document
-  //   const days = doc.days.map(
-  //     (dayDoc) =>
-  //       new Day(
-  //         dayDoc.dayNumber,
-  //         dayDoc.date,
-  //         dayDoc.destination,
-  //         dayDoc.activities.map(
-  //           (activityDoc) =>
-  //             new Activity(
-  //               activityDoc.time,
-  //               activityDoc.name,
-  //               activityDoc.description,
-  //               activityDoc.address,
-  //               activityDoc.type,
-  //               activityDoc.coordinates,
-  //             ),
-  //         ),
-  //       ),
-  //   );
+  async findById(id: string): Promise<Itinerary | null> {
+    const doc = await this.itineraryModel.findById(id).exec();
+    return doc ? this.toDomainEntity(doc) : null;
+  }
 
-  //   return new Itinerary(
-  //     doc.title,
-  //     doc.summary,
-  //     days,
-  //     doc.accommodation,
-  //     doc.tips,
-  //     doc._id.toString(),
-  //   );
-  // }
+  private toDomainEntity(doc: ItineraryDocument): Itinerary {
+    return new Itinerary(
+      doc._id.toString(),
+      doc.title,
+      doc.destination,
+      doc.isActive,
+      doc.createdAt,
+      doc.updatedAt,
+    );
+  }
 }
