@@ -24,6 +24,7 @@ import {
 // Import dashboard components
 import SliderManagement from './components/SliderManagement'
 import MenuManagement from './components/MenuManagement'
+import RatingManagement from './components/RatingManagement'
 import ReviewsManagement from './components/ReviewsManagement'
 import ReelsManagement from './components/ReelsManagement'
 import PostsManagement from './components/PostsManagement'
@@ -81,7 +82,7 @@ export default function BusinessDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:grid-cols-8">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -94,8 +95,12 @@ export default function BusinessDashboard() {
               <Menu className="h-4 w-4" />
               Menu
             </TabsTrigger>
-            <TabsTrigger value="reviews" className="flex items-center gap-2">
+            <TabsTrigger value="ratings" className="flex items-center gap-2">
               <Star className="h-4 w-4" />
+              Ratings
+            </TabsTrigger>
+            <TabsTrigger value="reviews" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
               Reviews
             </TabsTrigger>
             <TabsTrigger value="reels" className="flex items-center gap-2">
@@ -205,6 +210,10 @@ export default function BusinessDashboard() {
 
           <TabsContent value="menu">
             <MenuManagement />
+          </TabsContent>
+
+          <TabsContent value="ratings">
+            <RatingManagement />
           </TabsContent>
 
           <TabsContent value="reviews">

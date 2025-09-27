@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { 
   Star, 
   MapPin, 
@@ -18,6 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
+  Plus,
   Filter,
   Eye
 } from 'lucide-react'
@@ -102,16 +105,19 @@ interface Reel {
 interface Review {
   id: string
   customerName: string
+  customerEmail?: string
   rating: number
   title: string
   comment: string
   createdAt: string
+  updatedAt?: string
   isApproved: boolean
   isPublic: boolean
   businessReply?: string
   repliedAt?: string
   helpful: number
   category: string
+  type: string
 }
 
 const categories = [
@@ -132,6 +138,16 @@ export default function PublicBusinessProfile() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
+  const [reviewFormOpen, setReviewFormOpen] = useState(false)
+  const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [reviewFormData, setReviewFormData] = useState({
+    customerName: '',
+    customerEmail: '',
+    rating: 5,
+    title: '',
+    comment: '',
+    category: 'Overall Experience'
+  })
 
   useEffect(() => {
     loadBusinessData()
@@ -143,6 +159,11 @@ export default function PublicBusinessProfile() {
       const response = await fetch('/api/business-profiles?ownerId=user_123')
       if (response.ok) {
         const data = await response.json()
+        const approvedRatings = data.ratings?.filter((rating: any) => rating.isApproved && rating.isPublic) || []
+        const averageRating = approvedRatings.length > 0 
+          ? approvedRatings.reduce((sum: number, rating: any) => sum + rating.rating, 0) / approvedRatings.length 
+          : 0
+        
         setBusinessData({
           id: data.profile.id,
           businessName: data.profile.businessName || 'Demo Restaurant',
@@ -150,13 +171,13 @@ export default function PublicBusinessProfile() {
           address: '123 Main Street, City, State 12345',
           phone: '+1 (555) 123-4567',
           email: 'info@restaurant.com',
-          rating: 4.8,
-          totalReviews: data.reviews?.length || 0,
+          rating: averageRating,
+          totalReviews: approvedRatings.length,
           sliderImages: data.sliderImages?.filter((img: SliderImage) => img.isActive) || [],
           menuItems: data.menuItems?.filter((item: MenuItem) => item.isAvailable) || [],
-          posts: data.posts || [], // Show all posts for now, filter later if needed
-          reels: data.reels || [], // Show all reels for now, filter later if needed  
-          reviews: data.reviews?.filter((review: Review) => review.isApproved && review.isPublic) || []
+          posts: data.posts || [],
+          reels: data.reels || [],
+          reviews: approvedRatings || [] // Use approved ratings instead of old reviews array
         })
       }
     } catch (error) {
@@ -204,6 +225,63 @@ export default function PublicBusinessProfile() {
         prev === 0 ? businessData.sliderImages.length - 1 : prev - 1
       )
     }
+  }
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setReviewSubmitting(true)
+
+    try {
+      const response = await fetch('/api/business-profiles?ownerId=user_123', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'rating',
+          customerName: reviewFormData.customerName,
+          customerEmail: reviewFormData.customerEmail,
+          rating: reviewFormData.rating,
+          title: reviewFormData.title,
+          comment: reviewFormData.comment,
+          category: reviewFormData.category,
+          isApproved: false, // Needs approval
+          isPublic: true,
+          helpful: 0
+        })
+      })
+
+      if (response.ok) {
+        alert('Thank you for your review! It will be published after approval.')
+        setReviewFormOpen(false)
+        setReviewFormData({
+          customerName: '',
+          customerEmail: '',
+          rating: 5,
+          title: '',
+          comment: '',
+          category: 'Overall Experience'
+        })
+        // Reload business data to update review count
+        loadBusinessData()
+      } else {
+        throw new Error('Failed to submit review')
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error)
+      alert('Failed to submit review. Please try again.')
+    } finally {
+      setReviewSubmitting(false)
+    }
+  }
+
+  const resetReviewForm = () => {
+    setReviewFormData({
+      customerName: '',
+      customerEmail: '',
+      rating: 5,
+      title: '',
+      comment: '',
+      category: 'Overall Experience'
+    })
   }
 
   if (loading) {
@@ -312,7 +390,7 @@ export default function PublicBusinessProfile() {
                 {renderStars(Math.round(businessData.rating || 0))}
               </div>
               <span className="text-gray-700">
-                {businessData.rating} ({businessData.totalReviews} reviews)
+                {(businessData.rating || 0) > 0 ? (businessData.rating || 0).toFixed(1) : 'No ratings'} ({businessData.totalReviews} {businessData.totalReviews === 1 ? 'rating' : 'ratings'})
               </span>
             </div>
           </div>
@@ -624,37 +702,31 @@ export default function PublicBusinessProfile() {
                   <Card key={reel.id} className="overflow-hidden">
                     <div className="aspect-[9/16] bg-gray-100 relative group">
                       {reel.videoUrl ? (
-                        <div className="relative w-full h-full">
+                        <div className="relative w-full h-full group">
                           <video
-                            className="w-full h-full object-cover cursor-pointer"
+                            className="w-full h-full object-cover"
                             poster={reel.thumbnailUrl}
                             controls
                             preload="metadata"
                             muted
-                            loop
-                            onMouseEnter={(e) => {
+                            playsInline
+                            onLoadedMetadata={(e) => {
+                              // Ensure video is ready to play
                               const video = e.target as HTMLVideoElement
-                              video.play().catch(() => {})
-                            }}
-                            onMouseLeave={(e) => {
-                              const video = e.target as HTMLVideoElement
-                              video.pause()
                               video.currentTime = 0
-                            }}
-                            onClick={(e) => {
-                              const video = e.target as HTMLVideoElement
-                              if (video.paused) {
-                                video.play()
-                              } else {
-                                video.pause()
-                              }
                             }}
                           >
                             <source src={reel.videoUrl} type="video/mp4" />
+                            <source src={reel.videoUrl} type="video/webm" />
+                            <source src={reel.videoUrl} type="video/ogg" />
                             Your browser does not support the video tag.
                           </video>
-                          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center opacity-0 hover:opacity-100">
-                            <Play className="h-12 w-12 text-white drop-shadow-lg" />
+                          
+                          {/* Custom Play Button Overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                            <div className="bg-white bg-opacity-90 rounded-full p-4 shadow-lg">
+                              <Play className="h-8 w-8 text-gray-800 ml-1" />
+                            </div>
                           </div>
                         </div>
                       ) : reel.thumbnailUrl ? (
@@ -716,8 +788,145 @@ export default function PublicBusinessProfile() {
 
           {activeTab === 'reviews' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4">
-                {businessData.reviews.map((review) => (
+              {/* Add Review Section */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Customer Reviews</CardTitle>
+                      <CardDescription>Share your experience with other customers</CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        setReviewFormOpen(!reviewFormOpen)
+                        if (!reviewFormOpen) resetReviewForm()
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Write a Review
+                    </Button>
+                  </div>
+                </CardHeader>
+                
+                {reviewFormOpen && (
+                  <CardContent>
+                    <form onSubmit={handleReviewSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="customerName">Your Name *</Label>
+                          <Input
+                            id="customerName"
+                            value={reviewFormData.customerName}
+                            onChange={(e) => setReviewFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                            placeholder="Enter your name"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="customerEmail">Email (optional)</Label>
+                          <Input
+                            id="customerEmail"
+                            type="email"
+                            value={reviewFormData.customerEmail}
+                            onChange={(e) => setReviewFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                            placeholder="your@email.com"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Rating *</Label>
+                        <div className="flex space-x-1">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-6 w-6 cursor-pointer transition-colors ${
+                                i < reviewFormData.rating 
+                                  ? 'text-yellow-400 fill-current' 
+                                  : 'text-gray-300 hover:text-yellow-400'
+                              }`}
+                              onClick={() => setReviewFormData(prev => ({ ...prev, rating: i + 1 }))}
+                            />
+                          ))}
+                          <span className="ml-2 text-sm text-gray-600">({reviewFormData.rating} star{reviewFormData.rating !== 1 ? 's' : ''})</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Category</Label>
+                        <select
+                          id="category"
+                          value={reviewFormData.category}
+                          onChange={(e) => setReviewFormData(prev => ({ ...prev, category: e.target.value }))}
+                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="Overall Experience">Overall Experience</option>
+                          <option value="Food Quality">Food Quality</option>
+                          <option value="Service">Service</option>
+                          <option value="Ambiance">Ambiance</option>
+                          <option value="Value for Money">Value for Money</option>
+                          <option value="Cleanliness">Cleanliness</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="title">Review Title *</Label>
+                        <Input
+                          id="title"
+                          value={reviewFormData.title}
+                          onChange={(e) => setReviewFormData(prev => ({ ...prev, title: e.target.value }))}
+                          placeholder="Summarize your experience"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="comment">Your Review *</Label>
+                        <Textarea
+                          id="comment"
+                          value={reviewFormData.comment}
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReviewFormData(prev => ({ ...prev, comment: e.target.value }))}
+                          placeholder="Tell others about your experience..."
+                          rows={4}
+                          required
+                          className="resize-none"
+                        />
+                      </div>
+
+                      <div className="flex justify-end space-x-3">
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          onClick={() => setReviewFormOpen(false)}
+                          disabled={reviewSubmitting}
+                        >
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={reviewSubmitting}>
+                          {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Recent Reviews */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">
+                    Recent Reviews ({businessData.reviews.length})
+                  </h3>
+                  {businessData.reviews.length === 0 && (
+                    <p className="text-gray-500 text-sm">No reviews yet. Be the first to review!</p>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                {businessData.reviews
+                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Sort by newest first
+                  .map((review) => (
                   <Card key={review.id}>
                     <CardContent className="pt-6">
                       <div className="flex items-start space-x-4">
@@ -755,6 +964,7 @@ export default function PublicBusinessProfile() {
                     </CardContent>
                   </Card>
                 ))}
+                </div>
               </div>
 
               {businessData.reviews.length === 0 && (

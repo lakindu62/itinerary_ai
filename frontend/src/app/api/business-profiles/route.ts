@@ -6,133 +6,12 @@ let businessProfiles: any[] = [
     id: 'default-profile',
     businessName: 'Demo Restaurant',
     ownerId: 'user_123',
-    sliderImages: [
-      {
-        id: '1',
-        url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200',
-        title: 'Restaurant Interior',
-        description: 'Beautiful dining area',
-        order: 0,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ],
-    menuItems: [
-      {
-        id: '1',
-        name: 'Grilled Salmon',
-        description: 'Fresh Atlantic salmon with herbs',
-        price: 24.99,
-        category: 'Main Courses',
-        imageUrl: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400',
-        isAvailable: true,
-        preparationTime: 20,
-        ingredients: ['Salmon', 'Herbs', 'Lemon'],
-        allergens: ['Fish'],
-        isVegetarian: false,
-        isVegan: false,
-        isGlutenFree: true,
-        calories: 350,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
-    ],
-    posts: [
-      {
-        id: '1',
-        title: 'Welcome to Our Restaurant',
-        content: 'We are excited to serve you delicious food with fresh ingredients and amazing flavors! Our team of experienced chefs creates memorable dining experiences.',
-        excerpt: 'Welcome to our amazing restaurant where taste meets quality.',
-        imageUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
-        imageUrls: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800'],
-        category: 'News & Updates',
-        tags: ['welcome', 'restaurant', 'food'],
-        status: 'published',
-        author: 'Restaurant Manager',
-        views: 150,
-        likes: 25,
-        comments: 8,
-        shares: 5,
-        publishedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '2',
-        title: 'New Summer Menu Available',
-        content: 'Check out our exciting new summer menu featuring fresh seasonal ingredients and creative dishes that will tantalize your taste buds.',
-        excerpt: 'Discover our exciting new summer menu with seasonal specialties.',
-        imageUrl: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800',
-        imageUrls: [
-          'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800',
-          'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=800'
-        ],
-        category: 'Menu Items',
-        tags: ['summer', 'menu', 'seasonal'],
-        status: 'published',
-        author: 'Head Chef',
-        views: 320,
-        likes: 45,
-        comments: 12,
-        shares: 15,
-        publishedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ],
-    reels: [
-      {
-        id: '1',
-        title: 'Fresh Pasta Making',
-        description: 'Watch our chef prepare fresh pasta from scratch using traditional techniques!',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=400',
-        duration: 45,
-        category: 'Food Preparation',
-        hashtags: ['#pasta', '#fresh', '#cooking', '#chef'],
-        isPublished: true,
-        views: 890,
-        likes: 67,
-        comments: 23,
-        shares: 31,
-        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-      },
-      {
-        id: '2',
-        title: 'Behind the Kitchen',
-        description: 'A glimpse into our busy kitchen during dinner service!',
-        videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-        thumbnailUrl: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
-        duration: 60,
-        category: 'Behind the Scenes',
-        hashtags: ['#kitchen', '#team', '#service'],
-        isPublished: true,
-        views: 445,
-        likes: 34,
-        comments: 11,
-        shares: 8,
-        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-      }
-    ],
-    reviews: [
-      {
-        id: '1',
-        customerName: 'John Smith',
-        rating: 5,
-        title: 'Excellent food and service!',
-        comment: 'Had an amazing dinner here. The salmon was perfectly cooked and the staff was very attentive.',
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        isApproved: true,
-        isPublic: true,
-        businessReply: 'Thank you for your wonderful review!',
-        repliedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-        helpful: 12,
-        category: 'overall'
-      }
-    ]
+    sliderImages: [],
+    menuItems: [],
+    posts: [],
+    reels: [],
+    reviews: [],
+    ratings: [] // New rating system
   }
 ]
 
@@ -152,7 +31,8 @@ export async function GET(request: NextRequest) {
     menuItems: profile.menuItems || [],
     posts: profile.posts || [],
     reels: profile.reels || [],
-    reviews: profile.reviews || []
+    reviews: profile.reviews || [],
+    ratings: profile.ratings || []
   })
 }
 
@@ -178,7 +58,8 @@ export async function POST(request: NextRequest) {
         menuItems: [],
         posts: [],
         reels: [],
-        reviews: []
+        reviews: [],
+        ratings: []
       }
       businessProfiles.push(profile)
     }
@@ -199,6 +80,8 @@ export async function POST(request: NextRequest) {
       profile.posts.push(newItem)
     } else if (body.type === 'reel') {
       profile.reels.push(newItem)
+    } else if (body.type === 'rating') {
+      profile.ratings.push(newItem)
     }
     
     return NextResponse.json({ success: true, item: newItem })
@@ -243,6 +126,8 @@ export async function PUT(request: NextRequest) {
       updatedItem = updateArray(profile.posts)
     } else if (body.type === 'reel') {
       updatedItem = updateArray(profile.reels)
+    } else if (body.type === 'rating') {
+      updatedItem = updateArray(profile.ratings)
     }
     
     if (!updatedItem) {
@@ -281,6 +166,8 @@ export async function DELETE(request: NextRequest) {
       profile.posts = profile.posts.filter((item: any) => item.id !== itemId)
     } else if (type === 'reel') {
       profile.reels = profile.reels.filter((item: any) => item.id !== itemId)
+    } else if (type === 'rating') {
+      profile.ratings = profile.ratings.filter((item: any) => item.id !== itemId)
     }
     
     return NextResponse.json({ success: true })
