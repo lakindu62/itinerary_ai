@@ -56,8 +56,8 @@ interface MenuItem {
   imageUrl?: string
   isAvailable: boolean
   preparationTime: number
-  ingredients: string[]
-  allergens: string[]
+  ingredients?: string[]
+  allergens?: string[]
   isVegetarian: boolean
   isVegan: boolean
   isGlutenFree: boolean
@@ -117,7 +117,7 @@ export default function MenuManagement() {
   const loadMenuItems = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123')
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo')
       if (response.ok) {
         const data = await response.json()
         setMenuItems(data.menuItems || [])
@@ -138,13 +138,13 @@ export default function MenuManagement() {
       const ingredientsArray = formData.ingredients.split(',').map(i => i.trim()).filter(i => i)
       const method = editingItem ? 'PUT' : 'POST'
       
-      const response = await fetch('/api/business-profiles?ownerId=user_123', {
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'menu',
+          type: 'menuItem',
           id: editingItem?.id,
           ...formData,
           ingredients: ingredientsArray
@@ -177,8 +177,8 @@ export default function MenuManagement() {
       imageUrl: item.imageUrl || '',
       isAvailable: item.isAvailable,
       preparationTime: item.preparationTime,
-      ingredients: item.ingredients.join(', '),
-      allergens: item.allergens,
+      ingredients: (item.ingredients || []).join(', '),
+      allergens: item.allergens || [],
       isVegetarian: item.isVegetarian,
       isVegan: item.isVegan,
       isGlutenFree: item.isGlutenFree,
@@ -189,7 +189,7 @@ export default function MenuManagement() {
 
   const handleDelete = async (itemId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123&itemId=${itemId}&type=menu`, {
+      const response = await fetch(`/api/business-profiles?ownerId=owner_demo&itemId=${itemId}&itemType=menuItem`, {
         method: 'DELETE'
       })
 
@@ -207,7 +207,7 @@ export default function MenuManagement() {
 
   const toggleAvailability = async (itemId: string, isAvailable: boolean) => {
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123', {
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

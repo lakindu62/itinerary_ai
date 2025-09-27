@@ -59,7 +59,7 @@ interface Post {
   imageUrl?: string // Keep for backward compatibility
   imageUrls?: string[] // New field for multiple images
   category: string
-  tags: string[]
+  tags?: string[]
   status: 'draft' | 'scheduled' | 'published'
   isPromoted: boolean
   scheduledAt?: string
@@ -205,7 +205,7 @@ export default function PostsManagement() {
       excerpt: post.excerpt,
       imageUrls: post.imageUrls || (post.imageUrl ? [post.imageUrl] : []),
       category: post.category,
-      tags: post.tags.join(', '),
+      tags: (post.tags || []).join(', '),
       status: post.status,
       isPromoted: post.isPromoted,
       scheduledAt: post.scheduledAt ? new Date(post.scheduledAt).toISOString().slice(0, 16) : ''
@@ -691,7 +691,7 @@ export default function PostsManagement() {
                   </div>
 
                   <div className="flex flex-wrap gap-1 mb-4">
-                    {post.tags.map((tag, index) => (
+                    {(post.tags || []).map((tag, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         #{tag}
                       </Badge>

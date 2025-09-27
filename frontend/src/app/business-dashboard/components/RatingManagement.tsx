@@ -93,7 +93,7 @@ export default function RatingManagement() {
   const loadRatings = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123')
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo')
       if (response.ok) {
         const data = await response.json()
         setRatings(data.ratings || [])
@@ -130,7 +130,7 @@ export default function RatingManagement() {
       }
 
       if (editingRating) {
-        const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
+        const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...ratingData, id: editingRating.id })
@@ -142,7 +142,7 @@ export default function RatingManagement() {
           throw new Error('Failed to update rating')
         }
       } else {
-        const response = await fetch('/api/business-profiles?ownerId=user_123', {
+        const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(ratingData)
@@ -167,7 +167,7 @@ export default function RatingManagement() {
 
   const handleDelete = async (ratingId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
+      const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ratingId, type: 'rating' })
@@ -188,7 +188,7 @@ export default function RatingManagement() {
     if (!replyingToRating || !replyText.trim()) return
 
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
+      const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -215,7 +215,7 @@ export default function RatingManagement() {
 
   const handleApprovalChange = async (ratingId: string, isApproved: boolean) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
+      const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

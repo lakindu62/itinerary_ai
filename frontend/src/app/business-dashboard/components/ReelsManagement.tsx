@@ -59,7 +59,7 @@ interface Reel {
   thumbnailUrl?: string
   duration: number
   category: string
-  hashtags: string[]
+  hashtags?: string[]
   isPublished: boolean
   isPromoted: boolean
   views: number
@@ -193,7 +193,7 @@ export default function ReelsManagement() {
       thumbnailUrl: reel.thumbnailUrl || '',
       duration: reel.duration,
       category: reel.category,
-      hashtags: reel.hashtags.join(', '),
+      hashtags: (reel.hashtags || []).join(', '),
       isPublished: reel.isPublished,
       isPromoted: reel.isPromoted
     })
@@ -202,10 +202,8 @@ export default function ReelsManagement() {
 
   const handleDelete = async (reelId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: reelId, type: 'reel' })
+      const response = await fetch(`/api/business-profiles?ownerId=owner_demo&itemId=${reelId}&itemType=reel`, {
+        method: 'DELETE'
       })
       if (response.ok) {
         toast.success('Reel deleted successfully!')
@@ -262,12 +260,17 @@ export default function ReelsManagement() {
         setUploadProgress(prev => {
           if (prev >= 100) {
             clearInterval(interval)
-            const url = URL.createObjectURL(file)
-            setFormData(prev => ({
-              ...prev,
-              videoUrl: url,
-              duration: 30 // Mock duration
-            }))
+            // Convert file to base64 data URL for persistent storage
+            const reader = new FileReader()
+            reader.onload = (event) => {
+              const url = event.target?.result as string
+              setFormData(prev => ({
+                ...prev,
+                videoUrl: url,
+                duration: 30 // Mock duration
+              }))
+            }
+            reader.readAsDataURL(file)
             return 100
           }
           return prev + 10
@@ -563,14 +566,14 @@ export default function ReelsManagement() {
               <p className="text-sm text-gray-600 mb-3 line-clamp-2">{reel.description}</p>
               
               <div className="flex flex-wrap gap-1 mb-3">
-                {reel.hashtags.slice(0, 3).map((hashtag, index) => (
+                {(reel.hashtags || []).slice(0, 3).map((hashtag, index) => (
                   <Badge key={index} variant="outline" className="text-xs">
                     {hashtag}
                   </Badge>
                 ))}
-                {reel.hashtags.length > 3 && (
+                {(reel.hashtags || []).length > 3 && (
                   <Badge variant="outline" className="text-xs">
-                    +{reel.hashtags.length - 3}
+                    +{(reel.hashtags || []).length - 3}
                   </Badge>
                 )}
               </div>

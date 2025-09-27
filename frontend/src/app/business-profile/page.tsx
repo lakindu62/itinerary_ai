@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -10,35 +10,51 @@ import { Textarea } from '@/components/ui/textarea'
 import { 
   Star, 
   MapPin, 
-  Phone, 
-  Mail, 
-  Clock, 
   Heart,
   MessageCircle,
   Share,
+  Bookmark,
   Play,
   ChevronLeft,
   ChevronRight,
-  Search,
   Plus,
-  Filter,
   Eye
 } from 'lucide-react'
 
-interface BusinessProfile {
+interface Business {
   id: string
   businessName: string
-  description?: string
-  address?: string
-  phone?: string
-  email?: string
-  rating?: number
-  totalReviews?: number
+  description: string
+  category: string
+  location: string
+  coverImage: string
+  rating: number
+  totalReviews: number
   sliderImages: SliderImage[]
-  menuItems: MenuItem[]
   posts: Post[]
   reels: Reel[]
+  menuItems: MenuItem[]
   reviews: Review[]
+}
+
+interface MenuItem {
+  id: string
+  name: string
+  description: string
+  price: number
+  category: string
+  imageUrl?: string
+  isAvailable: boolean
+}
+
+interface Review {
+  id: string
+  customerName: string
+  rating: number
+  title: string
+  comment: string
+  createdAt: string
+  businessReply?: string
 }
 
 interface SliderImage {
@@ -50,96 +66,38 @@ interface SliderImage {
   isActive: boolean
 }
 
-interface MenuItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  category: string
-  imageUrl?: string
-  isAvailable: boolean
-  preparationTime: number
-  ingredients: string[]
-  allergens: string[]
-  isVegetarian: boolean
-  isVegan: boolean
-  isGlutenFree: boolean
-  calories?: number
-}
-
 interface Post {
   id: string
   title: string
   content: string
-  excerpt: string
-  imageUrl?: string
-  imageUrls?: string[]
-  category: string
-  tags: string[]
-  status: 'published'
+  imageUrls: string[]
+  author: string
   publishedAt: string
-  views: number
   likes: number
   comments: number
-  shares: number
-  author: string
 }
 
 interface Reel {
   id: string
   title: string
-  description: string
   videoUrl: string
-  thumbnailUrl?: string
-  duration: number
-  category: string
-  hashtags: string[]
-  isPublished: boolean
-  views: number
+  thumbnailUrl: string
+  author: string
+  publishedAt: string
   likes: number
   comments: number
-  shares: number
-  createdAt: string
 }
 
-interface Review {
-  id: string
-  customerName: string
-  customerEmail?: string
-  rating: number
-  title: string
-  comment: string
-  createdAt: string
-  updatedAt?: string
-  isApproved: boolean
-  isPublic: boolean
-  businessReply?: string
-  repliedAt?: string
-  helpful: number
-  category: string
-  type: string
-}
-
-const categories = [
-  'Appetizers',
-  'Main Courses', 
-  'Desserts',
-  'Beverages',
-  'Soups',
-  'Salads',
-  'Sides',
-  'Specials'
-]
-
-export default function PublicBusinessProfile() {
-  const [businessData, setBusinessData] = useState<BusinessProfile | null>(null)
+export default function BusinessProfilesPage() {
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [currentBusinessIndex, setCurrentBusinessIndex] = useState(0)
+  const [currentSliderIndex, setCurrentSliderIndex] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
+  const [feedTab, setFeedTab] = useState<'posts' | 'reels'>('posts')
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [menuPopupOpen, setMenuPopupOpen] = useState(false)
+  const [currentUserId] = useState('customer_123') // Mock user ID
   const [reviewFormData, setReviewFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -150,89 +108,67 @@ export default function PublicBusinessProfile() {
   })
 
   useEffect(() => {
-    loadBusinessData()
+    loadBusinesses()
   }, [])
 
-  const loadBusinessData = async () => {
+  useEffect(() => {
+    // Auto-slide every 15 seconds - cycle through slider images first, then businesses
+    const interval = setInterval(() => {
+      if (businesses.length > 0) {
+        const currentBusiness = businesses[currentBusinessIndex]
+        const sliderImages = currentBusiness.sliderImages || []
+        
+        if (sliderImages.length > 1) {
+          // If current business has multiple slider images, cycle through them
+          setCurrentSliderIndex((prev) => {
+            if (prev < sliderImages.length - 1) {
+              return prev + 1
+            } else {
+              // Move to next business and reset slider index
+              setCurrentBusinessIndex((prevBusiness) => 
+                prevBusiness === businesses.length - 1 ? 0 : prevBusiness + 1
+              )
+              return 0
+            }
+          })
+        } else {
+          // If only one or no slider images, just move to next business
+          setCurrentBusinessIndex((prev) => 
+            prev === businesses.length - 1 ? 0 : prev + 1
+          )
+          setCurrentSliderIndex(0)
+        }
+      }
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [businesses.length]) // Fixed: removed currentBusinessIndex to keep dependency array stable
+
+  const loadBusinesses = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123')
+      const response = await fetch('/api/business-profiles?getAllBusinesses=true')
       if (response.ok) {
         const data = await response.json()
-        const approvedRatings = data.ratings?.filter((rating: any) => rating.isApproved && rating.isPublic) || []
-        const averageRating = approvedRatings.length > 0 
-          ? approvedRatings.reduce((sum: number, rating: any) => sum + rating.rating, 0) / approvedRatings.length 
-          : 0
-        
-        setBusinessData({
-          id: data.profile.id,
-          businessName: data.profile.businessName || 'Demo Restaurant',
-          description: 'Welcome to our amazing restaurant! We serve delicious food with love and passion.',
-          address: '123 Main Street, City, State 12345',
-          phone: '+1 (555) 123-4567',
-          email: 'info@restaurant.com',
-          rating: averageRating,
-          totalReviews: approvedRatings.length,
-          sliderImages: data.sliderImages?.filter((img: SliderImage) => img.isActive) || [],
-          menuItems: data.menuItems?.filter((item: MenuItem) => item.isAvailable) || [],
-          posts: data.posts || [],
-          reels: data.reels || [],
-          reviews: approvedRatings || [] // Use approved ratings instead of old reviews array
-        })
+        setBusinesses(data.businesses || [])
       }
     } catch (error) {
-      console.error('Error loading business data:', error)
+      console.error('Error loading businesses:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const filteredMenuItems = businessData?.menuItems.filter(item => {
-    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch
-  }) || []
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
-      />
-    ))
-  }
-
-  const nextSlide = () => {
-    if (businessData?.sliderImages.length) {
-      setCurrentSlideIndex((prev) => 
-        prev === businessData.sliderImages.length - 1 ? 0 : prev + 1
-      )
-    }
-  }
-
-  const prevSlide = () => {
-    if (businessData?.sliderImages.length) {
-      setCurrentSlideIndex((prev) => 
-        prev === 0 ? businessData.sliderImages.length - 1 : prev - 1
-      )
-    }
-  }
-
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!businesses[currentBusinessIndex]) return
+    
     setReviewSubmitting(true)
-
+    
+    const currentBusiness = businesses[currentBusinessIndex]
+    
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123', {
+      const response = await fetch(`/api/business-profiles?ownerId=${getOwnerIdForBusiness(currentBusiness.id)}&submitterId=${currentUserId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -243,7 +179,7 @@ export default function PublicBusinessProfile() {
           title: reviewFormData.title,
           comment: reviewFormData.comment,
           category: reviewFormData.category,
-          isApproved: false, // Needs approval
+          isApproved: false,
           isPublic: true,
           helpful: 0
         })
@@ -252,18 +188,11 @@ export default function PublicBusinessProfile() {
       if (response.ok) {
         alert('Thank you for your review! It will be published after approval.')
         setReviewFormOpen(false)
-        setReviewFormData({
-          customerName: '',
-          customerEmail: '',
-          rating: 5,
-          title: '',
-          comment: '',
-          category: 'Overall Experience'
-        })
-        // Reload business data to update review count
-        loadBusinessData()
+        resetReviewForm()
+        loadBusinesses() // Reload to update review counts
       } else {
-        throw new Error('Failed to submit review')
+        const errorData = await response.json()
+        alert(errorData.error || 'Failed to submit review')
       }
     } catch (error) {
       console.error('Error submitting review:', error)
@@ -271,6 +200,17 @@ export default function PublicBusinessProfile() {
     } finally {
       setReviewSubmitting(false)
     }
+  }
+
+  const getOwnerIdForBusiness = (businessId: string) => {
+    // Map business IDs to owner IDs
+    const ownerMap: { [key: string]: string } = {
+      'business-demo-1': 'owner_demo',
+      'business-1': 'owner_1',
+      'business-2': 'owner_2', 
+      'business-3': 'owner_3'
+    }
+    return ownerMap[businessId] || 'owner_demo'
   }
 
   const resetReviewForm = () => {
@@ -284,696 +224,669 @@ export default function PublicBusinessProfile() {
     })
   }
 
+  const nextSlide = () => {
+    setCurrentBusinessIndex((prev) => 
+      prev === businesses.length - 1 ? 0 : prev + 1
+    )
+    setCurrentSliderIndex(0) // Reset slider index when changing business
+  }
+
+  const prevSlide = () => {
+    setCurrentBusinessIndex((prev) => 
+      prev === 0 ? businesses.length - 1 : prev - 1
+    )
+    setCurrentSliderIndex(0) // Reset slider index when changing business
+  }
+  
+  const nextSliderImage = () => {
+    const currentBusiness = businesses[currentBusinessIndex]
+    const sliderImages = currentBusiness?.sliderImages || []
+    if (sliderImages.length > 1) {
+      setCurrentSliderIndex((prev) => 
+        prev === sliderImages.length - 1 ? 0 : prev + 1
+      )
+    }
+  }
+
+  const prevSliderImage = () => {
+    const currentBusiness = businesses[currentBusinessIndex]
+    const sliderImages = currentBusiness?.sliderImages || []
+    if (sliderImages.length > 1) {
+      setCurrentSliderIndex((prev) => 
+        prev === 0 ? sliderImages.length - 1 : prev - 1
+      )
+    }
+  }
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+        }`}
+      />
+    ))
+  }
+
+  const getFeedItems = () => {
+    if (!businesses[currentBusinessIndex]) return []
+    
+    const currentBusiness = businesses[currentBusinessIndex]
+    
+    if (feedTab === 'posts') {
+      return currentBusiness.posts.map(post => ({ ...post, type: 'post' }))
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    } else {
+      return currentBusiness.reels.map(reel => ({ ...reel, type: 'reel' }))
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    }
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading business profile...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading businesses...</p>
         </div>
       </div>
     )
   }
 
-  if (!businessData) {
+  if (businesses.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Business Not Found</h2>
-          <p className="text-gray-600">The business profile could not be loaded.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Plus className="h-8 w-8 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-2">No Business Profiles Yet</h2>
+          <p className="text-gray-600 mb-6">
+            This is a clean production-ready system. Business owners can create their profiles to showcase their businesses here.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left">
+            <h3 className="font-semibold text-blue-900 mb-2">For Business Owners:</h3>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Create your business profile</li>
+              <li>• Upload slider images</li>
+              <li>• Add menu items and services</li>
+              <li>• Manage customer reviews with approval system</li>
+            </ul>
+          </div>
         </div>
       </div>
     )
   }
+
+  const currentBusiness = businesses[currentBusinessIndex]
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with Slider */}
-      <section className="relative h-96 bg-gray-900 overflow-hidden">
-        {businessData.sliderImages.length > 0 ? (
-          <div className="relative w-full h-full">
-            <img
-              src={businessData.sliderImages[currentSlideIndex]?.url}
-              alt={businessData.sliderImages[currentSlideIndex]?.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+      {/* Business Slider Section */}
+      <section className="relative h-96 bg-gradient-to-br from-blue-900 to-purple-900 overflow-hidden">
+        <div className="absolute inset-0">
+          {(() => {
+            const currentBusiness = businesses[currentBusinessIndex]
+            const sliderImages = currentBusiness?.sliderImages || []
+            const currentImage = sliderImages.length > 0 ? sliderImages[currentSliderIndex] : null
             
-            {businessData.sliderImages.length > 1 && (
-              <>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30"
-                  onClick={prevSlide}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white bg-opacity-20 hover:bg-opacity-30"
-                  onClick={nextSlide}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                  {businessData.sliderImages.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`w-3 h-3 rounded-full cursor-pointer ${
-                        index === currentSlideIndex ? 'bg-white' : 'bg-white bg-opacity-50'
-                      }`}
-                      onClick={() => setCurrentSlideIndex(index)}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <div className="text-center text-white">
-              <h1 className="text-4xl font-bold mb-2">{businessData.businessName}</h1>
-              <p className="text-xl">{businessData.description}</p>
-            </div>
-          </div>
-        )}
+            return (
+              <img 
+                src={currentImage?.url || currentBusiness.coverImage || '/placeholder-business.jpg'} 
+                alt={currentImage?.title || currentBusiness.businessName}
+                className="w-full h-full object-cover opacity-30"
+                onError={(e) => {
+                  // Fallback to cover image if slider image fails to load
+                  const target = e.target as HTMLImageElement
+                  target.src = currentBusiness.coverImage || '/placeholder-business.jpg'
+                }}
+              />
+            )
+          })()}
+        </div>
         
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-8">
-          <div className="max-w-7xl mx-auto">
-            <h1 className="text-4xl font-bold text-white mb-2">{businessData.businessName}</h1>
-            <p className="text-xl text-white opacity-90">{businessData.description}</p>
-          </div>
-        </div>
-      </section>
+        {/* Navigation Buttons - Only show if multiple slider images */}
+        {currentBusiness?.sliderImages && currentBusiness.sliderImages.length > 1 && (
+          <>
+            <button 
+              onClick={prevSliderImage}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors cursor-pointer"
+              title="Previous Image"
+            >
+              <ChevronLeft className="h-6 w-6 text-white" />
+            </button>
+            
+            <button 
+              onClick={nextSliderImage}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white/20 hover:bg-white/30 rounded-full p-2 transition-colors cursor-pointer"
+              title="Next Image"
+            >
+              <ChevronRight className="h-6 w-6 text-white" />
+            </button>
 
-      {/* Business Info Bar */}
-      <section className="bg-white shadow-sm py-6">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-5 w-5 text-gray-600" />
-              <span className="text-gray-700">{businessData.address}</span>
+            {/* Slider Image Indicators */}
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 flex space-x-2 z-10">
+              {currentBusiness.sliderImages.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSliderIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
+                    index === currentSliderIndex ? 'bg-white' : 'bg-white/40'
+                  }`}
+                  title={`Image ${index + 1}`}
+                />
+              ))}
             </div>
-            <div className="flex items-center space-x-2">
-              <Phone className="h-5 w-5 text-gray-600" />
-              <span className="text-gray-700">{businessData.phone}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Mail className="h-5 w-5 text-gray-600" />
-              <span className="text-gray-700">{businessData.email}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="flex">
-                {renderStars(Math.round(businessData.rating || 0))}
+          </>
+        )}
+
+        <div className="relative z-10 h-full flex items-center justify-center text-center text-white">
+          <div className="max-w-4xl mx-auto px-6">
+            <Badge className="mb-4 bg-white/20 text-white">
+              {currentBusiness.category}
+            </Badge>
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">
+              {currentBusiness.businessName}
+            </h1>
+            <p className="text-xl mb-6 text-gray-200">
+              {currentBusiness.description}
+            </p>
+            <div className="flex items-center justify-center space-x-4 text-sm mb-6">
+              <div className="flex items-center space-x-1">
+                <MapPin className="h-4 w-4" />
+                <span>{currentBusiness.location}</span>
               </div>
-              <span className="text-gray-700">
-                {(businessData.rating || 0) > 0 ? (businessData.rating || 0).toFixed(1) : 'No ratings'} ({businessData.totalReviews} {businessData.totalReviews === 1 ? 'rating' : 'ratings'})
-              </span>
+              <div className="flex items-center space-x-1">
+                {renderStars(Math.round(currentBusiness.rating))}
+                <span className="ml-1">({currentBusiness.totalReviews} reviews)</span>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center justify-center space-x-4">
+              <Button 
+                onClick={() => setMenuPopupOpen(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                variant="outline"
+              >
+                View Menu
+              </Button>
+              <Button 
+                onClick={() => setReviewFormOpen(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                variant="outline"
+              >
+                Write Review
+              </Button>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Navigation Tabs */}
-      <section className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex space-x-8 overflow-x-auto">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'menu', label: 'Menu' },
-              { id: 'posts', label: 'Posts' },
-              { id: 'reels', label: 'Reels' },
-              { id: 'reviews', label: 'Reviews' }
-            ].map((tab) => (
-              <Button
-                key={tab.id}
-                variant="ghost"
-                className={`py-4 px-2 border-b-2 rounded-none ${
-                  activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </div>
+        {/* Business Navigation Arrows */}
+        {businesses.length > 1 && (
+          <>
+            <button 
+              onClick={prevSlide}
+              className="absolute left-4 bottom-4 z-10 bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors cursor-pointer"
+              title="Previous Business"
+            >
+              <ChevronLeft className="h-5 w-5 text-white" />
+            </button>
+            
+            <button 
+              onClick={nextSlide}
+              className="absolute right-4 bottom-4 z-10 bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors cursor-pointer"
+              title="Next Business"
+            >
+              <ChevronRight className="h-5 w-5 text-white" />
+            </button>
+          </>
+        )}
+
+        {/* Slide Indicators */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+          {businesses.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentBusinessIndex(index)}
+              className={`w-3 h-3 rounded-full transition-colors cursor-pointer ${
+                index === currentBusinessIndex ? 'bg-white' : 'bg-white/40'
+              }`}
+              title={`Go to ${businesses[index]?.businessName}`}
+            />
+          ))}
         </div>
       </section>
 
-      {/* Content */}
-      <section className="py-8">
-        <div className="max-w-7xl mx-auto px-6">
-          {activeTab === 'overview' && (
-            <div className="space-y-8">
-              {/* Featured Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Featured Menu Items */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Featured Menu Items</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {businessData.menuItems.slice(0, 3).map((item) => (
-                        <div key={item.id} className="flex items-center space-x-3">
-                          <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
-                            {item.imageUrl && (
-                              <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold">{item.name}</h4>
-                            <p className="text-sm text-gray-600">${item.price}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {businessData.menuItems.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No menu items available</p>
-                    )}
-                  </CardContent>
-                </Card>
+      {/* Review Form Modal */}
+      {reviewFormOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Write a Review</h3>
+                  <p className="text-gray-600">Share your experience with {currentBusiness.businessName}</p>
+                </div>
+                <Button 
+                  onClick={() => setReviewFormOpen(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  ✕
+                </Button>
+              </div>
+              
+              <form onSubmit={handleReviewSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">Your Name *</Label>
+                    <Input
+                      id="customerName"
+                      value={reviewFormData.customerName}
+                      onChange={(e) => setReviewFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customerEmail">Email (optional)</Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      value={reviewFormData.customerEmail}
+                      onChange={(e) => setReviewFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                </div>
 
-                {/* Latest Posts */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Latest Posts</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {businessData.posts.slice(0, 3).map((post) => (
-                        <div key={post.id}>
-                          <h4 className="font-semibold mb-1">{post.title}</h4>
-                          <p className="text-sm text-gray-600 mb-2">{post.excerpt}</p>
-                          <div className="flex items-center space-x-4 text-xs text-gray-500">
-                            <span className="flex items-center">
-                              <Eye className="h-3 w-3 mr-1" />
-                              {formatNumber(post.views)}
-                            </span>
-                            <span className="flex items-center">
-                              <Heart className="h-3 w-3 mr-1" />
-                              {formatNumber(post.likes)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {businessData.posts.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No posts available</p>
-                    )}
-                  </CardContent>
-                </Card>
+                <div className="space-y-2">
+                  <Label>Rating *</Label>
+                  <div className="flex space-x-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-6 w-6 cursor-pointer transition-colors ${
+                          i < reviewFormData.rating 
+                            ? 'text-yellow-400 fill-current' 
+                            : 'text-gray-300 hover:text-yellow-400'
+                        }`}
+                        onClick={() => setReviewFormData(prev => ({ ...prev, rating: i + 1 }))}
+                      />
+                    ))}
+                    <span className="ml-2 text-sm text-gray-600">({reviewFormData.rating} star{reviewFormData.rating !== 1 ? 's' : ''})</span>
+                  </div>
+                </div>
 
-                {/* Recent Reviews */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recent Reviews</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {businessData.reviews.slice(0, 3).map((review) => (
-                        <div key={review.id}>
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-semibold text-sm">{review.customerName}</span>
+                <div className="space-y-2">
+                  <Label htmlFor="title">Review Title *</Label>
+                  <Input
+                    id="title"
+                    value={reviewFormData.title}
+                    onChange={(e) => setReviewFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Summarize your experience"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="comment">Your Review *</Label>
+                  <Textarea
+                    id="comment"
+                    value={reviewFormData.comment}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReviewFormData(prev => ({ ...prev, comment: e.target.value }))}
+                    placeholder="Tell others about your experience..."
+                    rows={4}
+                    required
+                    className="resize-none"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setReviewFormOpen(false)}
+                    disabled={reviewSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={reviewSubmitting}>
+                    {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Reviews & Ratings Section - Under Slider */}
+      <section className="py-8 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Rating Summary */}
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl font-bold text-yellow-500 mb-2">
+                  {currentBusiness.rating.toFixed(1)}
+                </div>
+                <div className="flex justify-center mb-2">
+                  {renderStars(Math.round(currentBusiness.rating))}
+                </div>
+                <p className="text-gray-600 text-sm">Based on {currentBusiness.totalReviews} reviews</p>
+              </CardContent>
+            </Card>
+
+            {/* Recent Reviews */}
+            <div className="md:col-span-2">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-semibold mb-4">Recent Reviews</h3>
+                  <div className="space-y-4 max-h-64 overflow-y-auto">
+                    {currentBusiness.reviews?.slice(0, 4).map((review) => (
+                      <div key={review.id} className="border-b pb-3 last:border-b-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-sm">{review.customerName}</span>
                             <div className="flex">
                               {renderStars(review.rating)}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600">{review.comment}</p>
-                        </div>
-                      ))}
-                    </div>
-                    {businessData.reviews.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No reviews available</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'menu' && (
-            <div className="space-y-6">
-              {/* Menu Header with Search and Filter */}
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Search menu items..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <div className="flex space-x-2 overflow-x-auto">
-                  <Button
-                    variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    onClick={() => setSelectedCategory('all')}
-                  >
-                    All
-                  </Button>
-                  {categories.map((category) => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? 'default' : 'outline'}
-                      onClick={() => setSelectedCategory(category)}
-                    >
-                      {category}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Menu Items Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredMenuItems.map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
-                    <div className="aspect-video bg-gray-100">
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-semibold">{item.name}</h3>
-                        <span className="font-bold text-green-600">${item.price}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                      
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {item.isVegetarian && <Badge variant="outline" className="text-xs">Vegetarian</Badge>}
-                        {item.isVegan && <Badge variant="outline" className="text-xs">Vegan</Badge>}
-                        {item.isGlutenFree && <Badge variant="outline" className="text-xs">Gluten Free</Badge>}
-                      </div>
-
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>{item.preparationTime} min</span>
-                        {item.calories && (
-                          <>
-                            <span className="mx-2">•</span>
-                            <span>{item.calories} cal</span>
-                          </>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredMenuItems.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-gray-600">No menu items found matching your criteria.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'posts' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-6">
-                {businessData.posts.map((post) => (
-                  <Card key={post.id}>
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="flex gap-4">
-                          <div className="flex-1">
-                            <h3 className="text-xl font-semibold mb-2">{post.title}</h3>
-                            <p className="text-gray-600 mb-4">{post.excerpt}</p>
-                            
-                            <div className="flex flex-wrap gap-1 mb-4">
-                              {post.tags.map((tag, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  #{tag}
-                                </Badge>
-                              ))}
-                            </div>
-
-                            <div className="flex items-center space-x-6 text-sm text-gray-500">
-                              <span>By {post.author}</span>
-                              <span>{new Date(post.publishedAt).toLocaleDateString()}</span>
-                              <div className="flex items-center space-x-4">
-                                <span className="flex items-center">
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  {formatNumber(post.views)}
-                                </span>
-                                <span className="flex items-center">
-                                  <Heart className="h-4 w-4 mr-1" />
-                                  {formatNumber(post.likes)}
-                                </span>
-                                <span className="flex items-center">
-                                  <MessageCircle className="h-4 w-4 mr-1" />
-                                  {formatNumber(post.comments)}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Multiple Images Display */}
-                        {(post.imageUrls && post.imageUrls.length > 0) || post.imageUrl ? (
-                          <div className="space-y-2">
-                            {post.imageUrls && post.imageUrls.length > 0 ? (
-                              <div className={`grid gap-2 ${
-                                post.imageUrls.length === 1 ? 'grid-cols-1' :
-                                post.imageUrls.length === 2 ? 'grid-cols-2' :
-                                post.imageUrls.length === 3 ? 'grid-cols-3' :
-                                'grid-cols-2'
-                              }`}>
-                                {post.imageUrls.slice(0, 4).map((imageUrl, imageIndex) => (
-                                  <div key={imageIndex} className={`relative bg-gray-100 rounded-lg overflow-hidden ${
-                                    post.imageUrls!.length === 1 ? 'aspect-video' : 'aspect-square'
-                                  }`}>
-                                    <img
-                                      src={imageUrl}
-                                      alt={`${post.title} - Image ${imageIndex + 1}`}
-                                      className="w-full h-full object-cover"
-                                    />
-                                    {imageIndex === 3 && post.imageUrls!.length > 4 && (
-                                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                                        <span className="text-white font-semibold text-lg">
-                                          +{post.imageUrls!.length - 4}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : post.imageUrl && (
-                              <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
-                                <img
-                                  src={post.imageUrl}
-                                  alt={post.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                          </div>
-                        ) : null}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {businessData.posts.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-gray-600">No posts available.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'reels' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {businessData.reels.map((reel) => (
-                  <Card key={reel.id} className="overflow-hidden">
-                    <div className="aspect-[9/16] bg-gray-100 relative group">
-                      {reel.videoUrl ? (
-                        <div className="relative w-full h-full group">
-                          <video
-                            className="w-full h-full object-cover"
-                            poster={reel.thumbnailUrl}
-                            controls
-                            preload="metadata"
-                            muted
-                            playsInline
-                            onLoadedMetadata={(e) => {
-                              // Ensure video is ready to play
-                              const video = e.target as HTMLVideoElement
-                              video.currentTime = 0
-                            }}
-                          >
-                            <source src={reel.videoUrl} type="video/mp4" />
-                            <source src={reel.videoUrl} type="video/webm" />
-                            <source src={reel.videoUrl} type="video/ogg" />
-                            Your browser does not support the video tag.
-                          </video>
-                          
-                          {/* Custom Play Button Overlay */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                            <div className="bg-white bg-opacity-90 rounded-full p-4 shadow-lg">
-                              <Play className="h-8 w-8 text-gray-800 ml-1" />
-                            </div>
-                          </div>
-                        </div>
-                      ) : reel.thumbnailUrl ? (
-                        <img
-                          src={reel.thumbnailUrl}
-                          alt={reel.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Play className="h-12 w-12 text-gray-400" />
-                        </div>
-                      )}
-                      <div className="absolute bottom-2 left-2">
-                        <Badge variant="outline" className="bg-black bg-opacity-50 text-white">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {Math.floor(reel.duration / 60)}:{(reel.duration % 60).toString().padStart(2, '0')}
-                        </Badge>
-                      </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold mb-2">{reel.title}</h3>
-                      <p className="text-sm text-gray-600 mb-3">{reel.description}</p>
-                      
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {reel.hashtags.slice(0, 3).map((hashtag, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {hashtag}
-                          </Badge>
-                        ))}
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
-                        <div className="flex items-center">
-                          <Eye className="h-3 w-3 mr-1" />
-                          {formatNumber(reel.views)}
-                        </div>
-                        <div className="flex items-center">
-                          <Heart className="h-3 w-3 mr-1" />
-                          {formatNumber(reel.likes)}
-                        </div>
-                        <div className="flex items-center">
-                          <MessageCircle className="h-3 w-3 mr-1" />
-                          {formatNumber(reel.comments)}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {businessData.reels.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-gray-600">No reels available.</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'reviews' && (
-            <div className="space-y-6">
-              {/* Add Review Section */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>Customer Reviews</CardTitle>
-                      <CardDescription>Share your experience with other customers</CardDescription>
-                    </div>
-                    <Button 
-                      onClick={() => {
-                        setReviewFormOpen(!reviewFormOpen)
-                        if (!reviewFormOpen) resetReviewForm()
-                      }}
-                      className="flex items-center gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Write a Review
-                    </Button>
-                  </div>
-                </CardHeader>
-                
-                {reviewFormOpen && (
-                  <CardContent>
-                    <form onSubmit={handleReviewSubmit} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="customerName">Your Name *</Label>
-                          <Input
-                            id="customerName"
-                            value={reviewFormData.customerName}
-                            onChange={(e) => setReviewFormData(prev => ({ ...prev, customerName: e.target.value }))}
-                            placeholder="Enter your name"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="customerEmail">Email (optional)</Label>
-                          <Input
-                            id="customerEmail"
-                            type="email"
-                            value={reviewFormData.customerEmail}
-                            onChange={(e) => setReviewFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
-                            placeholder="your@email.com"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Rating *</Label>
-                        <div className="flex space-x-1">
-                          {Array.from({ length: 5 }, (_, i) => (
-                            <Star
-                              key={i}
-                              className={`h-6 w-6 cursor-pointer transition-colors ${
-                                i < reviewFormData.rating 
-                                  ? 'text-yellow-400 fill-current' 
-                                  : 'text-gray-300 hover:text-yellow-400'
-                              }`}
-                              onClick={() => setReviewFormData(prev => ({ ...prev, rating: i + 1 }))}
-                            />
-                          ))}
-                          <span className="ml-2 text-sm text-gray-600">({reviewFormData.rating} star{reviewFormData.rating !== 1 ? 's' : ''})</span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="category">Category</Label>
-                        <select
-                          id="category"
-                          value={reviewFormData.category}
-                          onChange={(e) => setReviewFormData(prev => ({ ...prev, category: e.target.value }))}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          <option value="Overall Experience">Overall Experience</option>
-                          <option value="Food Quality">Food Quality</option>
-                          <option value="Service">Service</option>
-                          <option value="Ambiance">Ambiance</option>
-                          <option value="Value for Money">Value for Money</option>
-                          <option value="Cleanliness">Cleanliness</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Review Title *</Label>
-                        <Input
-                          id="title"
-                          value={reviewFormData.title}
-                          onChange={(e) => setReviewFormData(prev => ({ ...prev, title: e.target.value }))}
-                          placeholder="Summarize your experience"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="comment">Your Review *</Label>
-                        <Textarea
-                          id="comment"
-                          value={reviewFormData.comment}
-                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setReviewFormData(prev => ({ ...prev, comment: e.target.value }))}
-                          placeholder="Tell others about your experience..."
-                          rows={4}
-                          required
-                          className="resize-none"
-                        />
-                      </div>
-
-                      <div className="flex justify-end space-x-3">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => setReviewFormOpen(false)}
-                          disabled={reviewSubmitting}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={reviewSubmitting}>
-                          {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                )}
-              </Card>
-
-              {/* Recent Reviews */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">
-                    Recent Reviews ({businessData.reviews.length})
-                  </h3>
-                  {businessData.reviews.length === 0 && (
-                    <p className="text-gray-500 text-sm">No reviews yet. Be the first to review!</p>
-                  )}
-                </div>
-                
-                <div className="grid grid-cols-1 gap-4">
-                {businessData.reviews
-                  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Sort by newest first
-                  .map((review) => (
-                  <Card key={review.id}>
-                    <CardContent className="pt-6">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-semibold">
-                            {review.customerName.charAt(0).toUpperCase()}
+                          <span className="text-xs text-gray-500">
+                            {new Date(review.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className="font-semibold">{review.customerName}</h4>
-                            <div className="flex">
-                              {renderStars(review.rating)}
-                            </div>
-                            <span className="text-sm text-gray-500">
-                              {new Date(review.createdAt).toLocaleDateString()}
-                            </span>
+                        <p className="text-sm font-medium mb-1">{review.title}</p>
+                        <p className="text-xs text-gray-600 mb-2">{review.comment}</p>
+                        {review.businessReply && (
+                          <div className="bg-gray-50 p-2 rounded text-xs">
+                            <span className="font-medium text-blue-600">Business Reply:</span>
+                            <p className="text-gray-700 mt-1">{review.businessReply}</p>
                           </div>
-                          <h5 className="font-medium mb-2">{review.title}</h5>
-                          <p className="text-gray-700 mb-3">{review.comment}</p>
-                          
-                          {review.businessReply && (
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-semibold text-sm text-blue-600">Business Reply</span>
-                                <span className="text-xs text-gray-500">
-                                  {review.repliedAt && new Date(review.repliedAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-700">{review.businessReply}</p>
-                            </div>
+                        )}
+                      </div>
+                    )) || (
+                      <p className="text-gray-600 text-sm">No reviews yet</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Menu Popup Modal */}
+      {menuPopupOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold">Menu - {currentBusiness.businessName}</h2>
+                <Button 
+                  onClick={() => setMenuPopupOpen(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {currentBusiness.menuItems?.map((item) => (
+                  <Card key={item.id} className="overflow-hidden">
+                    <CardContent className="p-0">
+                      {item.imageUrl && (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name}
+                          className="w-full h-32 object-cover"
+                        />
+                      )}
+                      <div className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold text-lg">{item.name}</h3>
+                          <Badge variant={item.isAvailable ? "default" : "secondary"}>
+                            ${item.price}
+                          </Badge>
+                        </div>
+                        <p className="text-gray-600 text-sm">{item.description}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {item.category}
+                          </Badge>
+                          {!item.isAvailable && (
+                            <span className="text-red-500 text-xs">Out of Stock</span>
                           )}
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )) || (
+                  <div className="col-span-full text-center py-8">
+                    <p className="text-gray-600">No menu items available</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Tabbed Feed Section */}
+      <section className="py-8">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Content from {currentBusiness.businessName}</h2>
+            
+            {/* Tab Switcher */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setFeedTab('posts')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  feedTab === 'posts'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Posts ({currentBusiness.posts.length})
+              </button>
+              <button
+                onClick={() => setFeedTab('reels')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  feedTab === 'reels'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Reels ({currentBusiness.reels.length})
+              </button>
+            </div>
+          </div>
+
+          {/* Feed Content */}
+          <div className={`space-y-4 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 ${
+            feedTab === 'reels' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-none' : ''
+          }`}>
+{feedTab === 'posts' ? (
+              // Posts Layout
+              getFeedItems().map((item: any) => (
+                <Card key={item.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <div className="aspect-video bg-gray-100 relative">
+                        {item.imageUrls && item.imageUrls.length > 0 && (
+                          <img 
+                            src={item.imageUrls[0]} 
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-4 left-4 right-4 text-white">
+                          <h3 className="font-bold text-xl mb-2">{item.title}</h3>
+                          <p className="text-sm text-gray-200 line-clamp-2">{item.content}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Post Stats */}
+                      <div className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <button className="flex items-center space-x-1 text-gray-600 hover:text-red-500 transition-colors">
+                              <Heart className="h-5 w-5" />
+                              <span>{item.likes}</span>
+                            </button>
+                            <button className="flex items-center space-x-1 text-gray-600 hover:text-blue-500 transition-colors">
+                              <MessageCircle className="h-5 w-5" />
+                              <span>{item.comments}</span>
+                            </button>
+                            <button className="flex items-center space-x-1 text-gray-600 hover:text-green-500 transition-colors">
+                              <Share className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <span className="text-sm text-gray-500">{new Date(item.publishedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              // Reels Layout - Beautified TikTok-style grid
+              getFeedItems().map((item: any) => (
+                <Card key={item.id} className="overflow-hidden group hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-white to-gray-50">
+                  <CardContent className="p-0">
+                    <div className="relative">
+                      <div className="aspect-[9/16] bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 relative overflow-hidden">
+                        {item.videoUrl ? (
+                          <video 
+                            src={item.videoUrl}
+                            className="w-full h-full object-cover cursor-pointer"
+                            poster={item.thumbnailUrl}
+                            muted
+                            autoPlay
+                            loop
+                            playsInline
+                            onMouseEnter={(e) => e.currentTarget.play()}
+                            onMouseLeave={(e) => e.currentTarget.pause()}
+                            onClick={(e) => {
+                              if (e.currentTarget.paused) {
+                                e.currentTarget.play()
+                              } else {
+                                e.currentTarget.pause()
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center cursor-pointer">
+                            <Play className="h-16 w-16 text-white/80" />
+                          </div>
+                        )}
+                        
+                        {/* Overlay gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                        
+                        {/* Play button overlay */}
+                        <div 
+                          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const video = e.currentTarget.parentElement?.querySelector('video')
+                            if (video) {
+                              if (video.paused) {
+                                video.play()
+                              } else {
+                                video.pause()
+                              }
+                            }
+                          }}
+                        >
+                          <div className="bg-white/20 backdrop-blur-sm rounded-full p-4 pointer-events-none">
+                            <Play className="h-8 w-8 text-white" />
+                          </div>
+                        </div>
+                        
+                        {/* Content overlay */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <h3 className="font-bold text-white text-lg mb-1 line-clamp-2">{item.title}</h3>
+                          {item.description && (
+                            <p className="text-white/90 text-sm line-clamp-1">{item.description}</p>
+                          )}
+                        </div>
+                        
+                        {/* Side action buttons */}
+                        <div className="absolute right-3 bottom-20 flex flex-col space-y-3 transform translate-x-12 group-hover:translate-x-0 transition-transform duration-300">
+                          <button className="bg-white/20 backdrop-blur-sm rounded-full p-2.5 text-white hover:bg-white/30 transition-all duration-200 hover:scale-110">
+                            <Heart className="h-5 w-5" />
+                          </button>
+                          <button className="bg-white/20 backdrop-blur-sm rounded-full p-2.5 text-white hover:bg-white/30 transition-all duration-200 hover:scale-110">
+                            <MessageCircle className="h-5 w-5" />
+                          </button>
+                          <button className="bg-white/20 backdrop-blur-sm rounded-full p-2.5 text-white hover:bg-white/30 transition-all duration-200 hover:scale-110">
+                            <Share className="h-5 w-5" />
+                          </button>
+                          <button className="bg-white/20 backdrop-blur-sm rounded-full p-2.5 text-white hover:bg-white/30 transition-all duration-200 hover:scale-110">
+                            <Bookmark className="h-5 w-5" />
+                          </button>
+                        </div>
+                        
+                        {/* View count badge */}
+                        <div className="absolute top-3 left-3">
+                          <div className="bg-black/40 backdrop-blur-sm rounded-full px-3 py-1 text-white text-xs font-medium">
+                            {item.views || 0} views
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Reel stats footer */}
+                      <div className="p-3 bg-white">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-3">
+                            <span className="flex items-center space-x-1 text-red-500">
+                              <Heart className="h-4 w-4" />
+                              <span className="font-medium">{item.likes}</span>
+                            </span>
+                            <span className="flex items-center space-x-1 text-blue-500">
+                              <MessageCircle className="h-4 w-4" />
+                              <span className="font-medium">{item.comments}</span>
+                            </span>
+                          </div>
+                          <span className="text-gray-500 text-xs">{new Date(item.publishedAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+            
+            {getFeedItems().length === 0 && (
+              <div className="text-center py-12 col-span-full">
+                <div className="bg-gray-50 rounded-lg p-8">
+                  {feedTab === 'posts' ? (
+                    <>
+                      <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 text-lg font-medium">No posts yet</p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        {currentBusiness.businessName} hasn't shared any posts yet.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 text-lg font-medium">No reels yet</p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        {currentBusiness.businessName} hasn't created any reels yet.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
-
-              {businessData.reviews.length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-gray-600">No reviews available.</p>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </section>
     </div>

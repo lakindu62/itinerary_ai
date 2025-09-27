@@ -46,7 +46,7 @@ interface SliderImage {
   order: number
   isActive: boolean
   filename: string
-  type: 'image'
+  type: 'sliderImage'
 }
 
 export default function SliderManagement() {
@@ -71,7 +71,7 @@ export default function SliderManagement() {
   const loadSliderImages = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123')
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo')
       if (response.ok) {
         const data = await response.json()
         setSliderImages(data.sliderImages || [])
@@ -91,13 +91,13 @@ export default function SliderManagement() {
     try {
       const method = editingImage ? 'PUT' : 'POST'
       
-      const response = await fetch('/api/business-profiles?ownerId=user_123', {
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'image',
+          type: 'sliderImage',
           id: editingImage?.id,
           ...formData
         }),
@@ -136,7 +136,7 @@ export default function SliderManagement() {
   const handleDelete = async (imageId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123&itemId=${imageId}&type=image`, {
+      const response = await fetch(`/api/business-profiles?ownerId=owner_demo&itemId=${imageId}&itemType=sliderImage`, {
         method: 'DELETE'
       })
 
@@ -157,13 +157,13 @@ export default function SliderManagement() {
   const toggleActive = async (imageId: string, isActive: boolean) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123', {
+      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          type: 'image',
+          type: 'sliderImage',
           id: imageId,
           isActive: !isActive 
         }),
@@ -198,13 +198,17 @@ export default function SliderManagement() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // In a real app, you'd upload to a service like AWS S3 or similar
-      const url = URL.createObjectURL(file)
-      setFormData(prev => ({
-        ...prev,
-        url,
-        filename: file.name
-      }))
+      // Convert file to base64 data URL for persistent storage
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const url = event.target?.result as string
+        setFormData(prev => ({
+          ...prev,
+          url,
+          filename: file.name
+        }))
+      }
+      reader.readAsDataURL(file)
     }
   }
 

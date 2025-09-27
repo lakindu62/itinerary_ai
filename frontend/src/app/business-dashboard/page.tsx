@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -33,44 +33,108 @@ import Analytics from './components/Analytics'
 export default function BusinessDashboard() {
   const [activeTab, setActiveTab] = useState('overview')
 
-  // Mock data for overview cards
+  const [currentUserId] = useState('owner_demo') // Mock user ID - in production, get from auth
+  const [businessProfile, setBusinessProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    loadBusinessProfile()
+  }, [])
+
+  const loadBusinessProfile = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/business-profiles?ownerId=${currentUserId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setBusinessProfile(data.profile)
+      }
+    } catch (error) {
+      console.error('Error loading business profile:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Production-ready stats - will show real data once profile exists
   const stats = [
     {
-      title: 'Total Views',
-      value: '12,345',
-      change: '+12%',
-      icon: Eye,
+      title: 'Slider Images',
+      value: businessProfile?.sliderImages?.length || '0',
+      change: 'Active images',
+      icon: Image,
       color: 'text-blue-600'
     },
     {
-      title: 'Total Reviews',
-      value: '234',
-      change: '+8%',
-      icon: MessageSquare,
+      title: 'Menu Items',
+      value: businessProfile?.menuItems?.length || '0', 
+      change: 'Available items',
+      icon: Menu,
       color: 'text-green-600'
     },
     {
-      title: 'Average Rating',
-      value: '4.8',
-      change: '+0.2',
-      icon: Star,
+      title: 'Pending Reviews',
+      value: businessProfile?.ratings?.filter((r: any) => !r.isApproved)?.length || '0',
+      change: 'Need approval',
+      icon: MessageSquare,
       color: 'text-yellow-600'
     },
     {
-      title: 'Monthly Revenue',
-      value: '$8,432',
-      change: '+15%',
-      icon: DollarSign,
+      title: 'Published Reviews',
+      value: businessProfile?.ratings?.filter((r: any) => r.isApproved)?.length || '0',
+      change: 'Live reviews',
+      icon: Star,
       color: 'text-purple-600'
     }
   ]
 
-  const recentActivities = [
-    { type: 'review', message: 'New 5-star review received', time: '2 hours ago' },
-    { type: 'booking', message: 'New booking for tomorrow', time: '4 hours ago' },
-    { type: 'post', message: 'New post published', time: '6 hours ago' },
-    { type: 'menu', message: 'Menu item updated', time: '1 day ago' }
-  ]
+  const getRecentActivities = () => {
+    if (!businessProfile) return []
+    
+    const activities = []
+    
+    // Recent reviews (pending approval)
+    const pendingReviews = businessProfile.ratings?.filter((r: any) => !r.isApproved) || []
+    pendingReviews.slice(0, 2).forEach((review: any) => {
+      activities.push({
+        type: 'review',
+        message: `New ${review.rating}-star review from ${review.customerName} needs approval`,
+        time: new Date(review.createdAt).toLocaleDateString()
+      })
+    })
+    
+    // Recent approved reviews
+    const approvedReviews = businessProfile.ratings?.filter((r: any) => r.isApproved) || []
+    approvedReviews.slice(0, 1).forEach((review: any) => {
+      activities.push({
+        type: 'approved',
+        message: `Review from ${review.customerName} was approved and published`,
+        time: new Date(review.createdAt).toLocaleDateString()
+      })
+    })
+    
+    // If no activities, show setup message
+    if (activities.length === 0) {
+      activities.push({
+        type: 'setup',
+        message: 'Complete your business profile setup to start receiving reviews',
+        time: 'Get started'
+      })
+    }
+    
+    return activities.slice(0, 4)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading your business dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -78,7 +142,19 @@ export default function BusinessDashboard() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Business Dashboard</h1>
-          <p className="text-gray-600">Manage your business profile, content, and analytics</p>
+          <p className="text-gray-600">
+            {businessProfile ? 
+              `Manage ${businessProfile.businessName || 'your business'} profile, content, and analytics` :
+              'Create and manage your business profile'
+            }
+          </p>
+          {!businessProfile && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-blue-800 text-sm">
+                <strong>Welcome!</strong> Start by creating your business profile in the Overview tab to showcase your business to customers.
+              </p>
+            </div>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -145,38 +221,53 @@ export default function BusinessDashboard() {
                   <CardDescription>Manage your business content</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button 
-                    onClick={() => setActiveTab('slider')} 
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <Image className="mr-2 h-4 w-4" />
-                    Add Slider Image
-                  </Button>
-                  <Button 
-                    onClick={() => setActiveTab('menu')} 
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <Menu className="mr-2 h-4 w-4" />
-                    Update Menu
-                  </Button>
-                  <Button 
-                    onClick={() => setActiveTab('posts')} 
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Create Post
-                  </Button>
-                  <Button 
-                    onClick={() => setActiveTab('reels')} 
-                    className="w-full justify-start"
-                    variant="outline"
-                  >
-                    <Video className="mr-2 h-4 w-4" />
-                    Upload Reel
-                  </Button>
+                  {!businessProfile ? (
+                    <div className="text-center p-4">
+                      <p className="text-sm text-gray-600 mb-4">Create your business profile to get started</p>
+                      <Button 
+                        onClick={() => setActiveTab('slider')} 
+                        className="w-full"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        Set Up Business Profile
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Button 
+                        onClick={() => setActiveTab('ratings')} 
+                        className="w-full justify-start"
+                        variant="outline"
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Manage Reviews ({businessProfile.ratings?.filter((r: any) => !r.isApproved)?.length || 0} pending)
+                      </Button>
+                      <Button 
+                        onClick={() => setActiveTab('slider')} 
+                        className="w-full justify-start"
+                        variant="outline"
+                      >
+                        <Image className="mr-2 h-4 w-4" />
+                        Add Slider Image
+                      </Button>
+                      <Button 
+                        onClick={() => setActiveTab('menu')} 
+                        className="w-full justify-start"
+                        variant="outline"
+                      >
+                        <Menu className="mr-2 h-4 w-4" />
+                        Update Menu
+                      </Button>
+                      <Button 
+                        onClick={() => setActiveTab('posts')} 
+                        className="w-full justify-start"
+                        variant="outline"
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Create Post
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -188,10 +279,14 @@ export default function BusinessDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {recentActivities.map((activity, index) => (
+                    {getRecentActivities().map((activity: any, index: number) => (
                       <div key={index} className="flex items-center justify-between">
                         <div className="flex items-center space-x-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.type === 'review' ? 'bg-yellow-500' : 
+                            activity.type === 'approved' ? 'bg-green-500' : 
+                            'bg-blue-500'
+                          }`}></div>
                           <span className="text-sm">{activity.message}</span>
                         </div>
                         <span className="text-xs text-gray-500">{activity.time}</span>
