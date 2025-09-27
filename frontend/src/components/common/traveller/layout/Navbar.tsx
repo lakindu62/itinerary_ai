@@ -48,6 +48,16 @@ function Navbar() {
                             </Link>
                         </Button>
 
+                        {/* Business Dashboard Button - Only show when signed in */}
+                        <SignedIn>
+                            <Button variant="outline" className="flex items-center gap-2" asChild>
+                                <Link href="/business-dashboard">
+                                    <Users className="w-4 h-4" />
+                                    <span className="hidden lg:inline">Seller Dashboard</span>
+                                </Link>
+                            </Button>
+                        </SignedIn>
+
                         <Button variant="ghost" className="flex items-center gap-2" asChild>
                             <Link href="/notifications">
                                 <BellIcon className="w-4 h-4" />
