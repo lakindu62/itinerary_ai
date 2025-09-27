@@ -35,6 +35,8 @@ import {
   Award
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
+import { useAuth } from '@/hooks/useAuth'
+import { sendReviewApprovalNotification, getApprovalMessage } from '@/lib/notifications'
 
 interface Rating {
   id: string
@@ -64,45 +66,64 @@ const categories = [
 ]
 
 export default function RatingManagement() {
+  const { userId } = useAuth()
   const [ratings, setRatings] = useState<Rating[]>([])
-  const [loading, setLoading] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [sortBy, setSortBy] = useState('newest')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingRating, setEditingRating] = useState<Rating | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [selectedRating, setSelectedRating] = useState<string>('all')
+  const [loading, setLoading] = useState(true)
   const [replyDialogOpen, setReplyDialogOpen] = useState(false)
-  const [replyText, setReplyText] = useState('')
   const [replyingToRating, setReplyingToRating] = useState<Rating | null>(null)
+  const [replyText, setReplyText] = useState('')
 
+  // Form state
   const [formData, setFormData] = useState({
     customerName: '',
     customerEmail: '',
-    rating: 5,
     title: '',
     comment: '',
-    category: '',
-    isApproved: true,
-    isPublic: true,
+    rating: 5,
+    category: 'Overall Experience',
     orderNumber: ''
   })
 
   useEffect(() => {
-    loadRatings()
-  }, [])
+    if (userId) {
+      fetchRatings()
+    }
+  }, [userId])
 
-  const loadRatings = async () => {
-    setLoading(true)
+  const fetchRatings = async () => {
+    if (!userId) {
+      console.log('No userId available for fetching ratings')
+      return
+    }
+    
     try {
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo')
+      setLoading(true)
+      console.log('Fetching ratings for userId:', userId)
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
+      console.log('Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
-        setRatings(data.ratings || [])
+        console.log('API Response data:', data)
+        
+        // The API returns an object with ratings property directly
+        if (data && data.ratings && Array.isArray(data.ratings)) {
+          console.log('Found ratings:', data.ratings.length, 'ratings')
+          setRatings(data.ratings)
+        } else {
+          console.log('No ratings found or invalid data structure')
+          setRatings([])
+        }
       } else {
-        console.error('Failed to load ratings')
+        console.error('Failed to fetch ratings, status:', response.status)
         setRatings([])
       }
     } catch (error) {
-      console.error('Error loading ratings:', error)
+      console.error('Error fetching ratings:', error)
       setRatings([])
     } finally {
       setLoading(false)
@@ -111,126 +132,218 @@ export default function RatingManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    if (!userId) return
 
     try {
-      const ratingData = {
-        type: 'rating',
-        customerName: formData.customerName,
-        customerEmail: formData.customerEmail,
-        rating: formData.rating,
-        title: formData.title,
-        comment: formData.comment,
-        category: formData.category,
-        isApproved: formData.isApproved,
-        isPublic: formData.isPublic,
-        orderNumber: formData.orderNumber,
-        helpful: editingRating?.helpful || 0,
-        photos: editingRating?.photos || []
-      }
-
       if (editingRating) {
-        const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
+        // Update existing rating
+        const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...ratingData, id: editingRating.id })
+          body: JSON.stringify({
+            ...editingRating,
+            ...formData,
+            type: 'rating',
+            updatedAt: new Date().toISOString()
+          })
         })
+        
         if (response.ok) {
+          setRatings(ratings.map(r => r.id === editingRating.id ? { ...r, ...formData } : r))
           toast.success('Rating updated successfully!')
-          loadRatings()
         } else {
-          throw new Error('Failed to update rating')
+          toast.error('Failed to update rating')
         }
       } else {
-        const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
+        // Create new rating
+        const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(ratingData)
+          body: JSON.stringify({
+            type: 'rating',
+            ...formData,
+            createdAt: new Date().toISOString(),
+            isApproved: false,
+            isPublic: false,
+            helpful: 0,
+            id: Date.now().toString()
+          })
         })
+        
         if (response.ok) {
-          toast.success('Rating created successfully!')
-          loadRatings()
+          await fetchRatings()
+          toast.success('Rating added successfully!')
         } else {
-          throw new Error('Failed to create rating')
+          toast.error('Failed to add rating')
         }
       }
-
-      setDialogOpen(false)
+      
       resetForm()
+      setDialogOpen(false)
     } catch (error) {
       console.error('Error saving rating:', error)
-      toast.error('Failed to save rating')
-    } finally {
-      setLoading(false)
+      toast.error('An error occurred while saving the rating')
     }
   }
 
   const handleDelete = async (ratingId: string) => {
+    if (!userId) return
+    
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ratingId, type: 'rating' })
       })
+      
       if (response.ok) {
+        setRatings(ratings.filter(r => r.id !== ratingId))
         toast.success('Rating deleted successfully!')
-        loadRatings()
       } else {
-        throw new Error('Failed to delete rating')
+        toast.error('Failed to delete rating')
       }
     } catch (error) {
       console.error('Error deleting rating:', error)
-      toast.error('Failed to delete rating')
+      toast.error('An error occurred while deleting the rating')
     }
   }
 
   const handleReply = async () => {
-    if (!replyingToRating || !replyText.trim()) return
+    if (!replyingToRating || !replyText.trim() || !userId) return
 
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'rating',
-          id: replyingToRating.id,
+          ...replyingToRating,
           businessReply: replyText,
           repliedAt: new Date().toISOString()
         })
       })
+
       if (response.ok) {
+        setRatings(ratings.map(r => 
+          r.id === replyingToRating.id 
+            ? { ...r, businessReply: replyText, repliedAt: new Date().toISOString() }
+            : r
+        ))
         toast.success('Reply posted successfully!')
-        loadRatings()
         setReplyDialogOpen(false)
         setReplyText('')
         setReplyingToRating(null)
       } else {
-        throw new Error('Failed to post reply')
+        toast.error('Failed to post reply')
       }
     } catch (error) {
       console.error('Error posting reply:', error)
-      toast.error('Failed to post reply')
+      toast.error('An error occurred while posting the reply')
+    }
+  }
+
+  const addSampleData = async () => {
+    if (!userId) return
+
+    const sampleRatings = [
+      {
+        id: `sample_${Date.now()}_1`,
+        customerName: 'Sarah Johnson',
+        customerEmail: 'sarah.j@example.com',
+        rating: 5,
+        title: 'Excellent service and food!',
+        comment: 'Had an amazing experience at this restaurant. The staff was friendly and the food was delicious. Will definitely come back!',
+        category: 'Overall Experience',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        isApproved: false,
+        isPublic: false,
+        helpful: 12,
+        orderNumber: 'ORD001'
+      },
+      {
+        id: `sample_${Date.now()}_2`,
+        customerName: 'Mike Chen',
+        customerEmail: 'mike.c@example.com',
+        rating: 4,
+        title: 'Great atmosphere',
+        comment: 'Love the ambiance here. Perfect for a date night. Food was good but could be better.',
+        category: 'Service',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        isApproved: false,
+        isPublic: false,
+        helpful: 8,
+        orderNumber: 'ORD002'
+      }
+    ]
+
+    try {
+      for (const rating of sampleRatings) {
+        await fetch(`/api/business-profiles?ownerId=${userId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(rating)
+        })
+      }
+      
+      await fetchRatings()
+      toast.success('Sample reviews added! You can now test the approval system.')
+    } catch (error) {
+      console.error('Error adding sample data:', error)
+      toast.error('Failed to add sample data')
     }
   }
 
   const handleApprovalChange = async (ratingId: string, isApproved: boolean) => {
+    if (!userId) return
+
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=owner_demo`, {
+      const rating = ratings.find(r => r.id === ratingId)
+      if (!rating) return
+
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'rating',
-          id: ratingId,
-          isApproved
+          ...rating,
+          type: 'rating', // Add the type field for API to identify which array to update
+          isApproved,
+          isPublic: isApproved,
+          updatedAt: new Date().toISOString()
         })
       })
+
       if (response.ok) {
-        toast.success(`Rating ${isApproved ? 'approved' : 'disapproved'} successfully!`)
-        loadRatings()
+        setRatings(ratings.map(r => 
+          r.id === ratingId 
+            ? { ...r, isApproved, isPublic: isApproved }
+            : r
+        ))
+        
+        // Send notification to customer
+        if (rating.customerEmail) {
+          try {
+            const notificationData = {
+              customerEmail: rating.customerEmail,
+              customerName: rating.customerName,
+              businessName: 'Your Business', // You might want to get this from business profile
+              reviewTitle: rating.title,
+              isApproved,
+              message: getApprovalMessage(isApproved, 'Your Business', rating.title).message
+            }
+            await sendReviewApprovalNotification(notificationData)
+            toast.success(`Rating ${isApproved ? 'approved' : 'disapproved'} successfully! Customer has been notified.`)
+          } catch (notificationError) {
+            console.error('Failed to send notification:', notificationError)
+            toast.success(`Rating ${isApproved ? 'approved' : 'disapproved'} successfully! (Note: Customer notification failed)`)
+          }
+        } else {
+          toast.success(`Rating ${isApproved ? 'approved' : 'disapproved'} successfully!`)
+        }
+      } else {
+        toast.error('Failed to update rating status')
       }
     } catch (error) {
-      console.error('Error updating approval:', error)
-      toast.error('Failed to update approval status')
+      console.error('Error updating rating approval:', error)
+      toast.error('An error occurred while updating the rating')
     }
   }
 
@@ -239,12 +352,10 @@ export default function RatingManagement() {
     setFormData({
       customerName: rating.customerName,
       customerEmail: rating.customerEmail || '',
-      rating: rating.rating,
       title: rating.title,
       comment: rating.comment,
+      rating: rating.rating,
       category: rating.category,
-      isApproved: rating.isApproved,
-      isPublic: rating.isPublic,
       orderNumber: rating.orderNumber || ''
     })
     setDialogOpen(true)
@@ -254,22 +365,20 @@ export default function RatingManagement() {
     setFormData({
       customerName: '',
       customerEmail: '',
-      rating: 5,
       title: '',
       comment: '',
-      category: '',
-      isApproved: true,
-      isPublic: true,
+      rating: 5,
+      category: 'Overall Experience',
       orderNumber: ''
     })
     setEditingRating(null)
   }
 
-  const renderStars = (rating: number, interactive = false, onStarClick?: (star: number) => void) => {
+  const renderStars = (rating: number, interactive: boolean = false, onStarClick?: (rating: number) => void) => {
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
-        className={`h-5 w-5 ${
+        className={`h-4 w-4 ${
           i < rating 
             ? 'text-yellow-400 fill-current' 
             : 'text-gray-300'
@@ -281,22 +390,49 @@ export default function RatingManagement() {
 
   const filteredRatings = ratings.filter(rating => {
     const matchesCategory = selectedCategory === 'all' || rating.category === selectedCategory
-    const matchesRating = selectedRating === 'all' || rating.rating.toString() === selectedRating
-    return matchesCategory && matchesRating
+    return matchesCategory
+  })
+
+  const sortedRatings = [...filteredRatings].sort((a, b) => {
+    switch (sortBy) {
+      case 'newest':
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case 'oldest':
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case 'highest':
+        return b.rating - a.rating
+      case 'lowest':
+        return a.rating - b.rating
+      default:
+        return 0
+    }
   })
 
   const averageRating = ratings.length > 0 
     ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length 
     : 0
 
-  const ratingDistribution = [5, 4, 3, 2, 1].map(star => ({
-    star,
-    count: ratings.filter(rating => rating.rating === star).length,
-    percentage: ratings.length > 0 ? (ratings.filter(rating => rating.rating === star).length / ratings.length) * 100 : 0
-  }))
+  const ratingDistribution = Array.from({ length: 5 }, (_, i) => {
+    const star = 5 - i
+    const count = ratings.filter(rating => rating.rating === star).length
+    const percentage = ratings.length > 0 ? (count / ratings.length) * 100 : 0
+    return { star, count, percentage }
+  })
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-64">Loading ratings...</div>
+  }
 
   return (
     <div className="space-y-6">
+      {/* Debug Info */}
+      <div className="bg-gray-100 p-4 rounded-lg text-sm">
+        <p><strong>Debug Info:</strong></p>
+        <p>User ID: {userId || 'Not logged in'}</p>
+        <p>Ratings loaded: {ratings.length}</p>
+        <p>Loading state: {loading ? 'Yes' : 'No'}</p>
+      </div>
+
       {/* Rating Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -358,7 +494,7 @@ export default function RatingManagement() {
             {ratingDistribution.map(({ star, count, percentage }) => (
               <div key={star} className="flex items-center space-x-3">
                 <div className="flex items-center space-x-1 w-16">
-                  <span className="text-sm font-medium">{star}</span>
+                  <span className="text-sm">{star}</span>
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                 </div>
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
@@ -374,7 +510,7 @@ export default function RatingManagement() {
         </CardContent>
       </Card>
 
-      {/* Filters and Add Button */}
+      {/* Controls */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex gap-4">
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
@@ -383,153 +519,145 @@ export default function RatingManagement() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
+              {categories.map(category => (
+                <SelectItem key={category} value={category}>
+                  {category}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedRating} onValueChange={setSelectedRating}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Filter by stars" />
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Ratings</SelectItem>
-              <SelectItem value="5">5 Stars</SelectItem>
-              <SelectItem value="4">4 Stars</SelectItem>
-              <SelectItem value="3">3 Stars</SelectItem>
-              <SelectItem value="2">2 Stars</SelectItem>
-              <SelectItem value="1">1 Star</SelectItem>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+              <SelectItem value="highest">Highest Rating</SelectItem>
+              <SelectItem value="lowest">Lowest Rating</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => { resetForm(); setDialogOpen(true) }}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Rating
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{editingRating ? 'Edit Rating' : 'Add New Rating'}</DialogTitle>
-              <DialogDescription>
-                {editingRating ? 'Update the rating details' : 'Add a new customer rating'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="flex gap-2">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => resetForm()}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Rating
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{editingRating ? 'Edit Rating' : 'Add New Rating'}</DialogTitle>
+                <DialogDescription>
+                  {editingRating ? 'Update the rating details' : 'Add a new customer rating'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">Customer Name</Label>
+                    <Input
+                      id="customerName"
+                      value={formData.customerName}
+                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customerEmail">Email (Optional)</Label>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      value={formData.customerEmail}
+                      onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerName">Customer Name</Label>
+                  <Label htmlFor="title">Review Title</Label>
                   <Input
-                    id="customerName"
-                    value={formData.customerName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerName: e.target.value }))}
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="customerEmail">Email (optional)</Label>
+                  <Label htmlFor="comment">Review Comment</Label>
+                  <Textarea
+                    id="comment"
+                    value={formData.comment}
+                    onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+                    rows={3}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category} value={category}>
+                          {category}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="orderNumber">Order Number (Optional)</Label>
                   <Input
-                    id="customerEmail"
-                    type="email"
-                    value={formData.customerEmail}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerEmail: e.target.value }))}
+                    id="orderNumber"
+                    value={formData.orderNumber}
+                    onChange={(e) => setFormData({ ...formData, orderNumber: e.target.value })}
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Rating</Label>
-                <div className="flex space-x-1">
-                  {renderStars(formData.rating, true, (star) => 
-                    setFormData(prev => ({ ...prev, rating: star }))
-                  )}
+                <div className="space-y-2">
+                  <Label>Rating</Label>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="isApproved">Approved</Label>
+                      <input type="checkbox" id="isApproved" />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Label htmlFor="isPublic">Public</Label>
+                      <input type="checkbox" id="isPublic" />
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Review Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="comment">Comment</Label>
-                <Textarea
-                  id="comment"
-                  value={formData.comment}
-                  onChange={(e) => setFormData(prev => ({ ...prev, comment: e.target.value }))}
-                  rows={4}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="orderNumber">Order Number (optional)</Label>
-                <Input
-                  id="orderNumber"
-                  value={formData.orderNumber}
-                  onChange={(e) => setFormData(prev => ({ ...prev, orderNumber: e.target.value }))}
-                />
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isApproved"
-                    checked={formData.isApproved}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isApproved: e.target.checked }))}
-                  />
-                  <Label htmlFor="isApproved">Approved</Label>
+                <div className="space-y-2">
+                  <Label>Star Rating</Label>
+                  <div className="flex space-x-1">
+                    {renderStars(formData.rating, true, (rating) => setFormData({ ...formData, rating }))}
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="isPublic"
-                    checked={formData.isPublic}
-                    onChange={(e) => setFormData(prev => ({ ...prev, isPublic: e.target.checked }))}
-                  />
-                  <Label htmlFor="isPublic">Public</Label>
+                <div className="flex justify-end space-x-2">
+                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {editingRating ? 'Update' : 'Create'} Rating
+                  </Button>
                 </div>
-              </div>
+              </form>
+            </DialogContent>
+          </Dialog>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {editingRating ? 'Update' : 'Create'} Rating
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+          <Button variant="outline" onClick={addSampleData}>
+            Add Sample Data
+          </Button>
+        </div>
       </div>
 
       {/* Ratings List */}
       <div className="space-y-4">
-        {filteredRatings.map((rating) => (
+        {sortedRatings.map((rating) => (
           <Card key={rating.id}>
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
@@ -537,69 +665,53 @@ export default function RatingManagement() {
                   <div className="flex items-center space-x-3 mb-2">
                     <div className="flex items-center space-x-1">
                       <User className="h-4 w-4 text-gray-500" />
-                      <span className="font-semibold">{rating.customerName}</span>
+                      <span className="font-medium">{rating.customerName}</span>
                     </div>
                     <div className="flex">
                       {renderStars(rating.rating)}
                     </div>
-                    <Badge variant="outline">{rating.category}</Badge>
                     <div className="flex items-center space-x-1 text-sm text-gray-500">
-                      <Calendar className="h-3 w-3" />
+                      <Calendar className="h-4 w-4" />
                       <span>{new Date(rating.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
-                  
-                  <h4 className="font-medium mb-2">{rating.title}</h4>
+                  <h3 className="font-semibold mb-2">{rating.title}</h3>
                   <p className="text-gray-700 mb-3">{rating.comment}</p>
-                  
-                  {rating.orderNumber && (
-                    <p className="text-sm text-gray-500 mb-2">Order: {rating.orderNumber}</p>
-                  )}
-
                   <div className="flex items-center space-x-4 mb-3">
-                    <Badge variant={rating.isApproved ? "default" : "destructive"}>
+                    <Badge variant={rating.category === 'Overall Experience' ? 'default' : 'secondary'}>
+                      {rating.category}
+                    </Badge>
+                    <Badge variant={rating.isApproved ? 'default' : 'secondary'}>
                       {rating.isApproved ? 'Approved' : 'Pending'}
                     </Badge>
-                    <Badge variant={rating.isPublic ? "default" : "secondary"}>
+                    <Badge variant={rating.isPublic ? 'default' : 'outline'}>
                       {rating.isPublic ? 'Public' : 'Private'}
                     </Badge>
-                    <span className="text-sm text-gray-500 flex items-center">
-                      <ThumbsUp className="h-3 w-3 mr-1" />
-                      {rating.helpful} helpful
-                    </span>
+                    {rating.orderNumber && (
+                      <Badge variant="outline">Order: {rating.orderNumber}</Badge>
+                    )}
                   </div>
-
                   {rating.businessReply && (
                     <div className="bg-gray-50 p-3 rounded-lg mt-3">
                       <div className="flex items-center space-x-2 mb-1">
-                        <Badge variant="outline">Business Reply</Badge>
+                        <MessageCircle className="h-4 w-4 text-blue-500" />
+                        <span className="font-medium text-sm">Business Reply:</span>
                         <span className="text-xs text-gray-500">
                           {rating.repliedAt && new Date(rating.repliedAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm">{rating.businessReply}</p>
+                      <p className="text-sm text-gray-700">{rating.businessReply}</p>
                     </div>
                   )}
                 </div>
-
                 <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setReplyingToRating(rating)
-                      setReplyText(rating.businessReply || '')
-                      setReplyDialogOpen(true)
-                    }}
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                  </Button>
                   <Button
                     variant={rating.isApproved ? "destructive" : "default"}
                     size="sm"
                     onClick={() => handleApprovalChange(rating.id, !rating.isApproved)}
+                    className={rating.isApproved ? "" : "bg-green-600 hover:bg-green-700 text-white"}
                   >
-                    {rating.isApproved ? 'Disapprove' : 'Approve'}
+                    {rating.isApproved ? '❌ Disapprove' : '✅ Approve'}
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => handleEdit(rating)}>
                     <Edit className="h-4 w-4" />
@@ -607,6 +719,18 @@ export default function RatingManagement() {
                   <Button variant="destructive" size="sm" onClick={() => handleDelete(rating.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
+                  {!rating.businessReply && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => {
+                        setReplyingToRating(rating)
+                        setReplyDialogOpen(true)
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -617,11 +741,23 @@ export default function RatingManagement() {
           <div className="text-center py-12">
             <Star className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No ratings found</h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 mb-4">
               {ratings.length === 0 
-                ? "Start by adding your first customer rating." 
+                ? "When customers submit reviews on your business profile, they will appear here for approval." 
                 : "No ratings match the current filters."}
             </p>
+            {ratings.length === 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                <h4 className="font-semibold text-blue-900 mb-2">How to get customer reviews:</h4>
+                <ol className="text-sm text-blue-800 text-left space-y-1">
+                  <li>1. Customers visit your business profile page</li>
+                  <li>2. They submit reviews using the review form</li>
+                  <li>3. Reviews appear here as "Pending" for your approval</li>
+                  <li>4. Click "✅ Approve" or "❌ Disapprove" buttons</li>
+                  <li>5. Approved reviews show on your public profile</li>
+                </ol>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -632,7 +768,7 @@ export default function RatingManagement() {
           <DialogHeader>
             <DialogTitle>Reply to Review</DialogTitle>
             <DialogDescription>
-              Respond to {replyingToRating?.customerName}'s review
+              Respond to {replyingToRating?.customerName}&apos;s review
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -654,5 +790,5 @@ export default function RatingManagement() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

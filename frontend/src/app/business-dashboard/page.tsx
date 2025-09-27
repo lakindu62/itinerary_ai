@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,8 +19,10 @@ import {
   TrendingUp,
   Users,
   DollarSign,
-  Calendar
+  Calendar,
+  Bell
 } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 // Import dashboard components
 import SliderManagement from './components/SliderManagement'
@@ -29,22 +32,35 @@ import ReviewsManagement from './components/ReviewsManagement'
 import ReelsManagement from './components/ReelsManagement'
 import PostsManagement from './components/PostsManagement'
 import Analytics from './components/Analytics'
+import NotificationCenter from './components/NotificationCenter'
 
 export default function BusinessDashboard() {
+  const { userId, isAuthenticated, isLoaded } = useAuth()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
-
-  const [currentUserId] = useState('owner_demo') // Mock user ID - in production, get from auth
   const [businessProfile, setBusinessProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
+  // Redirect to sign-in if not authenticated
   useEffect(() => {
-    loadBusinessProfile()
-  }, [])
+    if (isLoaded && !isAuthenticated) {
+      router.push('/sign-in')
+    }
+  }, [isLoaded, isAuthenticated, router])
+
+  // Load business profile when user ID is available
+  useEffect(() => {
+    if (userId) {
+      loadBusinessProfile()
+    }
+  }, [userId])
 
   const loadBusinessProfile = async () => {
+    if (!userId) return
+    
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${currentUserId}`)
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setBusinessProfile(data.profile)
@@ -54,6 +70,23 @@ export default function BusinessDashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading while checking authentication
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Don't render if not authenticated (will redirect)
+  if (!isAuthenticated || !userId) {
+    return null
   }
 
   // Production-ready stats - will show real data once profile exists
@@ -191,6 +224,10 @@ export default function BusinessDashboard() {
               <TrendingUp className="h-4 w-4" />
               Analytics
             </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -325,6 +362,10 @@ export default function BusinessDashboard() {
 
           <TabsContent value="analytics">
             <Analytics />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <NotificationCenter />
           </TabsContent>
         </Tabs>
       </div>

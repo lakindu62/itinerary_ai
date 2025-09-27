@@ -1,0 +1,28 @@
+[
+  {
+    "id": "notif_1758974869849_rj7e4iv4t",
+    "customerEmail": "dc@gmail.com",
+    "customerName": "wfwef",
+    "businessName": "Your Business",
+    "reviewTitle": "wdqd",
+    "isApproved": true,
+    "message": "Great news! Your review \"wdqd\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
+    "sentAt": "2025-09-27T12:07:49.849Z",
+    "type": "review_approval",
+    "status": "sent",
+    "messageId": "msg_1758974869853"
+  },
+  {
+    "id": "notif_1758974873403_whzpdwyho",
+    "customerEmail": "sadun2@gmail.com",
+    "customerName": "sadun ",
+    "businessName": "Your Business",
+    "reviewTitle": "fasf",
+    "isApproved": true,
+    "message": "Great news! Your review \"fasf\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
+    "sentAt": "2025-09-27T12:07:53.403Z",
+    "type": "review_approval",
+    "status": "sent",
+    "messageId": "msg_1758974873405"
+  }
+]

@@ -37,6 +37,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
+import { useAuth } from '@/hooks/useAuth'
 
 interface SliderImage {
   id: string
@@ -50,6 +51,7 @@ interface SliderImage {
 }
 
 export default function SliderManagement() {
+  const { userId } = useAuth()
   const [sliderImages, setSliderImages] = useState<SliderImage[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -63,21 +65,40 @@ export default function SliderManagement() {
     isActive: true
   })
 
-  // Load slider images on component mount
+  // Load slider images when userId is available
   useEffect(() => {
-    loadSliderImages()
-  }, [])
+    if (userId) {
+      loadSliderImages()
+    }
+  }, [userId])
+
+  // Don't render if no user ID
+  if (!userId) {
+    return <div>Please sign in to manage your business profile.</div>
+  }
 
   const loadSliderImages = async () => {
+    console.log('🔍 Loading slider images for userId:', userId)
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo')
+      const apiUrl = `/api/business-profiles?ownerId=${userId}`
+      console.log('📡 API URL:', apiUrl)
+      
+      const response = await fetch(apiUrl)
+      console.log('📡 Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('📡 Response data:', data)
         setSliderImages(data.sliderImages || [])
+        console.log('✅ Slider images loaded:', data.sliderImages?.length || 0)
+      } else {
+        const errorData = await response.json()
+        console.error('❌ API Error:', errorData)
+        toast.error(`Failed to load slider images: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error loading slider images:', error)
+      console.error('❌ Network error loading slider images:', error)
       toast.error('Failed to load slider images')
     } finally {
       setLoading(false)
@@ -86,34 +107,45 @@ export default function SliderManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('🚀 Submitting slider image for userId:', userId)
+    console.log('📝 Form data:', formData)
     setLoading(true)
 
     try {
       const method = editingImage ? 'PUT' : 'POST'
+      const apiUrl = `/api/business-profiles?ownerId=${userId}`
+      const payload = {
+        type: 'sliderImage',
+        id: editingImage?.id,
+        ...formData
+      }
       
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
+      console.log('📡 API Request:', { method, url: apiUrl, payload })
+      
+      const response = await fetch(apiUrl, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          type: 'sliderImage',
-          id: editingImage?.id,
-          ...formData
-        }),
+        body: JSON.stringify(payload),
       })
 
+      console.log('📡 Submit response status:', response.status)
+
       if (response.ok) {
+        const responseData = await response.json()
+        console.log('✅ Submit success:', responseData)
         toast.success(editingImage ? 'Slider image updated successfully!' : 'Slider image added successfully!')
         setDialogOpen(false)
         resetForm()
         loadSliderImages()
       } else {
         const errorData = await response.json()
+        console.error('❌ Submit error:', errorData)
         throw new Error(errorData.error || 'Failed to save slider image')
       }
     } catch (error) {
-      console.error('Error saving slider image:', error)
+      console.error('❌ Submit exception:', error)
       toast.error('Failed to save slider image')
     } finally {
       setLoading(false)
@@ -136,7 +168,7 @@ export default function SliderManagement() {
   const handleDelete = async (imageId: string) => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=owner_demo&itemId=${imageId}&itemType=sliderImage`, {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${imageId}&itemType=sliderImage`, {
         method: 'DELETE'
       })
 
@@ -157,7 +189,7 @@ export default function SliderManagement() {
   const toggleActive = async (imageId: string, isActive: boolean) => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

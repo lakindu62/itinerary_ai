@@ -20,6 +20,7 @@ import {
   Plus,
   Eye
 } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Business {
   id: string
@@ -89,6 +90,7 @@ interface Reel {
 }
 
 export default function BusinessProfilesPage() {
+  const { userId, isAuthenticated } = useAuth()
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [currentBusinessIndex, setCurrentBusinessIndex] = useState(0)
   const [currentSliderIndex, setCurrentSliderIndex] = useState(0)
@@ -97,7 +99,7 @@ export default function BusinessProfilesPage() {
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [menuPopupOpen, setMenuPopupOpen] = useState(false)
-  const [currentUserId] = useState('customer_123') // Mock user ID
+  const currentUserId = userId || 'guest_user' // Use authenticated user ID or guest
   const [reviewFormData, setReviewFormData] = useState({
     customerName: '',
     customerEmail: '',
@@ -112,7 +114,7 @@ export default function BusinessProfilesPage() {
   }, [])
 
   useEffect(() => {
-    // Auto-slide every 15 seconds - cycle through slider images first, then businesses
+    // Auto-slide every 20 seconds - cycle through slider images first, then businesses
     const interval = setInterval(() => {
       if (businesses.length > 0) {
         const currentBusiness = businesses[currentBusinessIndex]
@@ -139,7 +141,7 @@ export default function BusinessProfilesPage() {
           setCurrentSliderIndex(0)
         }
       }
-    }, 15000)
+    }, 20000)
 
     return () => clearInterval(interval)
   }, [businesses.length]) // Fixed: removed currentBusinessIndex to keep dependency array stable
@@ -147,11 +149,52 @@ export default function BusinessProfilesPage() {
   const loadBusinesses = async () => {
     setLoading(true)
     try {
+      // Load all public businesses
       const response = await fetch('/api/business-profiles?getAllBusinesses=true')
+      let allBusinesses: Business[] = []
+      
       if (response.ok) {
         const data = await response.json()
-        setBusinesses(data.businesses || [])
+        allBusinesses = data.businesses || []
       }
+      
+      // If user is authenticated, also load their own business for testing
+      if (userId) {
+        try {
+          const userBusinessResponse = await fetch(`/api/business-profiles?ownerId=${userId}`)
+          if (userBusinessResponse.ok) {
+            const userData = await userBusinessResponse.json()
+            if (userData.profile && userData.profile.businessName) {
+              // Convert user's profile to business format for display
+              const userBusiness: Business = {
+                id: userData.profile.id || `user-business-${userId}`,
+                businessName: userData.profile.businessName,
+                description: userData.profile.description || 'My Business Profile',
+                category: userData.profile.category || 'Business',
+                location: userData.profile.location || 'Location not specified',
+                coverImage: userData.profile.coverImage || '/placeholder-business.jpg',
+                rating: 0, // Will be calculated from ratings
+                totalReviews: (userData.ratings || []).filter((r: any) => r.isApproved).length,
+                sliderImages: userData.sliderImages || [],
+                posts: userData.posts || [],
+                reels: userData.reels || [],
+                menuItems: userData.menuItems || [],
+                reviews: (userData.ratings || []).filter((r: any) => r.isApproved) || []
+              }
+              
+              // Add user's business to the list if it's not already there
+              const existingIndex = allBusinesses.findIndex(b => b.id === userBusiness.id)
+              if (existingIndex === -1) {
+                allBusinesses.unshift(userBusiness) // Add at the beginning
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error loading user business:', error)
+        }
+      }
+      
+      setBusinesses(allBusinesses)
     } catch (error) {
       console.error('Error loading businesses:', error)
     } finally {
@@ -168,7 +211,15 @@ export default function BusinessProfilesPage() {
     const currentBusiness = businesses[currentBusinessIndex]
     
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${getOwnerIdForBusiness(currentBusiness.id)}&submitterId=${currentUserId}`, {
+      // Get the owner ID first
+      const ownerId = await getOwnerIdForBusiness(currentBusiness.id)
+      
+      if (!ownerId) {
+        alert('Unable to submit review: Business owner not found')
+        return
+      }
+      
+      const response = await fetch(`/api/business-profiles?ownerId=${ownerId}&submitterId=${currentUserId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,15 +253,24 @@ export default function BusinessProfilesPage() {
     }
   }
 
-  const getOwnerIdForBusiness = (businessId: string) => {
-    // Map business IDs to owner IDs
-    const ownerMap: { [key: string]: string } = {
-      'business-demo-1': 'owner_demo',
-      'business-1': 'owner_1',
-      'business-2': 'owner_2', 
-      'business-3': 'owner_3'
+  const getOwnerIdForBusiness = async (businessId: string) => {
+    try {
+      // If this is the user's own business, return their ID directly
+      if (userId && businessId.startsWith(`user-business-${userId}`)) {
+        return userId
+      }
+      
+      // Fetch business ownership information from API
+      const response = await fetch(`/api/business-profiles/ownership?businessId=${businessId}`)
+      if (response.ok) {
+        const data = await response.json()
+        return data.ownerId
+      }
+    } catch (error) {
+      console.error('Error fetching business ownership:', error)
     }
-    return ownerMap[businessId] || 'owner_demo'
+    
+    return null
   }
 
   const resetReviewForm = () => {

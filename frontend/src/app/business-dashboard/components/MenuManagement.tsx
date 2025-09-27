@@ -46,6 +46,7 @@ import {
   UtensilsCrossed
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
+import { useAuth } from '@/hooks/useAuth'
 
 interface MenuItem {
   id: string
@@ -89,6 +90,7 @@ const allergens = [
 ]
 
 export default function MenuManagement() {
+  const { userId } = useAuth()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -117,7 +119,7 @@ export default function MenuManagement() {
   const loadMenuItems = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo')
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setMenuItems(data.menuItems || [])
@@ -138,7 +140,7 @@ export default function MenuManagement() {
       const ingredientsArray = formData.ingredients.split(',').map(i => i.trim()).filter(i => i)
       const method = editingItem ? 'PUT' : 'POST'
       
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +191,7 @@ export default function MenuManagement() {
 
   const handleDelete = async (itemId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=owner_demo&itemId=${itemId}&itemType=menuItem`, {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${itemId}&itemType=menuItem`, {
         method: 'DELETE'
       })
 
@@ -207,7 +209,7 @@ export default function MenuManagement() {
 
   const toggleAvailability = async (itemId: string, isAvailable: boolean) => {
     try {
-      const response = await fetch('/api/business-profiles?ownerId=owner_demo', {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

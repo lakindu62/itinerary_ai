@@ -50,6 +50,7 @@ import {
   Clock
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
+import { useAuth } from '@/hooks/useAuth'
 
 interface Reel {
   id: string
@@ -83,6 +84,7 @@ const categories = [
 ]
 
 export default function ReelsManagement() {
+  const { userId } = useAuth()
   const [reels, setReels] = useState<Reel[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -108,7 +110,7 @@ export default function ReelsManagement() {
   const loadReels = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123')
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
       if (response.ok) {
         const data = await response.json()
         setReels(data.reels || [])
@@ -149,7 +151,7 @@ export default function ReelsManagement() {
       }
 
       if (editingReel) {
-        const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
+        const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...reelData, id: editingReel.id })
@@ -161,7 +163,7 @@ export default function ReelsManagement() {
           throw new Error('Failed to update reel')
         }
       } else {
-        const response = await fetch('/api/business-profiles?ownerId=user_123', {
+        const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(reelData)
@@ -202,7 +204,7 @@ export default function ReelsManagement() {
 
   const handleDelete = async (reelId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=owner_demo&itemId=${reelId}&itemType=reel`, {
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${reelId}&itemType=reel`, {
         method: 'DELETE'
       })
       if (response.ok) {
