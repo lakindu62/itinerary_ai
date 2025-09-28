@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, HomeIcon, UserIcon, LogOut, User, Users } from "lucide-react";
+import { BellIcon, HomeIcon, UserIcon, LogOut, User, Users, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 // import { SignInButton, UserButton } from "@clerk/nextjs";
@@ -57,6 +57,8 @@ function Navbar() {
                                 </Link>
                             </Button>
                         </SignedIn>
+
+
 
                         <Button variant="ghost" className="flex items-center gap-2" asChild>
                             <Link href="/notifications">

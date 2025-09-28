@@ -425,13 +425,7 @@ export default function RatingManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Debug Info */}
-      <div className="bg-gray-100 p-4 rounded-lg text-sm">
-        <p><strong>Debug Info:</strong></p>
-        <p>User ID: {userId || 'Not logged in'}</p>
-        <p>Ratings loaded: {ratings.length}</p>
-        <p>Loading state: {loading ? 'Yes' : 'No'}</p>
-      </div>
+
 
       {/* Rating Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

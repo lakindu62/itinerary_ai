@@ -99,6 +99,7 @@ export default function BusinessProfilesPage() {
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [menuPopupOpen, setMenuPopupOpen] = useState(false)
+  const [autoSlide, setAutoSlide] = useState(true) // Auto-slide state
   const currentUserId = userId || 'guest_user' // Use authenticated user ID or guest
   const [reviewFormData, setReviewFormData] = useState({
     customerName: '',
@@ -115,6 +116,8 @@ export default function BusinessProfilesPage() {
 
   useEffect(() => {
     // Auto-slide every 20 seconds - cycle through slider images first, then businesses
+    if (!autoSlide) return // Don't auto-slide if disabled
+    
     const interval = setInterval(() => {
       if (businesses.length > 0) {
         const currentBusiness = businesses[currentBusinessIndex]
@@ -144,7 +147,7 @@ export default function BusinessProfilesPage() {
     }, 20000)
 
     return () => clearInterval(interval)
-  }, [businesses.length]) // Fixed: removed currentBusinessIndex to keep dependency array stable
+  }, [businesses.length, autoSlide, currentBusinessIndex])
 
   const loadBusinesses = async () => {
     setLoading(true)
@@ -330,16 +333,26 @@ export default function BusinessProfilesPage() {
   }
 
   const getFeedItems = () => {
-    if (!businesses[currentBusinessIndex]) return []
-    
-    const currentBusiness = businesses[currentBusinessIndex]
-    
     if (feedTab === 'posts') {
-      return currentBusiness.posts.map(post => ({ ...post, type: 'post' }))
-        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      // Return all posts from all businesses
+      return businesses.flatMap(business => 
+        business.posts.map(post => ({ 
+          ...post, 
+          type: 'post',
+          businessName: business.businessName,
+          businessId: business.id
+        }))
+      ).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     } else {
-      return currentBusiness.reels.map(reel => ({ ...reel, type: 'reel' }))
-        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      // Return all reels from all businesses
+      return businesses.flatMap(business => 
+        business.reels.map(reel => ({ 
+          ...reel, 
+          type: 'reel',
+          businessName: business.businessName,
+          businessId: business.id
+        }))
+      ).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     }
   }
 
@@ -383,6 +396,25 @@ export default function BusinessProfilesPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Floating Auto-Scroll Toggle Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <button
+          onClick={() => setAutoSlide(!autoSlide)}
+          className={`p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 ${
+            autoSlide 
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-gray-600 text-white hover:bg-gray-700'
+          }`}
+          title={autoSlide ? 'Turn off auto-scroll' : 'Turn on auto-scroll'}
+        >
+          <div className="flex items-center space-x-2">
+            <Play className={`h-5 w-5 ${autoSlide ? 'animate-pulse' : ''}`} />
+            <span className="text-sm font-medium hidden sm:block">
+              {autoSlide ? 'Auto' : 'Manual'}
+            </span>
+          </div>
+        </button>
+      </div>
       {/* Business Slider Section */}
       <section className="relative h-96 bg-gradient-to-br from-blue-900 to-purple-900 overflow-hidden">
         <div className="absolute inset-0">
@@ -739,7 +771,7 @@ export default function BusinessProfilesPage() {
       <section className="py-8">
         <div className="max-w-4xl mx-auto px-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Content from {currentBusiness.businessName}</h2>
+            <h2 className="text-2xl font-bold">Content from All Businesses</h2>
             
             {/* Tab Switcher */}
             <div className="flex bg-gray-100 rounded-lg p-1">
@@ -751,7 +783,7 @@ export default function BusinessProfilesPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Posts ({currentBusiness.posts.length})
+                All Posts ({businesses.flatMap(b => b.posts).length})
               </button>
               <button
                 onClick={() => setFeedTab('reels')}
@@ -761,7 +793,7 @@ export default function BusinessProfilesPage() {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Reels ({currentBusiness.reels.length})
+                All Reels ({businesses.flatMap(b => b.reels).length})
               </button>
             </div>
           </div>
@@ -785,6 +817,14 @@ export default function BusinessProfilesPage() {
                           />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        
+                        {/* Business Name Badge */}
+                        <div className="absolute top-3 left-3">
+                          <div className="bg-blue-600/80 backdrop-blur-sm rounded-full px-3 py-1">
+                            <span className="text-white text-xs font-semibold">{item.businessName}</span>
+                          </div>
+                        </div>
+                        
                         <div className="absolute bottom-4 left-4 right-4 text-white">
                           <h3 className="font-bold text-xl mb-2">{item.title}</h3>
                           <p className="text-sm text-gray-200 line-clamp-2">{item.content}</p>
@@ -871,6 +911,11 @@ export default function BusinessProfilesPage() {
                         
                         {/* Content overlay */}
                         <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <div className="mb-2">
+                            <div className="bg-blue-600/80 backdrop-blur-sm rounded-full px-2 py-1 inline-block">
+                              <span className="text-white text-xs font-semibold">{item.businessName}</span>
+                            </div>
+                          </div>
                           <h3 className="font-bold text-white text-lg mb-1 line-clamp-2">{item.title}</h3>
                           {item.description && (
                             <p className="text-white/90 text-sm line-clamp-1">{item.description}</p>

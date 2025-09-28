@@ -33,6 +33,7 @@ import ReelsManagement from './components/ReelsManagement'
 import PostsManagement from './components/PostsManagement'
 import Analytics from './components/Analytics'
 import NotificationCenter from './components/NotificationCenter'
+import ProfileManagement from './components/ProfileManagement'
 
 export default function BusinessDashboard() {
   const { userId, isAuthenticated, isLoaded } = useAuth()
@@ -228,6 +229,10 @@ export default function BusinessDashboard() {
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Profile
+            </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
@@ -366,6 +371,10 @@ export default function BusinessDashboard() {
 
           <TabsContent value="notifications">
             <NotificationCenter />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <ProfileManagement />
           </TabsContent>
         </Tabs>
       </div>
