@@ -13,7 +13,7 @@
     "start:dev:ngrok": "concurrently \"npm run start:dev\" \"npm run ngrok\"",
     "start:debug": "nest  --debug --watch",
     "start:prod": "node dist/main",
-    "ngrok": "ngrok http --domain=well-upward-cod.ngrok-free.app 3000",
+    "ngrok": "ngrok start server",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
