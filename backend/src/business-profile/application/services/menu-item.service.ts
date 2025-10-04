@@ -35,4 +35,34 @@ export class MenuItemService {
     await this.getMenuItem(id); // Verify it exists
     await this.menuItemRepository.delete(id);
   }
+
+  async toggleLike(id: string, userId: string): Promise<MenuItem> {
+    const menuItem = await this.getMenuItem(id);
+    const likes = menuItem.likes || [];
+    const isLiked = likes.includes(userId);
+    
+    let updatedLikes: string[];
+    let likeCount: number;
+    
+    if (isLiked) {
+      // Remove like
+      updatedLikes = likes.filter(likeId => likeId !== userId);
+      likeCount = Math.max(0, (menuItem.likeCount || 0) - 1);
+    } else {
+      // Add like
+      updatedLikes = [...likes, userId];
+      likeCount = (menuItem.likeCount || 0) + 1;
+    }
+    
+    const updated = await this.menuItemRepository.update(id, {
+      likes: updatedLikes,
+      likeCount: likeCount
+    });
+    
+    if (!updated) {
+      throw new NotFoundException('Failed to update menu item likes');
+    }
+    
+    return updated;
+  }
 }

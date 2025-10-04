@@ -61,27 +61,26 @@ api.interceptors.request.use(
   (config) => {
     const token = getAuthToken();
     if (DEBUG) {
-      console.log('Request config:', { 
+      console.log('🚀 [API] Request:', { 
         url: config.url, 
-        method: config.method, 
+        method: config.method?.toUpperCase(), 
         hasToken: !!token,
-        tokenLength: token?.length 
+        baseURL: config.baseURL
       });
     }
     
-    // Only add token if it's not HTML content
+    // Only add token if it's valid and not HTML content
     if (token && config.headers && !token.includes('<!DOCTYPE')) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else if (token?.includes('<!DOCTYPE')) {
-      console.error('Invalid token detected (HTML content), skipping authorization');
-      // For development, we can skip auth or use a mock token
-      if (DEBUG) {
-        config.headers.Authorization = `Bearer mock_token_for_dev`;
-      }
+    } else if (DEBUG) {
+      console.warn('⚠️ [API] No valid token found, proceeding without authorization');
     }
     return config;
   },
   (error) => {
+    if (DEBUG) {
+      console.error('❌ [API] Request Error:', error);
+    }
     return Promise.reject(error);
   }
 );
@@ -129,45 +128,7 @@ api.interceptors.response.use(
   }
 );
 
-// Request interceptor for debugging
-api.interceptors.request.use(
-  (config) => {
-    if (DEBUG) {
-      console.log(`🚀 [API] ${config.method?.toUpperCase()} ${config.url}`, {
-        headers: config.headers,
-        data: config.data,
-      });
-    }
-    return config;
-  },
-  (error) => {
-    if (DEBUG) {
-      console.error('❌ [API] Request Error:', error);
-    }
-    return Promise.reject(error);
-  }
-);
 
-// Add request interceptor to add auth token
-api.interceptors.request.use(
-  async (config) => {
-    if (typeof window !== 'undefined') {
-      // Only try to get token on client side
-      try {
-        const token = await fetch('/api/get-token').then(res => res.text());
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
-      } catch (error) {
-        console.error('Error getting auth token:', error);
-      }
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Response interceptor for handling common errors and debugging
 api.interceptors.response.use(
@@ -288,42 +249,102 @@ export const businessProfileApi = {
   // Menu Items
   createMenuItem: async (data: Omit<MenuItem, 'id'>) => {
     try {
-      const response = await api.post('/business-profile/menu', data);
+      if (DEBUG) {
+        console.log('Creating menu item:', data);
+      }
+      const response = await api.post('/business/menu-items', data);
       return response.data;
     } catch (error: any) {
       console.error('Error creating menu item:', error.response?.data || error.message);
-      throw error;
+      throw new ApiError(
+        error.response?.data?.message || 'Failed to create menu item',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 
   getMenuItems: async () => {
     try {
-      const response = await api.get('/business-profile/menu');
+      if (DEBUG) {
+        console.log('Fetching menu items...');
+      }
+      const response = await api.get('/business/menu-items');
       return response.data;
     } catch (error: any) {
       console.error('Error getting menu items:', error.response?.data || error.message);
-      throw error;
+      if (error.response?.status === 404) {
+        // Return empty array if endpoint doesn't exist yet
+        return [];
+      }
+      if (error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
+        console.error('Backend server is not running. Please start the backend server.');
+        throw new ApiError('Backend server is not running. Please start the backend server.', 500);
+      }
+      throw new ApiError(
+        error.response?.data?.message || 'Failed to fetch menu items',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 
   deleteMenuItem: async (id: string) => {
     try {
-      const response = await api.delete(`/business-profile/menu/${id}`);
+      if (DEBUG) {
+        console.log('Deleting menu item:', id);
+      }
+      const response = await api.delete(`/business/menu-items/${id}`);
       return response.data;
     } catch (error: any) {
       console.error('Error deleting menu item:', error.response?.data || error.message);
-      throw error;
+      throw new ApiError(
+        error.response?.data?.message || 'Failed to delete menu item',
+        error.response?.status,
+        error.response?.data
+      );
+    }
+  },
+
+  likeMenuItem: async (id: string, userId: string) => {
+    try {
+      if (DEBUG) {
+        console.log('Liking menu item:', id, 'by user:', userId);
+      }
+      const response = await api.post(`/business/menu-items/${id}/like`, { userId });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error liking menu item:', error.response?.data || error.message);
+      throw new ApiError(
+        error.response?.data?.message || 'Failed to like menu item',
+        error.response?.status,
+        error.response?.data
+      );
     }
   },
 
   // Analytics
   getAnalytics: async (): Promise<BusinessAnalytics> => {
     try {
-      const response = await api.get('/api/business/analytics');
+      const response = await api.get('/business/analytics');
       return response.data;
     } catch (error: any) {
       console.error('Error fetching analytics:', error.response?.data || error.message);
-      throw error;
+      if (error.response?.status === 404) {
+        // Return default analytics if endpoint doesn't exist yet
+        return {
+          totalViews: 0,
+          totalPosts: 0,
+          totalVideos: 0,
+          totalMenuItems: 0,
+          recentVisits: 0
+        };
+      }
+      throw new ApiError(
+        error.response?.data?.message || 'Failed to fetch analytics',
+        error.response?.status,
+        error.response?.data
+      );
     }
   }
 };

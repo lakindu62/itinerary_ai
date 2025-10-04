@@ -28,7 +28,10 @@ export default function MenuManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFile || !name || !price) return;
+    if (!selectedFile || !name || !price) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
     try {
       const base64Image = await convertToBase64(selectedFile);
@@ -41,18 +44,36 @@ export default function MenuManager() {
       };
 
       await createMenuItemMutation.mutateAsync(newMenuItem);
+      
+      // Reset form on success
       setName('');
       setDescription('');
       setPrice('');
       setCategory('');
       setSelectedFile(null);
-    } catch (error) {
+      
+      // Reset file input
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } catch (error: any) {
       console.error('Error adding menu item:', error);
+      alert(`Failed to add menu item: ${error.message || 'Unknown error'}`);
     }
   };
 
   const handleDelete = async (id: string) => {
-    await deleteMenuItemMutation.mutateAsync(id);
+    if (!confirm('Are you sure you want to delete this menu item?')) {
+      return;
+    }
+    
+    try {
+      await deleteMenuItemMutation.mutateAsync(id);
+    } catch (error: any) {
+      console.error('Error deleting menu item:', error);
+      alert(`Failed to delete menu item: ${error.message || 'Unknown error'}`);
+    }
   };
 
   return (
@@ -111,7 +132,16 @@ export default function MenuManager() {
           />
         </div>
 
-        <Button type="submit">Add Menu Item</Button>
+        <Button type="submit" disabled={createMenuItemMutation.isPending}>
+          {createMenuItemMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Adding...
+            </>
+          ) : (
+            'Add Menu Item'
+          )}
+        </Button>
       </form>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -139,8 +169,16 @@ export default function MenuManager() {
               variant="destructive"
               onClick={() => handleDelete(item.id)}
               className="mt-2"
+              disabled={deleteMenuItemMutation.isPending}
             >
-              Delete
+              {deleteMenuItemMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
             </Button>
           </div>
         )))}

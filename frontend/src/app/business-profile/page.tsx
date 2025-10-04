@@ -46,6 +46,8 @@ interface MenuItem {
   category: string
   imageUrl?: string
   isAvailable: boolean
+  likes: string[] // Array of user IDs who liked this item
+  likeCount: number
 }
 
 interface Review {
@@ -109,6 +111,90 @@ export default function BusinessProfilesPage() {
     comment: '',
     category: 'Overall Experience'
   })
+
+  // Like menu item functionality
+  const handleMenuItemLike = async (businessId: string, menuItemId: string) => {
+    console.log('🎯 Attempting to like menu item:', { businessId, menuItemId, userId })
+    
+    if (!userId) {
+      // Could show a toast or modal asking to sign in
+      alert('Please sign in to like menu items')
+      return
+    }
+
+    try {
+      // Get the correct owner ID for the business
+      console.log('🔍 Getting owner ID for business:', businessId)
+      const ownerId = await getOwnerIdForBusiness(businessId)
+      console.log('✅ Found owner ID:', ownerId)
+      
+      if (!ownerId) {
+        alert('Unable to like menu item: Business owner not found')
+        return
+      }
+
+      // Use the existing file-based API since menu items are loaded from there
+      console.log('📤 Sending like request with data:', {
+        ownerId,
+        action: 'likeMenuItem',
+        menuItemId,
+        userId
+      })
+      
+      const response = await fetch(`/api/business-profiles?ownerId=${ownerId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'likeMenuItem',
+          menuItemId,
+          userId
+        })
+      })
+
+      console.log('📥 API response status:', response.status)
+      
+      if (response.ok) {
+        const responseData = await response.json()
+        console.log('✅ Like successful, response:', responseData)
+        
+        // Update local state
+        setBusinesses(prev => prev.map(business => {
+          if (business.id === businessId) {
+            return {
+              ...business,
+              menuItems: business.menuItems.map(item => {
+                if (item.id === menuItemId) {
+                  const isLiked = item.likes?.includes(userId)
+                  const newItem = {
+                    ...item,
+                    likes: isLiked 
+                      ? item.likes.filter(id => id !== userId)
+                      : [...(item.likes || []), userId],
+                    likeCount: isLiked 
+                      ? (item.likeCount || 0) - 1
+                      : (item.likeCount || 0) + 1
+                  }
+                  console.log('🔄 Updated menu item:', newItem)
+                  return newItem
+                }
+                return item
+              })
+            }
+          }
+          return business
+        }))
+      } else {
+        const errorData = await response.text()
+        console.error('❌ API error response:', errorData)
+        throw new Error(`Failed to like menu item: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('💥 Error liking menu item:', error)
+      alert('Failed to like menu item. Please try again.')
+    }
+  }
 
   useEffect(() => {
     loadBusinesses()
@@ -258,19 +344,29 @@ export default function BusinessProfilesPage() {
 
   const getOwnerIdForBusiness = async (businessId: string) => {
     try {
+      console.log('🔍 Getting owner ID for business:', businessId)
+      
       // If this is the user's own business, return their ID directly
       if (userId && businessId.startsWith(`user-business-${userId}`)) {
+        console.log('✅ Found user business, owner ID:', userId)
         return userId
       }
       
       // Fetch business ownership information from API
+      console.log('📤 Fetching ownership from API for businessId:', businessId)
       const response = await fetch(`/api/business-profiles/ownership?businessId=${businessId}`)
+      console.log('📥 Ownership API response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Ownership data:', data)
         return data.ownerId
+      } else {
+        const errorText = await response.text()
+        console.error('❌ Ownership API error:', errorText)
       }
     } catch (error) {
-      console.error('Error fetching business ownership:', error)
+      console.error('💥 Error fetching business ownership:', error)
     }
     
     return null
@@ -333,26 +429,25 @@ export default function BusinessProfilesPage() {
   }
 
   const getFeedItems = () => {
+    const currentBusiness = businesses[currentBusinessIndex]
+    if (!currentBusiness) return []
+    
     if (feedTab === 'posts') {
-      // Return all posts from all businesses
-      return businesses.flatMap(business => 
-        business.posts.map(post => ({ 
-          ...post, 
-          type: 'post',
-          businessName: business.businessName,
-          businessId: business.id
-        }))
-      ).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      // Return posts from current business only
+      return currentBusiness.posts.map(post => ({ 
+        ...post, 
+        type: 'post',
+        businessName: currentBusiness.businessName,
+        businessId: currentBusiness.id
+      })).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     } else {
-      // Return all reels from all businesses
-      return businesses.flatMap(business => 
-        business.reels.map(reel => ({ 
-          ...reel, 
-          type: 'reel',
-          businessName: business.businessName,
-          businessId: business.id
-        }))
-      ).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+      // Return reels from current business only
+      return currentBusiness.reels.map(reel => ({ 
+        ...reel, 
+        type: 'reel',
+        businessName: currentBusiness.businessName,
+        businessId: currentBusiness.id
+      })).sort((a: any, b: any) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     }
   }
 
@@ -745,13 +840,28 @@ export default function BusinessProfilesPage() {
                           </Badge>
                         </div>
                         <p className="text-gray-600 text-sm">{item.description}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge variant="outline" className="text-xs">
-                            {item.category}
-                          </Badge>
-                          {!item.isAvailable && (
-                            <span className="text-red-500 text-xs">Out of Stock</span>
-                          )}
+                        <div className="flex items-center justify-between mt-3">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {item.category}
+                            </Badge>
+                            {!item.isAvailable && (
+                              <span className="text-red-500 text-xs">Out of Stock</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant={item.likes?.includes(userId || '') ? "default" : "outline"}
+                              onClick={() => handleMenuItemLike(currentBusiness.id, item.id)}
+                              className="h-8 px-3"
+                            >
+                              <Heart 
+                                className={`h-4 w-4 mr-1 ${item.likes?.includes(userId || '') ? 'fill-white' : ''}`} 
+                              />
+                              {item.likeCount || 0}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

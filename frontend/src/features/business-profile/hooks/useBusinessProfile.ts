@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { businessProfileApi, BusinessMedia, MenuItem, getAuthToken } from '../api/business-profile.api';
+import { businessProfileApi, MenuItem, getAuthToken } from '../api/business-profile.api';
+import { BusinessMedia } from '../types/media.types';
 import { toast } from 'sonner';
 
 // Media Hooks
@@ -58,13 +59,24 @@ export const useMenuItemsQuery = () => {
       try {
         const data = await businessProfileApi.getMenuItems();
         return data || [];
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching menu items:', error);
+        // Don't throw the error, return empty array instead
+        if (error.message?.includes('Backend server is not running')) {
+          console.warn('Backend not available, returning empty menu items');
+          return [];
+        }
         throw error;
       }
     },
     initialData: [], // Start with empty array
-    retry: 1, // Only retry once on failure
+    retry: (failureCount, error: any) => {
+      // Don't retry if it's a backend connection issue
+      if (error.message?.includes('Backend server is not running')) {
+        return false;
+      }
+      return failureCount < 1; // Only retry once for other errors
+    },
   });
 };
 

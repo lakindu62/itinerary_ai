@@ -34,7 +34,12 @@
         "ingredients": [],
         "allergens": [],
         "calories": 0,
-        "updatedAt": "2025-09-27T09:34:38.973Z"
+        "updatedAt": "2025-09-27T09:34:38.973Z",
+        "likes": [
+          "user_33FLIhK5X7uRldrrW9RV1vjm5N3",
+          "user_33FcAi4a2SGStIilJ3j3m9vq1kn"
+        ],
+        "likeCount": 2
       }
     ],
     "posts": [
@@ -271,7 +276,11 @@
         "calories": 14,
         "id": "1758969589404",
         "createdAt": "2025-09-27T10:39:49.404Z",
-        "updatedAt": "2025-09-27T10:39:49.404Z"
+        "updatedAt": "2025-09-27T10:39:49.404Z",
+        "likes": [
+          "user_33FLIhK5X7uRldrrW9RV1vjm5N3"
+        ],
+        "likeCount": 1
       }
     ],
     "posts": [],
@@ -349,7 +358,12 @@
         "calories": 0,
         "id": "1758969294303",
         "createdAt": "2025-09-27T10:34:54.303Z",
-        "updatedAt": "2025-09-27T10:34:54.303Z"
+        "updatedAt": "2025-09-27T10:34:54.303Z",
+        "likes": [
+          "user_33FLIhK5X7uRldrrW9RV1vjm5N3",
+          "user_33FcAi4a2SGStIilJ3j3m9vq1kn"
+        ],
+        "likeCount": 2
       }
     ],
     "posts": [],

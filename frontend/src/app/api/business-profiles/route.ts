@@ -186,6 +186,26 @@ export async function POST(request: NextRequest) {
           profile.ratings[ratingIndex].repliedAt = new Date().toISOString()
         }
       }
+    } else if (body.action === 'likeMenuItem') {
+      // Handle menu item likes
+      const menuItemIndex = profile.menuItems.findIndex((item: any) => item.id === body.menuItemId)
+      if (menuItemIndex !== -1) {
+        const menuItem = profile.menuItems[menuItemIndex]
+        const likes = menuItem.likes || []
+        const isLiked = likes.includes(body.userId)
+        
+        if (isLiked) {
+          // Remove like
+          menuItem.likes = likes.filter((id: string) => id !== body.userId)
+          menuItem.likeCount = (menuItem.likeCount || 0) - 1
+        } else {
+          // Add like
+          menuItem.likes = [...likes, body.userId]
+          menuItem.likeCount = (menuItem.likeCount || 0) + 1
+        }
+        
+        profile.menuItems[menuItemIndex] = menuItem
+      }
     } else {
       // Update profile info
       Object.assign(profile, body)

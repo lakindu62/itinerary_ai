@@ -28,6 +28,12 @@ export class MenuItem {
 
   @Prop({ default: 0 })
   orderCount: number;
+
+  @Prop({ type: [String], default: [] })
+  likes: string[];
+
+  @Prop({ default: 0 })
+  likeCount: number;
 }
 
 export const MenuItemSchema = SchemaFactory.createForClass(MenuItem);

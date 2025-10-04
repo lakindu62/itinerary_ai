@@ -13,6 +13,7 @@ import { UserManagementModule } from './user-management/user-management.module';
 import { StorageModule } from './shared/kernel/storage/storage.module';
 import { ClerkMiddleware } from './user-management/infrastructure/integrations/clerkMiddleware.integration';
 import { SharedModule } from './shared/shared.module';
+import { BusinessProfileModule } from './business-profile/business-profile.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { SharedModule } from './shared/shared.module';
     EventModule,
     SharedModule,
     StorageModule,
+    BusinessProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

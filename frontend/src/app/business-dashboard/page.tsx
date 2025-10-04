@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,18 +35,12 @@ import NotificationCenter from './components/NotificationCenter'
 import ProfileManagement from './components/ProfileManagement'
 
 export default function BusinessDashboard() {
-  const { userId, isAuthenticated, isLoaded } = useAuth()
-  const router = useRouter()
+  const { userId, isAuthenticated, isLoaded, isBusinessUser, userType } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [businessProfile, setBusinessProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  // Redirect to sign-in if not authenticated
-  useEffect(() => {
-    if (isLoaded && !isAuthenticated) {
-      router.push('/sign-in')
-    }
-  }, [isLoaded, isAuthenticated, router])
+
 
   // Load business profile when user ID is available
   useEffect(() => {
@@ -85,10 +78,60 @@ export default function BusinessDashboard() {
     )
   }
 
-  // Don't render if not authenticated (will redirect)
-  if (!isAuthenticated || !userId) {
-    return null
+  // Restrict access to business users only
+  if (isLoaded && isAuthenticated && !isBusinessUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Restricted</h1>
+          <p className="text-gray-600 mb-6">
+            This dashboard is only available for business account holders. 
+            {userType === 'TRAVELER' ? ' You are currently signed in as a traveller.' : ' Please contact support if you believe this is an error.'}
+          </p>
+          <div className="space-y-3">
+            <a 
+              href="/business/registration" 
+              className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Register as Business
+            </a>
+            <br />
+            <a 
+              href="/business-profile" 
+              className="inline-block text-blue-600 hover:text-blue-700 transition-colors"
+            >
+              Browse Businesses Instead
+            </a>
+          </div>
+        </div>
+      </div>
+    )
   }
+
+  // Redirect to sign-in if not authenticated
+  if (isLoaded && !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center max-w-md mx-auto p-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-6">Please sign in to access the business dashboard.</p>
+          <a 
+            href="/sign-in" 
+            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Sign In
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+
 
   // Production-ready stats - will show real data once profile exists
   const stats = [
