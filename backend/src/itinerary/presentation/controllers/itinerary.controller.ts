@@ -1,10 +1,13 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { ItineraryService } from 'src/itinerary/application/services/itinerary.service';
 import { CreateItineraryDto } from '../../application/dtos/create-itinerary.dto';
 import { ItineraryChatService } from 'src/itinerary/application/services/itinerary-chat.service';
 import { ChatItineraryRequestDto } from 'src/itinerary/application/dtos/requests/chatItinerary.dto';
 import { ItineraryChatServiceMock } from 'src/itinerary/application/services/mocks/itinerary-chat.service.mock';
 import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
+import { UserRole } from '@shared/types/user-management';
+import { Roles } from 'src/shared/decorators/roles.decorator';
 @Controller('itineraries')
 export class ItineraryController {
   constructor(
@@ -17,6 +20,8 @@ export class ItineraryController {
   async create(@Body() createDto: CreateItineraryDto) {
     return await this.itineraryService.create(createDto);
   }
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
   @Post('chat')
   async chatItinerary(
     @Body()

@@ -112,12 +112,109 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* Google Places Autocomplete Styling */
+.pac-container {
+  background-color:oklch(0.129 0.042 264.695);
+  padding: 10px 0px;
+  color: white!important;
+  border-radius: calc(var(--radius) - 2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* margin-top: 20px !important;
+  margin-left: 0px !important; */
+
+
+
+  font-family: var(--font-sans);
+
+}
+
+/* Fix Google Places input text color in dark mode */
+input[data-slot="input"] {
+  color: oklch(0.984 0.003 247.858) !important;
+}
+
+/* Ensure autocomplete input text is white in dark mode */
+ .pac-target-input {
+  color: oklch(0.984 0.003 247.858) !important;
+}
+.pac-item {
+  padding: 6px 4px;
+  color: white;
+  font-size: 14px;
+  border: none!important;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  }
+  
+  /* 
+.pac-item:hover,
+.pac-item-selected {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.pac-item:last-child {
+  border-bottom: none;
+}
+
+.pac-item-query {
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.pac-matched {
+  font-weight: 700;
+  color: hsl(var(--primary));
+}
+
+.pac-icon {
+  background-image: none !important;
+  width: 20px;
+  margin-right: 12px;
+  opacity: 0.6;
+} */
+
+/* Custom icon for place types */
+/* .pac-icon-marker::before {
+  font-size: 16px;
+} */
+
+/* Dark mode support */
+/* .dark .pac-container {
+  background-color:  oklch(0.208 0.042 265.755);
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .pac-item {
+  color: hsl(var(--foreground));
+  border:  #000000;
+}
+
+.dark .pac-item:hover,
+.dark .pac-item-selected {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+} */
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  
+  /* Hide number input spinners */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  /* Firefox */
+  input[type="number"] {
+    -moz-appearance: textfield;
   }
 }
 

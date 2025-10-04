@@ -1,6 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { StaffMember } from 'src/user-management/domain/branch/branch.entity';
+import { BLocation } from 'src/user-management/domain/branch/value-objects/b-location.vo';
 
 export type BranchDocument = Branch & Document & { _id: Types.ObjectId };
 
@@ -13,10 +14,13 @@ export class Branch {
   name: string;
 
   @Prop({ required: true })
-  b_location: string;
+  bLocation: BLocation;
 
   @Prop()
   branchManagerId?: string;
+
+  @Prop()
+  primaryContactNumber: string;
 
   @Prop({ type: [Object], default: [] })
   staff: StaffMember[];

@@ -22,11 +22,20 @@ export class BusinessAccountRepositoryImpl extends BusinessAccountRepository {
   private toDomain(accountDoc: BusinessAccountDocument): BusinessAccount {
     return new BusinessAccount(
       accountDoc._id.toString(),
-      accountDoc.name,
-      accountDoc.ownerId,
+      accountDoc.brandName,
+      accountDoc.owner,
+      accountDoc.type,
+      accountDoc.primaryContactNumber,
+      accountDoc.legalEntityName,
+      accountDoc.legalEntityAddress,
+      accountDoc.legalEntitySigner,
       accountDoc.status,
       accountDoc.createdAt,
       accountDoc.updatedAt,
     );
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.businessAccountModel.deleteOne({ _id: id });
   }
 }

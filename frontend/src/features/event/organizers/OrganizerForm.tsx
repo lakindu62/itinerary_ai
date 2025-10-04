@@ -20,8 +20,8 @@ interface Organizer {
 
 const formSchema = z.object({
   organizerName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  contactEmail: z.string().min(2, { message: 'Contact must be at least 2 characters.' }),
-  contactPhone: z.string().min(2, { message: 'Contact must be at least 2 characters.' }),
+  contactEmail: z.email({ message: 'Invalid email address.' }),
+  contactPhone: z.string().regex(/^0\d{9}$/, { message: 'Phone number must be 10 digits and start with 0.' }),
   organization: z.string().min(2, { message: 'Organization must be at least 2 characters.' }),
 });
 
@@ -54,6 +54,16 @@ const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) =
     }
   };
 
+  function formatSriLankaPhone(input: string) {
+  // Remove all non-digit characters
+  const digits = input.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  if (digits.length <= 3) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+}
+
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -77,7 +87,7 @@ const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) =
             <FormItem>
               <FormLabel>Contact Email</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., john.doe@example.com" {...field} />
+                <Input placeholder="e.g., info@gmail.com" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -90,7 +100,18 @@ const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) =
             <FormItem>
               <FormLabel>Contact Phone</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., +1234567890" {...field} />
+                {/* <Input placeholder="e.g., 076 757 6666" {...field} /> */}
+                 <Input
+                    type="tel"
+                    maxLength={14} // (XXX) XXX-XXXX is 14 chars
+                    placeholder="(076) 757-6666"
+                    value={formatSriLankaPhone(field.value)}
+                    onChange={e => {
+                      // Only store digits in the form state
+                      const digits = e.target.value.replace(/\D/g, '');
+                      field.onChange(digits);
+                    }}
+                  />
               </FormControl>
               <FormMessage />
             </FormItem>

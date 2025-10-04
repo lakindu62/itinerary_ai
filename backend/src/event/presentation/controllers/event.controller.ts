@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, Patch, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Patch, Delete, Query } from '@nestjs/common';
 import { EventService } from '../../application/services/event.service';
 import { CreateEventDto } from '../../application/dtos/create-event.dto';
 import { CreateEventRsvpDto } from '../../application/dtos/create-event-rsvp.dto';
@@ -86,7 +86,12 @@ async getRsvps() {
 async getAllHashtags() {
   return await this.eventService.getHashtags();
 }
-  
+
+  @Get('allEvents')
+  async getAllEvents() {
+    return await this.eventService.getAllEvents();
+  }
+
   //get venue by id
   @Get('venue/:id')
   async getVenueById(@Param('id') id: string) {
@@ -117,6 +122,13 @@ async getAllHashtags() {
     return await this.eventService.getHashtagById(id);
   }
   
+  // Hashtag mapping routes
+  // GET /api/events/hashtag-mapping?eventId=123
+  @Get('hashtag-mapping')
+  async getEventHashtagMappings(@Query('eventId') eventId: string) {
+    return await this.eventService.getEventHashtagMappings(eventId);
+  }
+
   //get event by id
   @Get(':id')
   async findById(@Param('id') id: string) {
@@ -189,4 +201,6 @@ async getAllHashtags() {
   async delete(@Param('id') id: string) {
     return await this.eventService.delete(id);
   }
+
+
 }

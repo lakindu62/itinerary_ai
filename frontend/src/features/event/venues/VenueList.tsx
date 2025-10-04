@@ -82,13 +82,27 @@ const VenueList = () => {
             {filteredVenues.map((venue) => (
               <TableRow key={venue.id}>
                 <TableCell>{venue.venueName}</TableCell>
-                <TableCell>{venue.address}</TableCell>
-                <TableCell>{venue.city}</TableCell>
-                <TableCell>{venue.province}</TableCell>
-                <TableCell>{venue.postalCode}</TableCell>
-                <TableCell>{venue.country}</TableCell>
-                <TableCell>{venue.capacity}</TableCell>
-                <TableCell>{venue.facilities.join(', ')}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis"
+                title={venue.address}>
+                  {venue.address}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis" 
+                title={venue.city}>
+                  {venue.city}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis"
+                title={venue.province}>
+                  {venue.province}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis"
+                title={venue.postalCode}>
+                  {venue.postalCode}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis"
+                title={venue.country}>
+                  {venue.country}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis" >
+                  {venue.capacity}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis" 
+                title={venue.facilities.join(', ')}>
+                  {venue.facilities.join(', ')}
+                  </TableCell>
                 <TableCell>
              <Link href={`/admin/event/venues/edit/${venue.id}`} passHref>
                 <Button variant="outline" size="sm" className="mr-2">

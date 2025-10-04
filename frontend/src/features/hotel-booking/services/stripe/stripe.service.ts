@@ -1,42 +1,129 @@
-import { loadStripe } from '@stripe/stripe-js';
-import api from '@/lib/api';
+// Mock Stripe service for demo purposes
+export interface PaymentData {
+  amount: number;
+  currency: string;
+  cardNumber: string;
+  expiryDate: string;
+  cvv: string;
+  cardHolder: string;
+  description?: string;
+  metadata?: Record<string, any>;
+}
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+export interface PaymentResult {
+  success: boolean;
+  paymentId: string;
+  error?: string;
+  chargeId?: string;
+}
 
 export const stripeService = {
-  // Create payment intent
-  createPaymentIntent: async (bookingData: {
-    roomId: string;
-    hotelId: string;
-    startDate: string;
-    endDate: string;
-    totalPrice: number;
-    currency: string;
-  }) => {
-    const response = await api.post('/payments/create-intent', bookingData);
-    return response.data;
-  },
-
-  // Confirm payment
-  confirmPayment: async (paymentIntentId: string, bookingId: string) => {
-    const stripe = await stripePromise;
-    if (!stripe) throw new Error('Stripe not loaded');
-
-    const { error } = await stripe.confirmPayment({
-      elements: {} as any, // Will be provided by Stripe Elements
-      confirmParams: {
-        return_url: `${process.env.NEXT_PUBLIC_FRONTEND_URL}/booking/confirmation?booking=${bookingId}`,
-      },
+  // Process payment
+  processPayment: async (paymentData: PaymentData): Promise<PaymentResult> => {
+    console.log('💳 Processing Stripe payment:', {
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      cardLast4: paymentData.cardNumber.slice(-4),
+      timestamp: '2025-09-25 11:18:45',
+      user: 'NadPerz'
     });
 
-    if (error) {
-      throw error;
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Mock payment validation
+    const isTestCard = paymentData.cardNumber.replace(/\s/g, '') === '4242424242424242';
+    const isValidExpiry = paymentData.expiryDate.match(/^\d{2}\/\d{2}$/);
+    const isValidCvv = paymentData.cvv.length >= 3;
+
+    if (!isTestCard) {
+      return {
+        success: false,
+        paymentId: '',
+        error: 'Invalid card number. Use 4242 4242 4242 4242 for testing.'
+      };
     }
+
+    if (!isValidExpiry) {
+      return {
+        success: false,
+        paymentId: '',
+        error: 'Invalid expiry date format.'
+      };
+    }
+
+    if (!isValidCvv) {
+      return {
+        success: false,
+        paymentId: '',
+        error: 'Invalid CVV.'
+      };
+    }
+
+    // Mock successful payment
+    const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const chargeId = `ch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log('✅ Payment processed successfully:', {
+      paymentId,
+      chargeId,
+      amount: paymentData.amount,
+      timestamp: '2025-09-25 11:18:45'
+    });
+
+    return {
+      success: true,
+      paymentId,
+      chargeId,
+      error: undefined
+    };
   },
 
-  // Handle payment success
-  handlePaymentSuccess: async (paymentIntentId: string) => {
-    const response = await api.post('/payments/success', { paymentIntentId });
-    return response.data;
+  // Refund payment
+  refundPayment: async (paymentId: string, amount?: number): Promise<{ success: boolean; refundId?: string; error?: string }> => {
+    console.log('💰 Processing refund:', {
+      paymentId,
+      amount,
+      timestamp: '2025-09-25 11:18:45',
+      user: 'NadPerz'
+    });
+
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const refundId = `re_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    return {
+      success: true,
+      refundId,
+      error: undefined
+    };
   },
+
+  // Get payment details
+  getPaymentDetails: async (paymentId: string): Promise<any> => {
+    console.log('🔍 Fetching payment details:', {
+      paymentId,
+      timestamp: '2025-09-25 11:18:45',
+      user: 'NadPerz'
+    });
+
+    // Mock payment details
+    return {
+      id: paymentId,
+      amount: 10000, // amount in cents
+      currency: 'usd',
+      status: 'succeeded',
+      created: Math.floor(Date.now() / 1000),
+      description: 'Hotel booking payment',
+      card: {
+        last4: '4242',
+        brand: 'visa',
+        exp_month: 12,
+        exp_year: 2025
+      }
+    };
+  }
 };
+
+export default stripeService;

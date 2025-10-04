@@ -1,6 +1,7 @@
 import { EventVenue } from './event-venue.entity';
 import { EventOrganizer } from './event-organizer.entity';
 import { EventCategory } from './event-category.entity';
+import { EventHashtag } from './event-hashtag.entity';
 
 export class Event {
   constructor(
@@ -18,6 +19,7 @@ export class Event {
     public venue: EventVenue,
     public organizer: EventOrganizer,
     public category: EventCategory,
+    public hashtags?: EventHashtag[],
     // public created_at?: string,
     // public updated_at?: string,
   ) {}

@@ -5,6 +5,6 @@ export class EventHashtagMapping {
   constructor(
     public event: Event,
     public hashtag: EventHashtag,
-    public created_at?: string,
+    // public created_at?: string,
   ) {}
 }

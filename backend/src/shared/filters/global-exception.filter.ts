@@ -138,6 +138,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       path: request.url,
     };
 
+    // Preserve detailed error information from HTTP exceptions (like validation errors)
+    if (exception instanceof HttpException) {
+      const exceptionResponse = exception.getResponse();
+      if (
+        typeof exceptionResponse === 'object' &&
+        (exceptionResponse as any).errors
+      ) {
+        responsePayload.errors = (exceptionResponse as any).errors;
+      }
+    }
+
     // In development, include stack trace for faster debugging
     if (isDev && errorToLog.stack) {
       responsePayload.stack = errorToLog.stack;

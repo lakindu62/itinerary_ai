@@ -13,9 +13,9 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
-      "@shared/*": ["../shared/*"],
+      "@shared/*": ["./shared/*"],
       "@backend/*": ["../backend/src/*"],
       "@frontend/*": ["./src/*"],
       "@/*": ["./src/*"]
@@ -26,6 +26,6 @@
       }
     ]
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../shared/types/user-management/schemas/BusinessOnboardingSchema.ts", "../backend/globals.d.ts"],
   "exclude": ["node_modules"]
 }

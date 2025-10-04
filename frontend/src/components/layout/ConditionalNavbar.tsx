@@ -7,7 +7,8 @@ export default function ConditionalNavbar() {
     const pathname = usePathname();
 
     // Hide navbar on authentication pages
-    const hideNavbar = pathname === "/sign-up" || pathname === "/sign-in" || pathname.startsWith("/sign-in/");
+    const authPaths = ["/sign-up", "/sign-in", "/business/registration"];
+    const hideNavbar = authPaths.includes(pathname) || pathname.startsWith("/sign-in/") || pathname.startsWith("/business/");
 
     if (hideNavbar) {
         return null;

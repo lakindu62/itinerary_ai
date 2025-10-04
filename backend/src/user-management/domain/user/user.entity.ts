@@ -7,6 +7,8 @@ export class User {
     public readonly id: string | undefined,
     public readonly clerkUserId: string,
     public readonly email: string,
+    public readonly firstName: string,
+    public readonly lastName: string,
     public readonly userType: UserType,
     public readonly businessAccountId?: string,
     public readonly branchId?: string,

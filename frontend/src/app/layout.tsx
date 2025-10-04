@@ -5,11 +5,7 @@ import Providers from "@/lib/providers";
 import ConditionalNavbar from "@/components/layout/ConditionalNavbar";
 import {
   ClerkProvider,
-  SignInButton,
-  SignUpButton,
-  SignedIn,
-  SignedOut,
-  UserButton
+
 
 } from '@clerk/nextjs'
 

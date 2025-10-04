@@ -1,12 +1,18 @@
 'use client'
+import { useAuth } from "@clerk/nextjs";
+import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
 import React, { useState, useEffect } from "react";
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
+  const { getToken } = useAuth();
+
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    console.log('setting clerk set token func')
+    setClerkGetTokenFunc(getToken);
+  }, [getToken]);
 
   if (!isClient) {
     return (

@@ -8,5 +8,5 @@ export abstract class BusinessAccountRepository {
   //     id: string,
   //     updates: Partial<BusinessAccount>,
   //   ): Promise<BusinessAccount>;
-  //   abstract delete(id: string): Promise<void>;
+  abstract delete(id: string): Promise<void>;
 }

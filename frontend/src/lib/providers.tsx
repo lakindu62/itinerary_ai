@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Provider as ReduxProvider } from "react-redux";
+import { store } from "@/store";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   // React Query client
@@ -26,27 +28,29 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: "#231212",
-              color: "#ffffff",
-            },
-            duration: 4000,
-          }}
-        />
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
-    </NextThemesProvider>
+    <ReduxProvider store={store}>
+      <NextThemesProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: "#231212",
+                color: "#ffffff",
+              },
+              duration: 4000,
+            }}
+          />
+          <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
+      </NextThemesProvider>
+    </ReduxProvider>
   );
 }
 

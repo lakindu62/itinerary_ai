@@ -8,10 +8,25 @@ export type BusinessAccountDocument = BusinessAccount &
 @Schema({ collection: 'business_accounts' })
 export class BusinessAccount {
   @Prop({ required: true })
-  name: string;
+  brandName: string;
 
   @Prop({ required: true })
-  ownerId: string;
+  owner: string;
+
+  @Prop({ required: true })
+  type: string;
+
+  @Prop({ required: true })
+  primaryContactNumber: string;
+
+  @Prop({ required: true })
+  legalEntityName: string;
+
+  @Prop({ required: true })
+  legalEntityAddress: string;
+
+  @Prop({ required: true })
+  legalEntitySigner: string;
 
   @Prop({ default: BusinessStatus.ACTIVE, enum: Object.values(BusinessStatus) })
   status: BusinessStatus;

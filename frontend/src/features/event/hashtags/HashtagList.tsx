@@ -66,7 +66,7 @@ const HashtagList = () => {
           <TableBody>
             {filteredHashtags.map((hashtag) => (
               <TableRow key={hashtag.id}>
-                <TableCell>{hashtag.hashtagName}</TableCell>
+                <TableCell>#{hashtag.hashtagName}</TableCell>
                 <TableCell>
                   <Link href={`/admin/event/hashtags/edit/${hashtag.id}`} passHref>
                     <Button variant="outline" size="sm" className="mr-2">
