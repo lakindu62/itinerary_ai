@@ -93,6 +93,7 @@ export class RoomRepositoryImpl implements RoomRepository {
   private documentToEntity(doc: RoomDocument): Room {
     return new Room(
       doc.id,
+      doc.userId,
       doc.title,
       doc.description,
       doc.bedCount,

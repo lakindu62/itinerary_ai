@@ -1,12 +1,13 @@
 "use client";
 
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   ArrowLeft,
   Save,
   Calendar,
@@ -21,7 +22,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { bookingsApi } from '../../services/api/bookings.api';
+import { bookingsApi, Booking } from '../../services/api/bookings.api';
 import { format, addDays, differenceInDays } from 'date-fns';
 
 interface EditReservationProps {
@@ -34,13 +35,14 @@ interface EditableBooking {
   hotelName?: string;
   roomId: string;
   roomName?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
+  paymentStatus: string;
   status: string;
-  guestName: string;
-  guestEmail: string;
+  guestName?: string;
+  guestEmail?: string;
   guestPhone?: string;
   specialRequests?: string;
   roomPrice: number;
@@ -48,6 +50,7 @@ interface EditableBooking {
 
 export default function EditReservation({ reservationId }: EditReservationProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [booking, setBooking] = useState<EditableBooking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -90,12 +93,12 @@ export default function EditReservation({ reservationId }: EditReservationProps)
       });
 
       setIsLoading(true);
-      const allBookings = await bookingsApi.getAll();
+      const allBookings = await bookingsApi.getAll(user?.id || '');
       const foundBooking = allBookings.find(b => b.id === reservationId);
       
       if (foundBooking) {
-        const checkInDate = new Date(foundBooking.checkIn);
-        const checkOutDate = new Date(foundBooking.checkOut);
+        const checkInDate = new Date(foundBooking.checkInDate);
+        const checkOutDate = new Date(foundBooking.checkOutDate);
         const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
         const roomPrice = nights > 0 ? foundBooking.totalPrice / nights : foundBooking.totalPrice;
 
@@ -103,18 +106,17 @@ export default function EditReservation({ reservationId }: EditReservationProps)
           ...foundBooking,
           roomPrice
         };
-
         setBooking(editableBooking);
         
         // Initialize form data
         setFormData({
-          checkIn: foundBooking.checkIn,
-          checkOut: foundBooking.checkOut,
-          guests: foundBooking.guests,
+          checkIn: foundBooking.checkInDate,
+          checkOut: foundBooking.checkOutDate,
+          guests: foundBooking.numberOfGuests,
           guestName: foundBooking.guestName,
           guestEmail: foundBooking.guestEmail,
           guestPhone: foundBooking.guestPhone || '',
-          specialRequests: foundBooking.specialRequests || ''
+          specialRequests: (foundBooking as Booking).specialRequests || ''
         });
 
         console.log('✅ Booking loaded for editing - NadPerz:', {

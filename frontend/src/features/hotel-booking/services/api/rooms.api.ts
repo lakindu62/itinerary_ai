@@ -60,16 +60,17 @@ export const roomsApi = {
     }
   },
 
-  // Get single room
-  getRoom: async (roomId: string): Promise<Room> => {
+  getRoom: async (roomId: string, userId: string): Promise<Room> => {
     console.log('🏠 API: Fetching room by ID:', roomId);
-    const response = await api.get(`/rooms/${roomId}`);
+    const response = await api.get(`/rooms/${roomId}`, {
+      headers: { 'x-user-id': userId },
+    });
     console.log('✅ Room fetched successfully:', response.data.data?.title);
     return response.data.data;
   },
 
   // Create room - Store PATH in database, not full URL
-  createRoom: async (data: CreateRoomRequest & { imageFile?: File }): Promise<Room> => {
+  createRoom: async (data: CreateRoomRequest & { imageFile?: File }, userId: string): Promise<Room> => {
     let imagePath = '';
     
     if (data.imageFile) {
@@ -80,7 +81,7 @@ export const roomsApi = {
         imagePath = await uploadToResourceBucket(
           data.imageFile, 
           'rooms',
-          'NadPerz'
+          userId
         );
         
         console.log('✅ Room image uploaded, path stored:', imagePath);
@@ -95,6 +96,7 @@ export const roomsApi = {
     // Store PATH in database, not full HTTP URL
     const roomData: CreateRoomRequest = {
       ...data,
+      userId: userId,
       image: imagePath, // Store path like "room-bucket/images/rooms_NadPerz_123456789_image.jpg"
     };
     
@@ -103,13 +105,14 @@ export const roomsApi = {
 
     console.log('🏠 Creating room with data:', apiData);
     console.log('🏠 Room will be associated with hotel:', apiData.hotelId);
-    const response = await api.post('/rooms', apiData);
-    console.log('✅ Room created successfully:', response.data.data);
+    const response = await api.post('/rooms', apiData, {
+      headers: { 'x-user-id': userId },
+    });
     return response.data.data;
   },
 
   // Update room
-  updateRoom: async (roomId: string, data: UpdateRoomRequest & { imageFile?: File }): Promise<Room> => {
+  updateRoom: async (roomId: string, data: UpdateRoomRequest & { imageFile?: File }, userId: string): Promise<Room> => {
     let updateData: UpdateRoomRequest = { ...data };
     
     // Handle image update if new image is provided
@@ -120,7 +123,7 @@ export const roomsApi = {
         const imagePath = await uploadToResourceBucket(
           data.imageFile,
           'rooms',
-          'NadPerz'
+          userId
         );
         
         updateData.image = imagePath; // Store path, not full URL
@@ -135,15 +138,18 @@ export const roomsApi = {
     const { imageFile, ...cleanUpdateData } = updateData as any;
     
     console.log('🏠 Updating room:', roomId, cleanUpdateData);
-    const response = await api.put(`/rooms/${roomId}`, cleanUpdateData);
-    console.log('✅ Room updated successfully');
+    const response = await api.put(`/rooms/${roomId}`, cleanUpdateData, {
+      headers: { 'x-user-id': userId },
+    });
     return response.data.data;
   },
 
   // Delete room
-  deleteRoom: async (roomId: string): Promise<void> => {
+  deleteRoom: async (roomId: string, userId: string): Promise<void> => {
     console.log('🏠 Deleting room:', roomId);
-    await api.delete(`/rooms/${roomId}`);
+    await api.delete(`/rooms/${roomId}`, {
+      headers: { 'x-user-id': userId },
+    });
     console.log('✅ Room deleted successfully');
   },
 

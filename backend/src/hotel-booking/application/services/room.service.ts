@@ -14,7 +14,7 @@ export class RoomService {
     private readonly hotelRepository: HotelRepository,
   ) {}
 
-  async createRoom(userId: string, createRoomDto: CreateRoomDto): Promise<Room> {
+  async createRoom(createRoomDto: CreateRoomDto, userId: string): Promise<Room> {
     // Verify hotel ownership
     const hotel = await this.hotelRepository.findById(createRoomDto.hotelId);
     if (!hotel) {
@@ -25,7 +25,7 @@ export class RoomService {
     }
 
     try {
-      const room = Room.create(createRoomDto);
+      const room = Room.create({ ...createRoomDto, userId });
       return await this.roomRepository.create(room);
     } catch (error) {
       throw new BadRequestException('Failed to create room: ' + error.message);
@@ -54,13 +54,9 @@ export class RoomService {
   async updateRoom(id: string, userId: string, updateRoomDto: UpdateRoomDto): Promise<Room> {
     const existingRoom = await this.findRoomById(id);
     
-    // Verify hotel ownership
-    const hotel = await this.hotelRepository.findById(existingRoom.hotelId);
-    if (!hotel) {
-      throw new NotFoundException('Hotel not found');
-    }
-    if (hotel.userId !== userId) {
-      throw new ForbiddenException('You can only update rooms in your own hotels');
+    // Verify room ownership directly
+    if (existingRoom.userId !== userId) {
+      throw new ForbiddenException('You can only update your own rooms');
     }
 
     const updatedRoom = existingRoom.updateDetails(updateRoomDto);
@@ -70,13 +66,9 @@ export class RoomService {
   async deleteRoom(id: string, userId: string): Promise<void> {
     const existingRoom = await this.findRoomById(id);
     
-    // Verify hotel ownership
-    const hotel = await this.hotelRepository.findById(existingRoom.hotelId);
-    if (!hotel) {
-      throw new NotFoundException('Hotel not found');
-    }
-    if (hotel.userId !== userId) {
-      throw new ForbiddenException('You can only delete rooms in your own hotels');
+    // Verify room ownership directly
+    if (existingRoom.userId !== userId) {
+      throw new ForbiddenException('You can only delete your own rooms');
     }
 
     await this.roomRepository.delete(id);

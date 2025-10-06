@@ -1,10 +1,11 @@
 "use client";
 
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   ArrowLeft,
   Calendar,
   MapPin,
@@ -45,11 +46,11 @@ interface BookingDetails {
   roomId: string;
   roomName?: string;
   roomType?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  paymentStatus: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   guestName: string;
   guestEmail: string;
   guestPhone?: string;
@@ -63,6 +64,7 @@ interface BookingDetails {
 
 export default function ReservationDetails({ reservationId }: ReservationDetailsProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [booking, setBooking] = useState<BookingDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -93,13 +95,13 @@ export default function ReservationDetails({ reservationId }: ReservationDetails
       setIsLoading(true);
       
       // Get all bookings and find the specific one (since we don't have a getById method)
-      const allBookings = await bookingsApi.getAll();
+      const allBookings = await bookingsApi.getAll(user?.id || '');
       const foundBooking = allBookings.find(b => b.id === reservationId);
       
       if (foundBooking) {
         // Calculate additional details
-        const checkInDate = new Date(foundBooking.checkIn);
-        const checkOutDate = new Date(foundBooking.checkOut);
+        const checkInDate = new Date(foundBooking.checkInDate);
+        const checkOutDate = new Date(foundBooking.checkOutDate);
         const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
         const roomPrice = nights > 0 ? foundBooking.totalPrice / nights : foundBooking.totalPrice;
 
@@ -110,7 +112,6 @@ export default function ReservationDetails({ reservationId }: ReservationDetails
           hotelAddress: `${foundBooking.hotelCity || 'City'}, ${foundBooking.hotelCountry || 'Country'}`,
           roomType: foundBooking.roomName || 'Standard Room'
         };
-
         console.log('✅ Booking details loaded for NadPerz:', {
           bookingId: enrichedBooking.id.slice(-8),
           status: enrichedBooking.status,

@@ -48,6 +48,7 @@ export interface CreateRoomRequest {
   airCondition: boolean;
   soundProofed: boolean;
   hotelId: string;
+  userId?: string;
 }
 
 export interface UpdateRoomRequest extends Partial<CreateRoomRequest> {

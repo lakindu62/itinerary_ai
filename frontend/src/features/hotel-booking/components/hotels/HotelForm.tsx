@@ -14,6 +14,7 @@ import { X, Loader2, Hotel } from 'lucide-react';
 import MinioImageUpload from '../shared/MinioImageUpload';
 import { useHotels } from '../../hooks/useHotels';
 import { Hotel as HotelType } from '../../types/hotel.types';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 // Define the hotel schema with optional locationDescription
 const hotelSchema = z.object({
@@ -47,8 +48,15 @@ interface HotelFormProps {
 
 export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps) {
   const { createHotel, updateHotel, isCreating, isUpdating } = useHotels();
+  const { userId } = useAuth(); // Get current user ID
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+
+  // ADD THIS: Hydration-safe timestamp
+  const [timestamp, setTimestamp] = useState<number | null>(null);
+  useEffect(() => {
+    setTimestamp(Date.now());
+  }, []);
 
   const isEditMode = !!hotel;
   const isSubmitting = isCreating || isUpdating;
@@ -61,7 +69,7 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
       country: hotel?.country || '',
       state: hotel?.state || '',
       city: hotel?.city || '',
-      locationDescription: hotel?.locationDescription || '', // Will be empty string if undefined
+      locationDescription: (hotel?.locationDescription || '') as string | undefined, // Will be empty string if undefined
       gym: hotel?.gym || false,
       spa: hotel?.spa || false,
       bar: hotel?.bar || false,
@@ -91,6 +99,11 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
   };
 
   const onSubmit: SubmitHandler<HotelFormData> = async (data) => {
+    if (!userId) {
+      alert('User not authenticated. Please log in.');
+      return;
+    }
+
     try {
       console.log(`🏨 ${isEditMode ? 'Updating' : 'Creating'} hotel:`, data);
       
@@ -104,15 +117,12 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
       if (isEditMode && hotel) {
         // UPDATE existing hotel
         console.log('🔄 Updating hotel ID:', hotel.id);
-        await updateHotel({
-          id: hotel.id,
-          data: cleanData,
-        });
+        await updateHotel({ id: hotel.id, data: cleanData });
         console.log('✅ Hotel updated successfully');
       } else {
         // CREATE new hotel
         console.log('🆕 Creating new hotel');
-        await createHotel(cleanData);
+        await createHotel({ ...cleanData, userId });
         console.log('✅ Hotel created successfully');
       }
 
@@ -216,8 +226,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                   folder="images"
                   isUploading={isSubmitting}
                 />
+                {/* FIXED: Only show timestamp after hydration */}
                 <p className="text-xs text-gray-500 mt-1">
-                  💾 File will be stored as: hotel-bucket/images/hotels_NadPerz_{Date.now()}_filename.jpg
+                  💾 File will be stored as: hotel-bucket/images/hotels_NadPerz_{timestamp ?? "timestamp"}_filename.jpg
                 </p>
               </div>
             </div>

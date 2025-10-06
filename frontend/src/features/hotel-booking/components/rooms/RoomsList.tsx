@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Search, Bed, Building } from 'lucide-react';
@@ -35,6 +36,7 @@ export default function RoomsList({
   onBook
 }: RoomsListProps) {
   const router = useRouter();
+  const { userId } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredRooms, setFilteredRooms] = useState(rooms);
 
@@ -45,8 +47,8 @@ export default function RoomsList({
     hotelName,
     showManageActions,
     showBookButton,
-    timestamp: '2025-09-25 08:58:24',
-    user: 'NadPerz'
+    timestamp: new Date().toISOString(),
+    userId
   });
 
   const handleSearch = (term: string) => {
@@ -67,8 +69,8 @@ export default function RoomsList({
     console.log('👁️ Viewing room details:', {
       roomId: room.id,
       title: room.title,
-      timestamp: '2025-09-25 08:58:24',
-      user: 'NadPerz'
+      timestamp: new Date().toISOString(),
+      userId
     });
     
     if (onViewDetails) {
@@ -82,8 +84,8 @@ export default function RoomsList({
     console.log('✏️ Editing room:', {
       roomId: room.id,
       title: room.title,
-      timestamp: '2025-09-25 08:58:24',
-      user: 'NadPerz'
+      timestamp: new Date().toISOString(),
+      userId
     });
     
     if (onEdit) {
@@ -97,8 +99,8 @@ export default function RoomsList({
     console.log('🗑️ Deleting room:', {
       roomId: room.id,
       title: room.title,
-      timestamp: '2025-09-25 08:58:24',
-      user: 'NadPerz'
+      timestamp: new Date().toISOString(),
+      userId
     });
     
     if (onDelete) {
@@ -106,7 +108,7 @@ export default function RoomsList({
     } else {
       // Default delete behavior
       if (window.confirm(`Are you sure you want to delete "${room.title}"?`)) {
-        console.log('Room deletion confirmed by NadPerz');
+        console.log(`Room deletion confirmed by user ${userId}`);
         // Handle deletion here
       }
     }
@@ -117,8 +119,8 @@ export default function RoomsList({
       roomId: room.id,
       title: room.title,
       price: room.roomPrice,
-      timestamp: '2025-09-25 08:58:24',
-      user: 'NadPerz'
+      timestamp: new Date().toISOString(),
+      userId
     });
     
     if (onBook) {
@@ -142,7 +144,7 @@ export default function RoomsList({
             {hotelName ? `Rooms in ${hotelName}` : 'Rooms'}
           </h2>
           <p className="text-gray-600 mt-1">
-            Manage your room inventory | User: NadPerz | 2025-09-25 08:58:24
+            Manage your room inventory
           </p>
         </div>
         {showManageActions && hotelId && (
@@ -177,7 +179,6 @@ export default function RoomsList({
           <div className="text-center">
             <LoadingSpinner />
             <p className="mt-4 text-gray-600">Loading rooms...</p>
-            <p className="text-xs text-gray-500 mt-1">User: NadPerz | 2025-09-25 08:58:24</p>
           </div>
         </div>
       ) : filteredRooms.length === 0 ? (
@@ -190,9 +191,6 @@ export default function RoomsList({
             {searchTerm 
               ? 'Try adjusting your search terms.' 
               : 'Get started by creating your first room.'}
-          </p>
-          <p className="text-xs text-gray-500 mb-6">
-            User: NadPerz | 2025-09-25 08:58:24
           </p>
           {!searchTerm && showManageActions && hotelId && (
             <Button onClick={handleCreateRoom}>
@@ -231,7 +229,7 @@ export default function RoomsList({
             )}
           </div>
           <div className="text-xs text-gray-500">
-            <span>User: NadPerz | Last updated: 2025-09-25 08:58:24 UTC</span>
+            <span>Last updated: {new Date().toLocaleDateString()}</span>
           </div>
         </div>
       )}

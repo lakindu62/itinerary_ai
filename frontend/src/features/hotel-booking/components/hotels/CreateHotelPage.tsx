@@ -5,14 +5,16 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Building, Plus } from 'lucide-react';
 import HotelForm from './HotelForm';
 import { useHotels } from '../../hooks/useHotels';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export default function CreateHotelPage() {
   const router = useRouter();
   const { createHotel, isCreating } = useHotels();
+  const { userId } = useAuth(); // Get current user ID
 
   console.log('🏨 Create Hotel Page loaded:', {
     timestamp: '2025-09-25 08:47:17',
-    user: 'NadPerz'
+    user: userId // Use dynamic userId
   });
 
   const handleSuccess = () => {
@@ -49,7 +51,7 @@ export default function CreateHotelPage() {
           </p>
           
           <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-            <span>👤 User: NadPerz</span>
+            <span>👤 User: {userId}</span> {/* Display dynamic userId */}
             <span>•</span>
             <span>📅 2025-09-25 08:47:17</span>
             <span>•</span>

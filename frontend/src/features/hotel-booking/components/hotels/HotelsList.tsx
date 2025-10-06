@@ -8,21 +8,23 @@ import { Plus, Search, Building } from 'lucide-react';
 import { Hotel } from '../../types/hotel.types';
 import HotelCard from './HotelCard';
 import LoadingSpinner from '../shared/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 interface HotelsListProps {
   hotels: Hotel[];
   isLoading?: boolean;
   onEdit?: (hotel: Hotel) => void;
-  onDelete?: (hotel: Hotel) => void;
+  onDelete?: (hotel: Hotel, userId: string) => void; // Update onDelete prop signature
 }
 
-export default function HotelsList({ 
-  hotels, 
-  isLoading = false, 
-  onEdit, 
-  onDelete 
+export default function HotelsList({
+  hotels,
+  isLoading = false,
+  onEdit,
+  onDelete
 }: HotelsListProps) {
   const router = useRouter();
+  const { userId } = useAuth(); // Get current user ID
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredHotels, setFilteredHotels] = useState(hotels);
 
@@ -30,7 +32,7 @@ export default function HotelsList({
     totalHotels: hotels.length,
     filteredCount: filteredHotels.length,
     timestamp: '2025-09-25 08:47:17',
-    user: 'NadPerz'
+    user: userId // Use dynamic userId
   });
 
   const handleSearch = (term: string) => {
@@ -63,13 +65,16 @@ export default function HotelsList({
 
   const handleDeleteHotel = (hotel: Hotel) => {
     console.log('🗑️ Deleting hotel:', hotel.id);
-    if (onDelete) {
-      onDelete(hotel);
+    if (onDelete && userId) {
+      onDelete(hotel, userId); // Pass userId to onDelete
+    } else if (!userId) {
+      console.error('User not authenticated for delete action.');
+      // Optionally show a toast or alert
     } else {
-      // Default delete behavior
+      // Default delete behavior (if onDelete prop is not provided)
       if (window.confirm(`Are you sure you want to delete "${hotel.title}"?`)) {
         console.log('Hotel deletion confirmed');
-        // Handle deletion here
+        // Handle deletion here (e.g., call a default delete API if available)
       }
     }
   };
@@ -91,7 +96,7 @@ export default function HotelsList({
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Hotels</h1>
           <p className="text-gray-600 mt-1">
-            Manage your hotel portfolio | User: NadPerz | 2025-09-25 08:47:17
+            Manage your hotel portfolio | User: {userId} | 2025-09-25 08:47:17
           </p>
         </div>
         <Button onClick={handleCreateHotel}>

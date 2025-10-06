@@ -103,7 +103,7 @@ export default function EditRoomPage() {
           </div>
           
           <p className="text-gray-600">
-            Update "{room.title}" in {hotel.title}
+            Update &quot;{room.title}&quot; in {hotel.title}
           </p>
           
           <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
@@ -132,6 +132,7 @@ export default function EditRoomPage() {
         
         <RoomForm
           selectedHotelId={hotelId}
+          hotelId={hotelId}
           room={room} // Pass existing room for editing
           onSuccess={handleSuccess}
           onCancel={handleCancel}

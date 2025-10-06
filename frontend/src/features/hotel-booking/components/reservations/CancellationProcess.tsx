@@ -1,12 +1,13 @@
 "use client";
 
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
+import {
   ArrowLeft,
   AlertTriangle,
   Calendar,
@@ -37,11 +38,11 @@ interface BookingForCancellation {
   hotelCountry?: string;
   roomId: string;
   roomName?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
-  status: string;
+  paymentStatus: string;
   guestName: string;
   guestEmail: string;
   guestPhone?: string;
@@ -54,6 +55,7 @@ interface BookingForCancellation {
 
 export default function CancellationProcess({ reservationId }: CancellationProcessProps) {
   const router = useRouter();
+  const { user } = useAuth();
   const [booking, setBooking] = useState<BookingForCancellation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -88,12 +90,12 @@ export default function CancellationProcess({ reservationId }: CancellationProce
       });
 
       setIsLoading(true);
-      const allBookings = await bookingsApi.getAll();
+      const allBookings = await bookingsApi.getAll(user?.id || '');
       const foundBooking = allBookings.find(b => b.id === reservationId);
       
       if (foundBooking) {
-        const checkInDate = new Date(foundBooking.checkIn);
-        const checkOutDate = new Date(foundBooking.checkOut);
+        const checkInDate = new Date(foundBooking.checkInDate);
+        const checkOutDate = new Date(foundBooking.checkOutDate);
         const currentDate = new Date();
         
         const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -104,7 +106,6 @@ export default function CancellationProcess({ reservationId }: CancellationProce
           nights,
           daysUntilCheckIn
         };
-
         // Calculate cancellation policy
         const { refund, fee } = calculateCancellationPolicy(foundBooking.totalPrice, daysUntilCheckIn);
         setRefundAmount(refund);

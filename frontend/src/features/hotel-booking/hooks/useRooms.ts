@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { roomsApi } from '../services/api/rooms.api';
 import { Room, CreateRoomRequest } from '../types/room.types';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '@clerk/nextjs';
 
 export const useRooms = (hotelId?: string) => {
   const queryClient = useQueryClient();
+  const { userId } = useAuth();
 
   // Get rooms by hotel - Fixed React Query syntax (removed deprecated onSuccess/onError)
   const {
@@ -32,8 +34,12 @@ export const useRooms = (hotelId?: string) => {
   // Create room mutation
   const createRoomMutation = useMutation({
     mutationFn: (data: CreateRoomRequest & { imageFile?: File }) => {
+      if (!userId) {
+        toast.error('You must be logged in to create a room.');
+        throw new Error('User not authenticated');
+      }
       console.log('🔄 Creating room via mutation for hotel:', data.hotelId);
-      return roomsApi.createRoom(data);
+      return roomsApi.createRoom({ ...data, userId });
     },
     onSuccess: (createdRoom: Room) => {
       console.log('✅ Room created successfully:', createdRoom);
@@ -53,8 +59,13 @@ export const useRooms = (hotelId?: string) => {
 
   // Update room mutation
   const updateRoomMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateRoomRequest> }) => 
-      roomsApi.updateRoom(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateRoomRequest> }) => {
+      if (!userId) {
+        toast.error('You must be logged in to update a room.');
+        throw new Error('User not authenticated');
+      }
+      return roomsApi.updateRoom(id, { ...data, userId });
+    },
     onSuccess: (updatedRoom: Room) => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       queryClient.invalidateQueries({ queryKey: ['room', updatedRoom.id] });
@@ -67,7 +78,13 @@ export const useRooms = (hotelId?: string) => {
 
   // Delete room mutation
   const deleteRoomMutation = useMutation({
-    mutationFn: (id: string) => roomsApi.deleteRoom(id),
+    mutationFn: (id: string) => {
+      if (!userId) {
+        toast.error('You must be logged in to delete a room.');
+        throw new Error('User not authenticated');
+      }
+      return roomsApi.deleteRoom(id, userId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rooms'] });
       queryClient.invalidateQueries({ queryKey: ['hotels'] });

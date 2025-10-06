@@ -25,6 +25,7 @@ export interface Hotel {
 }
 
 export interface CreateHotelRequest {
+  userId?: string;
   title: string;
   description: string;
   image?: string;

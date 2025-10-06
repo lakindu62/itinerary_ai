@@ -1,91 +1,82 @@
-import { IsString, IsBoolean, IsOptional } from 'class-validator';
-// import { ApiProperty } from '@nestjs/swagger';
+import { IsString, IsBoolean, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class CreateHotelDto {
-  // @ApiProperty({ example: 'Grand Plaza Hotel' })
   @IsString()
+  @IsNotEmpty()
   title: string;
 
-  // @ApiProperty({ example: 'Luxury hotel in the heart of the city' })
   @IsString()
+  @IsNotEmpty()
   description: string;
 
-  // @ApiProperty({ example: 'https://example.com/hotel-image.jpg' })
   @IsString()
+  @IsNotEmpty()
   image: string;
 
-  // @ApiProperty({ example: 'USA' })
   @IsString()
+  @IsNotEmpty()
   country: string;
 
-  // @ApiProperty({ example: 'California' })
   @IsString()
+  @IsNotEmpty()
   state: string;
 
-  // @ApiProperty({ example: 'Los Angeles' })
   @IsString()
+  @IsNotEmpty()
   city: string;
 
-  // @ApiProperty({ example: 'Located in downtown with easy access to major attractions' })
   @IsString()
+  @IsNotEmpty()
   locationDescription: string;
 
-  // @ApiProperty({ example: true, default: false })
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+
   @IsOptional()
   @IsBoolean()
   gym?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   spa?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   bar?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   laundry?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   restaurant?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   shopping?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   freeParking?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   bikeRental?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   freeWifi?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   movieNights?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   swimmingPool?: boolean;
 
-  // @ApiProperty({ example: true, default: false })
   @IsOptional()
   @IsBoolean()
   coffeeShop?: boolean;

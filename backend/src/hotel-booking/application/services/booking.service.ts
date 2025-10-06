@@ -17,7 +17,7 @@ export class BookingService {
     private readonly hotelRepository: HotelRepository,
   ) {}
 
-  async createBooking(userId: string, createBookingDto: CreateBookingDto): Promise<Booking> {
+  async createBooking(createBookingDto: CreateBookingDto): Promise<Booking> {
     // Validate dates
     const startDate = new Date(createBookingDto.startDate);
     const endDate = new Date(createBookingDto.endDate);
@@ -66,7 +66,7 @@ export class BookingService {
     try {
       // FIX: Pass the correct object structure to Booking.create()
       const booking = Booking.create({
-        userId,
+        userId: createBookingDto.userId,
         roomId: createBookingDto.roomId,
         hotelId: createBookingDto.hotelId,
         hotelOwnerId: createBookingDto.hotelOwnerId,

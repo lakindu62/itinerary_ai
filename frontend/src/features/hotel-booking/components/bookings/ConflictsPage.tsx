@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { useBookings } from '../../hooks/useBookings';
+import { useBookings, Booking } from '../../hooks/useBookings';
 import { formatDate, formatPrice } from '../../lib/formatters';
 
 export default function ConflictsPage() {
-  const { conflicts, isLoading } = useBookings();
+  const { bookings, isLoading } = useBookings();
+  const conflicts = bookings;
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -34,7 +35,7 @@ export default function ConflictsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {conflicts.map((booking) => (
+          {conflicts.map((booking: Booking) => (
             <Card key={booking.id} className="border-red-200 bg-red-50">
               <CardHeader>
                 <div className="flex items-center justify-between">

@@ -22,11 +22,8 @@ export class BookingController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createBooking(
-    @Headers('x-user-id') userId: string = 'test-user-123',
-    @Body() createBookingDto: CreateBookingDto,
-  ) {
-    const booking = await this.bookingService.createBooking(userId, createBookingDto);
+  async createBooking(@Body() createBookingDto: CreateBookingDto) {
+    const booking = await this.bookingService.createBooking(createBookingDto);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Booking created successfully',
@@ -35,7 +32,10 @@ export class BookingController {
   }
 
   @Get('my-bookings')
-  async findMyBookings(@Headers('x-user-id') userId: string = 'test-user-123') {
+  async findMyBookings(@Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     const bookings = await this.bookingService.findMyBookings(userId);
     return {
       statusCode: HttpStatus.OK,
@@ -46,7 +46,10 @@ export class BookingController {
   }
 
   @Get('hotel-bookings')
-  async findHotelBookings(@Headers('x-user-id') hotelOwnerId: string = 'test-user-123') {
+  async findHotelBookings(@Headers('x-user-id') hotelOwnerId: string) {
+    if (!hotelOwnerId) {
+      throw new BadRequestException('Hotel Owner ID is required');
+    }
     const bookings = await this.bookingService.findHotelBookings(hotelOwnerId);
     return {
       statusCode: HttpStatus.OK,
@@ -97,9 +100,12 @@ export class BookingController {
   @Put(':id/status')
   async updateBookingStatus(
     @Param('id') id: string,
-    @Headers('x-user-id') userId: string = 'test-user-123',
+    @Headers('x-user-id') userId: string,
     @Body() updateDto: UpdateBookingStatusDto,
   ) {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     const booking = await this.bookingService.updateBookingStatus(id, userId, updateDto);
     return {
       statusCode: HttpStatus.OK,
@@ -112,8 +118,11 @@ export class BookingController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async cancelBooking(
     @Param('id') id: string,
-    @Headers('x-user-id') userId: string = 'test-user-123',
+    @Headers('x-user-id') userId: string,
   ) {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
     await this.bookingService.cancelBooking(id, userId);
   }
 }

@@ -1,11 +1,12 @@
 "use client";
 
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   Calendar, 
   Search,
   Filter,
@@ -39,11 +40,11 @@ interface Booking {
   hotelCountry?: string;
   roomId: string;
   roomName?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  paymentStatus: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   guestName: string;
   guestEmail: string;
   guestPhone?: string;
@@ -55,6 +56,7 @@ interface Booking {
 
 export default function ReservationsOverview() {
   const router = useRouter();
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,7 +93,7 @@ export default function ReservationsOverview() {
       });
 
       setIsLoading(true);
-      const fetchedBookings = await bookingsApi.getAll();
+      const fetchedBookings = await bookingsApi.getAll(user?.id || '');
       
       console.log('✅ Bookings fetched for NadPerz:', {
         count: fetchedBookings.length,
@@ -99,8 +101,7 @@ export default function ReservationsOverview() {
         user: currentUser
       });
 
-      setBookings(fetchedBookings);
-    } catch (error) {
+      setBookings(fetchedBookings);    } catch (error) {
       console.error('❌ Error fetching bookings for NadPerz:', error);
       setBookings([]);
     } finally {

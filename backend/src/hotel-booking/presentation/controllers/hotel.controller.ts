@@ -9,23 +9,31 @@ import {
   Query,
   HttpStatus,
   HttpCode,
-  Headers,
+  UseGuards,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { HotelService } from '../../application/services/hotel.service';
 import { CreateHotelDto } from '../../application/dtos/create-hotel.dto';
 import { UpdateHotelDto } from '../../application/dtos/update-hotel.dto';
+import { ClerkAuthGuard } from '../../../shared/guards/clerk-auth-guard';
 
 @Controller('hotels')
 export class HotelController {
   constructor(private readonly hotelService: HotelService) {}
 
   @Post()
+  @UseGuards(ClerkAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async createHotel(
-    @Headers('x-user-id') userId: string = 'test-user-123',
     @Body() createHotelDto: CreateHotelDto,
+    @Req() req: any,
   ) {
-    const hotel = await this.hotelService.createHotel(userId, createHotelDto);
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    const hotel = await this.hotelService.createHotel(createHotelDto, userId);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Hotel created successfully',
@@ -33,6 +41,56 @@ export class HotelController {
     };
   }
 
+  @Get('my-hotels')
+  @UseGuards(ClerkAuthGuard)
+  async findMyHotels(@Req() req: any) {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    const hotels = await this.hotelService.findHotelsByUser(userId);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Your hotels retrieved successfully',
+      data: hotels,
+      count: hotels.length,
+    };
+  }
+
+  @Put(':id')
+  @UseGuards(ClerkAuthGuard)
+  async updateHotel(
+    @Param('id') id: string,
+    @Body() updateHotelDto: UpdateHotelDto,
+    @Req() req: any,
+  ) {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    const hotel = await this.hotelService.updateHotel(id, userId, updateHotelDto);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Hotel updated successfully',
+      data: hotel,
+    };
+  }
+
+  @Delete(':id')
+  @UseGuards(ClerkAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteHotel(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    await this.hotelService.deleteHotel(id, userId);
+  }
+
+  // Publicly accessible endpoints
   @Get()
   async findAllHotels(
     @Query('city') city?: string,
@@ -49,17 +107,6 @@ export class HotelController {
     return {
       statusCode: HttpStatus.OK,
       message: 'Hotels retrieved successfully',
-      data: hotels,
-      count: hotels.length,
-    };
-  }
-
-  @Get('my-hotels')
-  async findMyHotels(@Headers('x-user-id') userId: string = 'test-user-123') {
-    const hotels = await this.hotelService.findHotelsByUser(userId);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Your hotels retrieved successfully',
       data: hotels,
       count: hotels.length,
     };
@@ -88,28 +135,5 @@ export class HotelController {
       message: 'Hotel found',
       data: hotel,
     };
-  }
-
-  @Put(':id')
-  async updateHotel(
-    @Param('id') id: string,
-    @Headers('x-user-id') userId: string = 'test-user-123',
-    @Body() updateHotelDto: UpdateHotelDto,
-  ) {
-    const hotel = await this.hotelService.updateHotel(id, userId, updateHotelDto);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Hotel updated successfully',
-      data: hotel,
-    };
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteHotel(
-    @Param('id') id: string,
-    @Headers('x-user-id') userId: string = 'test-user-123',
-  ) {
-    await this.hotelService.deleteHotel(id, userId);
   }
 }

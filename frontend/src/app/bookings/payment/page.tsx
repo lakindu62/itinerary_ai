@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, Suspense } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   ArrowLeft,
   Shield,
   CreditCard,
@@ -24,6 +25,7 @@ import { format } from 'date-fns';
 function PaymentContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
   
   const hotelId = searchParams.get('hotelId') || '';
   const roomId = searchParams.get('roomId') || '';
@@ -106,6 +108,7 @@ function PaymentContent() {
         const bookingData = {
           hotelId,
           roomId,
+          userId: user?.id || '',
           checkIn,
           checkOut,
           guests,
@@ -153,7 +156,6 @@ function PaymentContent() {
       setIsProcessing(false);
     }
   };
-
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
     const matches = v.match(/\d{4,16}/g);

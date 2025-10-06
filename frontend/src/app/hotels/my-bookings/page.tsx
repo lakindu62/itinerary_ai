@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { 
@@ -11,7 +11,6 @@ import {
   MapPin,
   Users,
   Search,
-  Eye,
   X,
   Download,
   Clock,
@@ -20,6 +19,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useUserBookings } from '@/features/hotel-booking/hooks/useBookings';
+import type { Booking } from '@/features/hotel-booking/services/api/bookings.api';
 import LoadingSpinner from '@/features/hotel-booking/components/shared/LoadingSpinner';
 import { format, parseISO, isAfter, addDays } from 'date-fns';
 
@@ -37,11 +37,11 @@ export default function MyBookingsPage() {
 
   const filteredBookings = userBookings.filter(booking => {
     const matchesSearch = searchTerm === '' || 
-      booking.hotelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.roomName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.hotelCity.toLowerCase().includes(searchTerm.toLowerCase());
+      (booking.hotelName ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.roomName ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.hotelCity ?? '').toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || booking.paymentStatus === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -64,8 +64,8 @@ export default function MyBookingsPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (paymentStatus: string) => {
+    switch (paymentStatus) {
       case 'confirmed':
         return 'bg-green-100 text-green-800';
       case 'completed':
@@ -77,8 +77,8 @@ export default function MyBookingsPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
+  const getStatusIcon = (paymentStatus: string) => {
+    switch (paymentStatus) {
       case 'confirmed':
         return <CheckCircle className="h-4 w-4" />;
       case 'completed':
@@ -90,11 +90,6 @@ export default function MyBookingsPage() {
     }
   };
 
-  const canCancelBooking = (booking: any) => {
-    const checkInDate = parseISO(booking.checkIn);
-    const twentyFourHoursBefore = addDays(checkInDate, -1);
-    return booking.canCancel && isAfter(twentyFourHoursBefore, new Date()) && booking.status === 'confirmed';
-  };
 
   if (isLoading) {
     return (
@@ -162,7 +157,7 @@ export default function MyBookingsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-blue-600">
-                {userBookings.filter(b => b.status === 'confirmed').length}
+                {userBookings.filter(b => b.paymentStatus === 'confirmed').length}
               </div>
               <div className="text-sm text-gray-600">Confirmed</div>
             </CardContent>
@@ -170,7 +165,7 @@ export default function MyBookingsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-green-600">
-                {userBookings.filter(b => b.status === 'completed').length}
+                {userBookings.filter(b => b.paymentStatus === 'completed').length}
               </div>
               <div className="text-sm text-gray-600">Completed</div>
             </CardContent>
@@ -178,7 +173,7 @@ export default function MyBookingsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-red-600">
-                {userBookings.filter(b => b.status === 'cancelled').length}
+                {userBookings.filter(b => b.paymentStatus === 'cancelled').length}
               </div>
               <div className="text-sm text-gray-600">Cancelled</div>
             </CardContent>
@@ -186,7 +181,7 @@ export default function MyBookingsPage() {
           <Card>
             <CardContent className="p-4">
               <div className="text-2xl font-bold text-purple-600">
-                ${userBookings.filter(b => b.status === 'confirmed' || b.status === 'completed')
+                ${userBookings.filter(b => b.paymentStatus === 'confirmed' || b.paymentStatus === 'completed')
                   .reduce((sum, b) => sum + b.totalPrice, 0)}
               </div>
               <div className="text-sm text-gray-600">Total Spent</div>
@@ -226,7 +221,7 @@ export default function MyBookingsPage() {
                         </h3>
                         <div className="flex items-center text-gray-600 mt-1">
                           <MapPin className="h-4 w-4 mr-1" />
-                          {booking.hotelCity}, {booking.hotelCountry}
+                          {booking.hotelCity}
                         </div>
                         <div className="text-sm text-gray-600 mt-1">
                           {booking.roomName}
@@ -235,9 +230,9 @@ export default function MyBookingsPage() {
                     </div>
                     
                     <div className="text-right">
-                      <Badge className={`${getStatusColor(booking.status)} flex items-center`}>
-                        {getStatusIcon(booking.status)}
-                        <span className="ml-1 capitalize">{booking.status}</span>
+                      <Badge className={`${getStatusColor(booking.paymentStatus)} flex items-center`}>
+                        {getStatusIcon(booking.paymentStatus)}
+                        <span className="ml-1 capitalize">{booking.paymentStatus}</span>
                       </Badge>
                       <div className="text-lg font-semibold text-gray-900 mt-2">
                         ${booking.totalPrice}
@@ -252,14 +247,14 @@ export default function MyBookingsPage() {
                     <div>
                       <div className="text-sm text-gray-600">Check-in</div>
                       <div className="font-medium">
-                        {format(parseISO(booking.checkIn), 'MMM dd, yyyy')}
+                        {format(parseISO(booking.checkInDate), 'MMM dd, yyyy')}
                       </div>
                       <div className="text-xs text-gray-500">After 3:00 PM</div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-600">Check-out</div>
                       <div className="font-medium">
-                        {format(parseISO(booking.checkOut), 'MMM dd, yyyy')}
+                        {format(parseISO(booking.checkOutDate), 'MMM dd, yyyy')}
                       </div>
                       <div className="text-xs text-gray-500">Before 11:00 AM</div>
                     </div>
@@ -267,21 +262,19 @@ export default function MyBookingsPage() {
                       <div className="text-sm text-gray-600">Guests</div>
                       <div className="font-medium flex items-center">
                         <Users className="h-4 w-4 mr-1" />
-                        {booking.guests}
+                        {booking.numberOfGuests}
                       </div>
                     </div>
                     <div>
                       <div className="text-sm text-gray-600">Nights</div>
                       <div className="font-medium">
-                        {Math.ceil((parseISO(booking.checkOut).getTime() - parseISO(booking.checkIn).getTime()) / (1000 * 60 * 60 * 24))}
+                        {Math.ceil((parseISO(booking.checkOutDate).getTime() - parseISO(booking.checkInDate).getTime()) / (1000 * 60 * 60 * 24))}
                       </div>
                     </div>
                   </div>
                   
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <div className="text-sm text-gray-500">
-                      Booked on {format(parseISO(booking.createdAt), 'MMM dd, yyyy')}
-                    </div>
+
                     
                     <div className="flex space-x-2">
                       <Button
@@ -293,25 +286,7 @@ export default function MyBookingsPage() {
                         Download
                       </Button>
                       
-                      {canCancelBooking(booking) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCancelBooking(booking.id)}
-                          className="text-red-600 hover:text-red-700 hover:border-red-300"
-                          disabled={isCancelling}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Cancel
-                        </Button>
-                      )}
-                      
-                      {booking.status === 'confirmed' && !canCancelBooking(booking) && (
-                        <div className="text-xs text-gray-500 px-2 py-1">
-                          <AlertCircle className="h-3 w-3 inline mr-1" />
-                          Cannot cancel within 24h
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 </CardContent>

@@ -1,11 +1,12 @@
 "use client";
 
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   ArrowLeft,
   Search,
   Filter,
@@ -31,24 +32,25 @@ import { bookingsApi } from '../../services/api/bookings.api';
 
 interface CancelledBooking {
   id: string;
-  paymentId?: string;
+  userId: string;
   hotelId: string;
-  hotelName?: string;
-  hotelCity?: string;
-  hotelCountry?: string;
   roomId: string;
-  roomName?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
-  status: string;
-  guestName: string;
-  guestEmail: string;
-  guestPhone?: string;
+  paymentStatus: 'pending' | 'completed' | 'failed';
+  startDate: string;
+  endDate: string;
+  currency: string;
+  hotelName?: string;
+  roomName?: string;
+  hotelCity?: string;
+  createdAt?: string;
+  updatedAt?: string;
   specialRequests?: string;
-  createdAt: string;
-  updatedAt: string;
+  guestName?: string;
+  guestEmail?: string;
   cancelledAt?: string;
   cancellationReason?: string;
   refundAmount?: number;
@@ -57,6 +59,7 @@ interface CancelledBooking {
 
 export default function CancellationManagement() {
   const router = useRouter();
+  const { user } = useAuth();
   const [cancelledBookings, setCancelledBookings] = useState<CancelledBooking[]>([]);
   const [filteredBookings, setFilteredBookings] = useState<CancelledBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,11 +94,11 @@ export default function CancellationManagement() {
       });
 
       setIsLoading(true);
-      const allBookings = await bookingsApi.getAll();
+      const allBookings = await bookingsApi.getAll(user?.id || '');
       
       // Filter only cancelled bookings
       const cancelled = allBookings
-        .filter(booking => booking.status === 'cancelled')
+        .filter(booking => booking.paymentStatus === 'cancelled')
         .map(booking => ({
           ...booking,
           cancelledAt: booking.updatedAt, // Use updatedAt as cancelled date
@@ -103,7 +106,6 @@ export default function CancellationManagement() {
           refundAmount: calculateRefundAmount(booking.totalPrice),
           cancellationFee: calculateCancellationFee(booking.totalPrice)
         }));
-
       console.log('✅ Cancelled bookings loaded for NadPerz:', {
         count: cancelled.length,
         timestamp: currentTimestamp,

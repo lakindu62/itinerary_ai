@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,19 +42,27 @@ export default function RoomCard({
   onEdit, 
   onDelete, 
   onBook,
-  showManageActions = true,
+  showManageActions: initialShowManageActions = true, // Rename to avoid conflict
   showBookButton = false
 }: RoomCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { userId } = useAuth();
+
+  // Determine if the current user owns the room
+  const isOwner = room.userId === userId;
+  
+  // Only show manage actions if the prop is true AND the user is the owner
+  const showManageActions = initialShowManageActions && isOwner;
 
   console.log('🏠 Room Card rendered:', {
     roomId: room.id,
     title: room.title,
     price: room.roomPrice,
+    isOwner,
     showManageActions,
     showBookButton,
-    timestamp: '2025-09-25 08:58:24',
-    user: 'NadPerz'
+    timestamp: new Date().toISOString(),
+    userId
   });
 
   // Get available amenities for this room
@@ -81,8 +90,8 @@ export default function RoomCard({
         console.log('🗑️ Deleting room:', {
           roomId: room.id,
           title: room.title,
-          timestamp: '2025-09-25 08:58:24',
-          user: 'NadPerz'
+          timestamp: new Date().toISOString(),
+          userId
         });
         await onDelete?.(room);
       } catch (error) {
@@ -229,7 +238,7 @@ export default function RoomCard({
         {/* Footer Info */}
         <div className="mt-3 pt-2 border-t border-gray-50">
           <p className="text-xs text-gray-400">
-            Room ID: {room.id.slice(-8)} | Updated by NadPerz | 2025-09-25 08:58:24
+            Room ID: {room.id.slice(-8)}
           </p>
         </div>
       </CardContent>

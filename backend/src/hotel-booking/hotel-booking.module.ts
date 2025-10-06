@@ -12,6 +12,7 @@ import { BookingController } from './presentation/controllers/booking.controller
 import { BookingService } from './application/services/booking.service';
 import { BookingRepositoryImpl } from './infrastructure/repositories/booking.repository.impl';
 import { BookingSchema, BookingMongoSchema } from './infrastructure/schemas/booking.schema';
+import { ClerkAuthGuard } from '../shared/guards/clerk-auth-guard';
 
 
 @Module({
@@ -39,6 +40,7 @@ import { BookingSchema, BookingMongoSchema } from './infrastructure/schemas/book
       provide: 'BookingRepository',
       useClass: BookingRepositoryImpl,
     },
+    ClerkAuthGuard,
   ],
   exports: [HotelService, RoomService, BookingService],
 })

@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  MoreVertical, 
-  MapPin, 
-  Eye, 
-  Edit, 
+import {
+  MoreVertical,
+  MapPin,
+  Eye,
+  Edit,
   Trash2,
   Users,
   Calendar,
@@ -23,6 +23,7 @@ import { Hotel } from '../../types/hotel.types';
 import { Room } from '../../types/room.types';
 import { useRooms } from '../../hooks/useRooms';
 import HotelImageSimple from '../shared/HotelImageSimple';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 interface HotelCardProps {
   hotel: Hotel;
@@ -32,14 +33,15 @@ interface HotelCardProps {
   onManageRooms: (hotel: Hotel) => void;
 }
 
-export default function HotelCard({ 
-  hotel, 
-  onViewDetails, 
-  onEdit, 
-  onDelete, 
-  onManageRooms 
+export default function HotelCard({
+  hotel,
+  onViewDetails,
+  onEdit,
+  onDelete,
+  onManageRooms
 }: HotelCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { userId } = useAuth(); // Get current user ID
   
   // Get room count for this hotel - Fixed type
   const { rooms = [] }: { rooms: Room[] } = useRooms(hotel.id);
@@ -106,18 +108,22 @@ export default function HotelCard({
                 <Users className="mr-2 h-4 w-4" />
                 Manage Rooms ({rooms.length})
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(hotel)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Hotel
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={handleDelete}
-                className="text-red-600"
-                disabled={isDeleting}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                {isDeleting ? 'Deleting...' : 'Delete Hotel'}
-              </DropdownMenuItem>
+              {hotel.userId === userId && ( // Conditionally render Edit and Delete
+                <>
+                  <DropdownMenuItem onClick={() => onEdit(hotel)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Hotel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={handleDelete}
+                    className="text-red-600"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {isDeleting ? 'Deleting...' : 'Delete Hotel'}
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

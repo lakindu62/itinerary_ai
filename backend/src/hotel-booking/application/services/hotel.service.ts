@@ -11,11 +11,11 @@ export class HotelService {
     private readonly hotelRepository: HotelRepository
   ) {}
 
-  async createHotel(userId: string, createHotelDto: CreateHotelDto): Promise<Hotel> {
+  async createHotel(createHotelDto: CreateHotelDto, userId: string): Promise<Hotel> {
     try {
       const hotel = Hotel.create({
-        userId,
         ...createHotelDto,
+        userId,
       });
       return await this.hotelRepository.create(hotel);
     } catch (error) {

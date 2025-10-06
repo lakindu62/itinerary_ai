@@ -3,6 +3,7 @@ import hotelApi from '../../lib/api';
 export interface CreateBookingData {
   hotelId: string;
   roomId: string;
+  userId: string;
   checkIn: string;
   checkOut: string;
   guests: number;
@@ -17,25 +18,29 @@ export interface CreateBookingData {
 
 export interface Booking {
   id: string;
-  paymentId?: string;
+  userId: string;
   hotelId: string;
-  hotelName?: string;
-  hotelCity?: string;
-  hotelCountry?: string;
   roomId: string;
-  roomName?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
-  guestName: string;
-  guestEmail: string;
-  guestPhone?: string;
-  specialRequests?: string;
-  createdAt: string;
-  updatedAt: string;
+  paymentStatus: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'confirmed' | 'cancelled';
   canCancel: boolean;
+  startDate: string;
+  endDate: string;
+  currency: string;
+  hotelName?: string;
+  roomName?: string;
+  hotelCity?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  specialRequests?: string;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  hotelCountry?: string;
 }
 
 export const bookingsApi = {
@@ -58,7 +63,7 @@ export const bookingsApi = {
         // Required fields from your backend API
         roomId: bookingData.roomId,
         hotelId: bookingData.hotelId,
-        hotelOwnerId: 'test-user-123', // Keep same format that works
+        userId: bookingData.userId,
         
         // Date format as ISO strings (exactly as seen in MongoDB)
         startDate: new Date(bookingData.checkIn + 'T00:00:00.000Z').toISOString(),
@@ -79,7 +84,7 @@ export const bookingsApi = {
       // Log each field for debugging
       console.log('🏠 Room ID:', backendBookingData.roomId);
       console.log('🏨 Hotel ID:', backendBookingData.hotelId); 
-      console.log('👤 Hotel Owner ID:', backendBookingData.hotelOwnerId);
+      console.log('👤 User ID:', backendBookingData.userId);
       console.log('📅 Start Date (ISO):', backendBookingData.startDate);
       console.log('📅 End Date (ISO):', backendBookingData.endDate);
       console.log('🍳 Breakfast Included:', backendBookingData.breakfastIncluded);
@@ -88,7 +93,9 @@ export const bookingsApi = {
       console.log('⏰ NadPerz Timestamp:', '2025-09-27 03:24:11');
       
       // Make request to /api/bookings (with /api prefix handled by axios config)
-      const response = await hotelApi.post('/bookings', backendBookingData);
+      const response = await hotelApi.post('/bookings', backendBookingData, {
+        headers: { 'x-user-id': bookingData.userId },
+      });
       
       console.log('✅ Backend booking response for NadPerz:');
       console.log('📦 Response Status:', response.status);
@@ -99,25 +106,20 @@ export const bookingsApi = {
       
       const frontendBooking: Booking = {
         id: backendBooking.id || backendBooking._id,
-        paymentId: backendBooking.paymentIntentId || '',
+        userId: backendBooking.userId,
         hotelId: backendBooking.hotelId,
-        hotelName: backendBooking.hotel?.title || 'Hotel',
-        hotelCity: backendBooking.hotel?.city || 'City',
-        hotelCountry: backendBooking.hotel?.country || 'Country',
         roomId: backendBooking.roomId,
-        roomName: backendBooking.room?.title || 'Room',
-        checkIn: bookingData.checkIn,
-        checkOut: bookingData.checkOut,
-        guests: bookingData.guests,
+        checkInDate: bookingData.checkIn,
+        checkOutDate: bookingData.checkOut,
+        numberOfGuests: bookingData.guests,
         totalPrice: backendBooking.totalPrice,
-        status: backendBooking.paymentStatus ? 'confirmed' : 'pending',
-        guestName: bookingData.guestInfo.name,
-        guestEmail: bookingData.guestInfo.email,
-        guestPhone: bookingData.guestInfo.phone,
-        specialRequests: bookingData.specialRequests,
-        createdAt: backendBooking.createdAt || new Date().toISOString(),
-        updatedAt: backendBooking.updatedAt || new Date().toISOString(),
-        canCancel: true
+        paymentStatus: backendBooking.paymentStatus ? 'completed' : 'pending',
+        startDate: backendBooking.startDate,
+        endDate: backendBooking.endDate,
+        currency: backendBooking.currency,
+        hotelName: backendBooking.hotel?.title,
+        roomName: backendBooking.room?.title,
+        hotelCity: backendBooking.hotel?.city,
       };
 
       console.log('✅ Booking created successfully for NadPerz:', {
@@ -168,10 +170,48 @@ export const bookingsApi = {
     }
   },
 
+  getById: async (id: string): Promise<Booking> => {
+    console.log('📅 Fetching booking by ID:', { bookingId: id });
+    try {
+      const response = await hotelApi.get(`/bookings/${id}`);
+      console.log('✅ Booking fetched by ID:', { bookingId: id, status: response.status });
+      // Assuming the backend returns the booking directly or within a 'data' field
+      const backendBooking = response.data.data || response.data;
+
+      // Transform backend response to frontend format (Booking interface)
+      const frontendBooking: Booking = {
+        id: backendBooking.id || backendBooking._id,
+        userId: backendBooking.userId,
+        hotelId: backendBooking.hotelId,
+        roomId: backendBooking.roomId,
+        checkInDate: backendBooking.checkInDate || backendBooking.startDate, // Use checkInDate if available, fallback to startDate
+        checkOutDate: backendBooking.checkOutDate || backendBooking.endDate, // Use checkOutDate if available, fallback to endDate
+        numberOfGuests: backendBooking.numberOfGuests || backendBooking.guests,
+        totalPrice: backendBooking.totalPrice,
+        paymentStatus: backendBooking.paymentStatus,
+        startDate: backendBooking.startDate,
+        endDate: backendBooking.endDate,
+        currency: backendBooking.currency,
+        hotelName: backendBooking.hotel?.title,
+        roomName: backendBooking.room?.title,
+        hotelCity: backendBooking.hotel?.city,
+      };
+      return frontendBooking;
+    } catch (error: any) {
+      console.error('❌ Error fetching booking by ID:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        bookingId: id,
+      });
+      throw new Error(`Failed to fetch booking with ID ${id}.`);
+    }
+  },
+
   // Get user's bookings - SIMPLIFIED VERSION to avoid ID issues
-  getUserBookings: async (userId?: string): Promise<Booking[]> => {
+  getUserBookings: async (userId: string): Promise<Booking[]> => {
     console.log('📅 Fetching user bookings - SIMPLIFIED for NadPerz:', {
-      userId: userId || 'NadPerz', 
+      userId: userId,
       timestamp: '2025-09-27 03:24:11',
       user: 'NadPerz'
     });
@@ -180,7 +220,9 @@ export const bookingsApi = {
       // Try the working endpoint first
       let response;
       try {
-        response = await hotelApi.get('/bookings/my-bookings');
+        response = await hotelApi.get('/bookings/my-bookings', {
+          headers: { 'x-user-id': userId },
+        });
       } catch (error) {
         // Fallback to alternative endpoint if my-bookings fails
         console.log('⚠️ /my-bookings failed, trying /hotel-bookings...');
@@ -239,7 +281,7 @@ export const bookingsApi = {
   },
 
   // Update payment status - SIMPLIFIED to avoid ID format issues
-  updatePaymentStatus: async (bookingId: string, paymentStatus: boolean, paymentIntentId?: string): Promise<boolean> => {
+  updatePaymentStatus: async (bookingId: string, paymentStatus: boolean, userId: string, paymentIntentId?: string): Promise<boolean> => {
     console.log('💳 Updating payment status for NadPerz (SIMPLIFIED):', {
       bookingId: bookingId?.slice(-8),
       paymentStatus,
@@ -259,7 +301,9 @@ export const bookingsApi = {
       // Try different endpoints that might work
       let response;
       try {
-        response = await hotelApi.put(`/bookings/${bookingId}/status`, updateData);
+        response = await hotelApi.put(`/bookings/${bookingId}/status`, updateData, {
+          headers: { 'x-user-id': userId },
+        });
       } catch (error) {
         // Fallback endpoint
         console.log('⚠️ Trying alternative payment update endpoint...');
@@ -288,8 +332,7 @@ export const bookingsApi = {
     }
   },
 
-  // Cancel booking - SIMPLIFIED
-  cancel: async (bookingId: string): Promise<boolean> => {
+  cancel: async (bookingId: string, userId: string): Promise<boolean> => {
     console.log('❌ NadPerz cancelling booking (SIMPLIFIED):', {
       bookingId: bookingId?.slice(-8),
       timestamp: '2025-09-27 03:24:11',
@@ -297,7 +340,9 @@ export const bookingsApi = {
     });
 
     try {
-      const response = await hotelApi.delete(`/bookings/${bookingId}`);
+      const response = await hotelApi.delete(`/bookings/${bookingId}`, {
+        headers: { 'x-user-id': userId },
+      });
       console.log('✅ Booking cancelled by NadPerz:', {
         status: response.status,
         timestamp: '2025-09-27 03:24:11'
@@ -318,13 +363,13 @@ export const bookingsApi = {
   },
 
   // Update booking status - USES working updatePaymentStatus
-  updateStatus: async (bookingId: string, status: string): Promise<boolean> => {
+  updateStatus: async (bookingId: string, status: string, userId: string): Promise<boolean> => {
     const paymentStatus = status === 'confirmed';
-    return await bookingsApi.updatePaymentStatus(bookingId, paymentStatus);
+    return await bookingsApi.updatePaymentStatus(bookingId, paymentStatus, userId);
   },
 
   // Get all bookings - SIMPLIFIED to use same endpoint as getUserBookings
-  getAll: async (): Promise<Booking[]> => {
+  getAll: async (userId: string): Promise<Booking[]> => {
     console.log('📅 Fetching all hotel bookings for NadPerz (SIMPLIFIED):', {
       timestamp: '2025-09-27 03:24:11',
       user: 'NadPerz',
@@ -332,7 +377,7 @@ export const bookingsApi = {
     });
 
     // Use the working getUserBookings method
-    return await bookingsApi.getUserBookings('NadPerz');
+    return await bookingsApi.getUserBookings(userId);
   },
 
   // Check room availability - SIMPLIFIED with better error handling

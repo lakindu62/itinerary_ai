@@ -9,25 +9,31 @@ import {
   Query,
   HttpStatus,
   HttpCode,
-  Headers,
+  UseGuards,
+  Req,
   BadRequestException,
 } from '@nestjs/common';
 import { RoomService } from '../../application/services/room.service';
 import { CreateRoomDto } from '../../application/dtos/create-room.dto';
 import { UpdateRoomDto } from '../../application/dtos/update-room.dto';
+import { ClerkAuthGuard } from '../../../shared/guards/clerk-auth-guard';
 
 @Controller('rooms')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
   @Post()
+  @UseGuards(ClerkAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async createRoom(
     @Body() createRoomDto: CreateRoomDto,
-    @Headers('x-user-id') userId?: string,  // Optional parameter comes last   
+    @Req() req: any,
   ) {
-    const actualUserId = userId || 'test-user-123';  // Use default if not provided
-    const room = await this.roomService.createRoom(actualUserId, createRoomDto);
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    const room = await this.roomService.createRoom(createRoomDto, userId);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Room created successfully',
@@ -35,6 +41,40 @@ export class RoomController {
     };
   }
 
+  @Put(':id')
+  @UseGuards(ClerkAuthGuard)
+  async updateRoom(
+    @Param('id') id: string,
+    @Body() updateRoomDto: UpdateRoomDto,
+    @Req() req: any,
+  ) {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    const room = await this.roomService.updateRoom(id, userId, updateRoomDto);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Room updated successfully',
+      data: room,
+    };
+  }
+
+  @Delete(':id')
+  @UseGuards(ClerkAuthGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteRoom(
+    @Param('id') id: string,
+    @Req() req: any,
+  ) {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      throw new BadRequestException('User ID not found in authentication token');
+    }
+    await this.roomService.deleteRoom(id, userId);
+  }
+
+  // Publicly accessible endpoints
   @Get('hotel/:hotelId')
   async findRoomsByHotel(@Param('hotelId') hotelId: string) {
     const rooms = await this.roomService.findRoomsByHotel(hotelId);
@@ -65,37 +105,7 @@ export class RoomController {
   }
 
   @Get(':id')
-  async findRoomById(@Param('id') id: string) {
-    const room = await this.roomService.findRoomById(id);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Room found',
-      data: room,
-    };
-  }
-
-  @Put(':id')
-  async updateRoom(
-    @Param('id') id: string,
-    @Body() updateRoomDto: UpdateRoomDto,
-    @Headers('x-user-id') userId?: string,  // Optional parameter comes last
-  ) {
-    const actualUserId = userId || 'test-user-123';  // Use default if not provided
-    const room = await this.roomService.updateRoom(id, actualUserId, updateRoomDto);
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Room updated successfully',
-      data: room,
-    };
-  }
-
-  @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async deleteRoom(
-    @Param('id') id: string,
-    @Headers('x-user-id') userId?: string,  // Optional parameter comes last
-  ) {
-    const actualUserId = userId || 'test-user-123';  // Use default if not provided
-    await this.roomService.deleteRoom(id, actualUserId);
+  async findOne(@Param('id') id: string) {
+    return this.roomService.findRoomById(id);
   }
 }

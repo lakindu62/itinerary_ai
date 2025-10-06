@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
+import {
   DollarSign, 
   Calendar, 
   Building, 
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useHotels } from '../../hooks/useHotels';
 import { bookingsApi } from '../../services/api/bookings.api';
+import { useAuth } from '@/hooks/useAuth';
 
 interface StatsData {
   totalRevenue: number;
@@ -30,6 +31,7 @@ interface StatsData {
 
 export default function StatsCards() {
   const { hotels, isLoading: isLoadingHotels } = useHotels();
+  const { user } = useAuth();
   const [stats, setStats] = useState<StatsData>({
     totalRevenue: 0,
     totalBookings: 0,
@@ -52,7 +54,7 @@ export default function StatsCards() {
     const calculateRealStats = async () => {
       try {
         // Get real bookings data
-        const bookings = await bookingsApi.getAll();
+        const bookings = await bookingsApi.getAll(user?.id || '');
         
         // Calculate real statistics
         const totalRevenue = bookings.reduce((sum, booking) => sum + booking.totalPrice, 0);
@@ -99,7 +101,6 @@ export default function StatsCards() {
       calculateRealStats();
     }
   }, [hotels, isLoadingHotels]);
-
   const getChangeIcon = (change: number) => {
     if (change > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
     if (change < 0) return <TrendingDown className="h-4 w-4 text-red-600" />;

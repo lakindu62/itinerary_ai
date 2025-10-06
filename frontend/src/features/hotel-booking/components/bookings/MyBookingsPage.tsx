@@ -5,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Users, Phone } from 'lucide-react';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { useBookings } from '../../hooks/useBookings';
+import { useBookings, Booking } from '../../hooks/useBookings';
 import { formatDate, formatPrice } from '../../lib/formatters';
 
 export default function MyBookingsPage() {
-  const { myBookings, isLoading } = useBookings();
+  const { bookings, isLoading } = useBookings();
+  const myBookings = bookings;
 
   if (isLoading) return <LoadingSpinner />;
 
@@ -37,7 +38,7 @@ export default function MyBookingsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {myBookings.map((booking) => (
+          {myBookings.map((booking: Booking) => (
             <Card key={booking.id} className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">

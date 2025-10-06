@@ -1,9 +1,12 @@
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { bookingsApi, CreateBookingData, Booking } from '../services/api/bookings.api';
+export type { Booking };
 
 export const useBookings = () => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const {
     data: bookings = [],
@@ -12,7 +15,7 @@ export const useBookings = () => {
     refetch
   } = useQuery({
     queryKey: ['bookings'],
-    queryFn: () => bookingsApi.getAll(),
+    queryFn: () => bookingsApi.getAll(user?.id || ''),
   });
 
   const createBookingMutation = useMutation({
@@ -60,7 +63,7 @@ export const useUserBookings = (userId?: string) => {
     refetch
   } = useQuery({
     queryKey: ['user-bookings', userId || 'NadPerz'],
-    queryFn: () => bookingsApi.getUserBookings(userId),
+    queryFn: () => bookingsApi.getUserBookings(userId || ''),
   });
 
   const cancelBookingMutation = useMutation({

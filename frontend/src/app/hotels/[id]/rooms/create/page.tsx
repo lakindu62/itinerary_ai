@@ -22,7 +22,7 @@ export default function CreateRoomPage({ params }: CreateRoomPageProps) {
         </div>
         
         <Suspense fallback={<LoadingSpinner />}>
-          <RoomForm selectedHotelId={params.id} />
+          <RoomForm selectedHotelId={params.id} hotelId={params.id} />
         </Suspense>
       </div>
     </div>

@@ -2,9 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { hotelApi } from '../services/api/hotels.api';
 import { Hotel, CreateHotelRequest } from '../types/hotel.types';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export const useHotels = () => {
   const queryClient = useQueryClient();
+  const { userId } = useAuth(); // Get current user ID
 
   // Get all hotels
   const {
@@ -25,18 +27,21 @@ export const useHotels = () => {
     isLoading: isLoadingMyHotels,
     error: myHotelsError
   } = useQuery({
-    queryKey: ['my-hotels'],
+    queryKey: ['my-hotels', userId], // Add userId to queryKey
     queryFn: () => {
+      if (!userId) return []; // Don't fetch if no userId
       console.log('🔄 React Query: Fetching MY hotels...');
-      return hotelApi.getMyHotels();
+      return hotelApi.getMyHotels(userId);
     },
+    enabled: !!userId, // Only enable query if userId exists
   });
 
   // Create hotel mutation
   const createHotelMutation = useMutation({
     mutationFn: (data: CreateHotelRequest & { imageFile?: File }) => {
+      if (!userId) throw new Error('User not authenticated.');
       console.log('🔄 Creating hotel via mutation...');
-      return hotelApi.createHotel(data);
+      return hotelApi.createHotel(data, userId);
     },
     onSuccess: (createdHotel: Hotel) => {
       console.log('✅ Hotel created successfully:', createdHotel);
@@ -53,8 +58,9 @@ export const useHotels = () => {
   // Update hotel mutation
   const updateHotelMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<CreateHotelRequest> & { imageFile?: File } }) => {
+      if (!userId) throw new Error('User not authenticated.');
       console.log('🔄 Updating hotel via mutation:', id);
-      return hotelApi.updateHotel(id, data);
+      return hotelApi.updateHotel(id, data, userId);
     },
     onSuccess: (updatedHotel: Hotel) => {
       console.log('✅ Hotel updated successfully:', updatedHotel);
@@ -71,7 +77,10 @@ export const useHotels = () => {
 
   // Delete hotel mutation
   const deleteHotelMutation = useMutation({
-    mutationFn: (id: string) => hotelApi.deleteHotel(id),
+    mutationFn: (id: string) => {
+      if (!userId) throw new Error('User not authenticated.');
+      return hotelApi.deleteHotel(id, userId);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['hotels'] });
       queryClient.invalidateQueries({ queryKey: ['my-hotels'] });

@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Building, Edit } from 'lucide-react';
 import HotelForm from './HotelForm';
 import LoadingSpinner from '../shared/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export default function EditHotelPage() {
   const params = useParams();
   const router = useRouter();
   const hotelId = params.id as string;
+  const { userId } = useAuth(); // Get current user ID
 
   console.log('✏️ Edit Hotel Page loaded:', {
     hotelId,
     timestamp: '2025-09-25 08:47:17',
-    user: 'NadPerz'
+    user: userId // Use dynamic userId
   });
 
   const { data: hotel, isLoading, error } = useHotel(hotelId);
@@ -86,7 +88,7 @@ export default function EditHotelPage() {
           </p>
           
           <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-            <span>👤 User: NadPerz</span>
+            <span>👤 User: {userId}</span> {/* Display dynamic userId */}
             <span>•</span>
             <span>📅 2025-09-25 08:47:17</span>
             <span>•</span>

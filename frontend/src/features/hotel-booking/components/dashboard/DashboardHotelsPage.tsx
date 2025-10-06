@@ -11,13 +11,16 @@ import HotelCard from '../hotels/HotelCard';
 import HotelForm from '../hotels/HotelForm';
 import LoadingSpinner from '../shared/LoadingSpinner';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export default function DashboardHotelsPage() {
   const router = useRouter();
   const { myHotels, isLoadingMyHotels, deleteHotel } = useHotels();
+  const { userId } = useAuth(); // Get current user ID
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Filter hotels based on search
   const filteredHotels = myHotels.filter(hotel =>
@@ -38,11 +41,20 @@ const handleViewDetails = (hotel: Hotel) => {
   };
 
   const handleDelete = async (hotel: Hotel) => {
-    try {
-      await deleteHotel(hotel.id);
-      toast.success(`Hotel "${hotel.title}" deleted successfully`);
-    } catch (error) {
-      toast.error('Failed to delete hotel');
+    if (!userId) {
+      toast.error('User not authenticated. Please log in.');
+      return;
+    }
+    if (window.confirm(`Are you sure you want to delete "${hotel.title}"?`)) {
+      setIsDeleting(true);
+      try {
+        await deleteHotel(hotel.id, userId);
+        toast.success(`Hotel "${hotel.title}" deleted successfully`);
+      } catch (error) {
+        toast.error('Failed to delete hotel');
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 

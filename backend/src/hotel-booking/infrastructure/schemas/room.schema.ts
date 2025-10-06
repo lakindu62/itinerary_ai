@@ -9,6 +9,9 @@ export class RoomSchema {
   id: string;
 
   @Prop({ required: true })
+  userId: string;
+
+  @Prop({ required: true })
   title: string;
 
   @Prop({ required: true })

@@ -1,15 +1,15 @@
-"use client";
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  MapPin, 
-  Star, 
-  Wifi, 
-  Car, 
+import {
+  Card, CardContent, CardHeader, CardTitle
+} from '@/components/ui/card';
+import {
+  MapPin,
+  Star,
+  Wifi,
+  Car,
   Dumbbell,
   Utensils,
   Coffee,
@@ -27,6 +27,7 @@ import { Room } from '../../types/room.types';
 import { useRooms } from '../../hooks/useRooms';
 import HotelImageSimple from '../shared/HotelImageSimple';
 import HotelForm from './HotelForm';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 interface HotelDetailsPageProps {
   hotel?: Hotel;
@@ -37,13 +38,14 @@ interface HotelDetailsPageProps {
 export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetailsPageProps) {
   const router = useRouter();
   const [showEditForm, setShowEditForm] = useState(false);
+  const { userId } = useAuth(); // Get current user ID
   
   // Fetch rooms for this hotel with enhanced debugging
-  const { 
-    rooms = [], 
+  const {
+    rooms = [],
     isLoading: isLoadingRooms,
-    error: roomsError 
-  }: { 
+    error: roomsError
+  }: {
     rooms: Room[];
     isLoading: boolean;
     error: any;
@@ -209,10 +211,12 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
                   <Bed className="mr-2 h-5 w-5" />
                   Hotel Rooms ({rooms.length})
                 </CardTitle>
-                <Button onClick={handleAddRoom}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Room
-                </Button>
+                {hotel.userId === userId && ( // Conditionally render Add Room button
+                  <Button onClick={handleAddRoom}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Room
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -238,10 +242,12 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
                   <Bed className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Rooms Yet</h3>
                   <p className="text-gray-600 mb-4">Add your first room to start accepting bookings.</p>
-                  <Button onClick={handleAddRoom}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create First Room
-                  </Button>
+                  {hotel.userId === userId && ( // Conditionally render Create First Room button
+                    <Button onClick={handleAddRoom}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create First Room
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -267,11 +273,13 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
                         </div>
 
                         {/* Edit Icon */}
-                        <div className="absolute top-2 left-2">
-                          <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors">
-                            <Edit className="h-4 w-4 text-gray-600" />
+                        {hotel.userId === userId && ( // Conditionally render Edit Icon
+                          <div className="absolute top-2 left-2">
+                            <div className="bg-white/90 backdrop-blur-sm rounded-full p-2 hover:bg-white transition-colors">
+                              <Edit className="h-4 w-4 text-gray-600" />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                       <CardContent className="p-4">
                         <h4 className="font-semibold mb-2 line-clamp-1">{room.title}</h4>
@@ -313,12 +321,14 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
                         </div>
 
                         {/* Click to edit hint */}
-                        <div className="mt-3 pt-2 border-t border-gray-100">
-                          <p className="text-xs text-gray-400 flex items-center">
-                            <Edit className="h-3 w-3 mr-1" />
-                            Click to edit this room
-                          </p>
-                        </div>
+                        {hotel.userId === userId && ( // Conditionally render Click to edit hint
+                          <div className="mt-3 pt-2 border-t border-gray-100">
+                            <p className="text-xs text-gray-400 flex items-center">
+                              <Edit className="h-3 w-3 mr-1" />
+                              Click to edit this room
+                            </p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -389,21 +399,25 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
                 >
                   📅 Manage Bookings
                 </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleEditHotel} // Now opens modal instead of navigation
-                >
-                  ✏️ Edit Hotel
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  className="w-full"
-                  onClick={handleAddRoom}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Room
-                </Button>
+                {hotel.userId === userId && ( // Conditionally render Edit Hotel button
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleEditHotel} // Now opens modal instead of navigation
+                  >
+                    ✏️ Edit Hotel
+                  </Button>
+                )}
+                {hotel.userId === userId && ( // Conditionally render Add New Room button
+                  <Button 
+                    variant="secondary" 
+                    className="w-full"
+                    onClick={handleAddRoom}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add New Room
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -422,7 +436,7 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
                   <Badge variant="outline">0</Badge>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Average Rating</span>
+                  <span className="text-600">Average Rating</span>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-yellow-400 mr-1" />
                     <span className="font-semibold">4.5</span>
@@ -443,7 +457,7 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Owner:</span>
-                  <span className="font-medium">NadPerz</span>
+                  <span className="font-medium">{hotel.userId}</span> {/* Display dynamic userId */}
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Created:</span>

@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Bed, Plus } from 'lucide-react';
 import RoomForm from './RoomForm';
 import LoadingSpinner from '../shared/LoadingSpinner';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export default function CreateRoomPage() {
   const params = useParams();
   const router = useRouter();
   const hotelId = params.id as string; // Get hotel ID from URL params
+  const { userId } = useAuth(); // Get current user ID
 
   console.log('🏠 Create Room Page loaded:', {
     hotelId,
     timestamp: '2025-09-25 08:47:17',
-    user: 'NadPerz'
+    user: userId // Use dynamic userId
   });
 
   const { data: hotel, isLoading, error } = useHotel(hotelId);
@@ -86,7 +88,7 @@ export default function CreateRoomPage() {
           </p>
           
           <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-            <span>👤 User: NadPerz</span>
+            <span>👤 User: {userId}</span> {/* Display dynamic userId */}
             <span>•</span>
             <span>📅 2025-09-25 08:47:17</span>
             <span>•</span>
@@ -99,6 +101,7 @@ export default function CreateRoomPage() {
         {/* Room Form - Pass correct props */}
         <RoomForm
           selectedHotelId={hotelId} // Use correct prop name
+          hotelId={hotelId}
           onSuccess={handleSuccess}
           onCancel={handleCancel}
         />

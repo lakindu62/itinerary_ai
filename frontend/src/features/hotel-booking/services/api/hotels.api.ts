@@ -19,12 +19,14 @@ export const hotelApi = {
   },
 
   // Get my hotels - Enhanced with debugging and proper error typing
-  getMyHotels: async (): Promise<Hotel[]> => {
+  getMyHotels: async (userId: string): Promise<Hotel[]> => {
     try {
       console.log('🏨 Fetching MY hotels...');
       console.log('🏨 Calling endpoint: /hotels/my-hotels');
       
-      const response = await api.get('/hotels/my-hotels');
+      const response = await api.get('/hotels/my-hotels', {
+        headers: { 'x-user-id': userId },
+      });
       
       console.log('✅ My hotels API response:', response.data);
       console.log('🏨 My hotels data:', response.data.data);
@@ -94,7 +96,7 @@ export const hotelApi = {
   },
 
   // Create hotel - Store PATH in database, not full URL
-  createHotel: async (data: CreateHotelRequest & { imageFile?: File }): Promise<Hotel> => {
+  createHotel: async (data: CreateHotelRequest & { imageFile?: File }, userId: string): Promise<Hotel> => {
     let imagePath = '';
     
     // Handle image upload to hotel-bucket
@@ -106,7 +108,7 @@ export const hotelApi = {
         imagePath = await uploadToResourceBucket(
           data.imageFile, 
           'hotels',
-          'NadPerz'
+          userId
         );
         
         console.log('✅ Hotel image uploaded, path stored:', imagePath);
@@ -119,25 +121,9 @@ export const hotelApi = {
 
     // Store PATH in database, not full HTTP URL
     const hotelData: CreateHotelRequest = {
-      title: data.title,
-      description: data.description,
+      ...data,
+      userId: userId,
       image: imagePath,
-      country: data.country,
-      state: data.state,
-      city: data.city,
-      locationDescription: data.locationDescription, // Can be undefined
-      gym: data.gym,
-      spa: data.spa,
-      bar: data.bar,
-      laundry: data.laundry,
-      restaurant: data.restaurant,
-      shopping: data.shopping,
-      freeParking: data.freeParking,
-      bikeRental: data.bikeRental,
-      freeWifi: data.freeWifi,
-      movieNights: data.movieNights,
-      swimmingPool: data.swimmingPool,
-      coffeeShop: data.coffeeShop,
     };
 
     console.log('🏨 Creating hotel with data:', hotelData);
@@ -148,7 +134,7 @@ export const hotelApi = {
   },
 
   // Update hotel - Store PATH in database
-  updateHotel: async (id: string, data: UpdateHotelRequest & { imageFile?: File }): Promise<Hotel> => {
+  updateHotel: async (id: string, data: UpdateHotelRequest & { imageFile?: File }, userId: string): Promise<Hotel> => {
     let updateData: UpdateHotelRequest = { ...data };
     
     // Handle image update if new image is provided
@@ -159,7 +145,7 @@ export const hotelApi = {
         const imagePath = await uploadToResourceBucket(
           data.imageFile,
           'hotels', 
-          'NadPerz'
+          userId
         );
         
         updateData.image = imagePath; // Store path, not full URL
@@ -174,15 +160,18 @@ export const hotelApi = {
     const { imageFile, ...cleanUpdateData } = updateData as any;
     
     console.log('🏨 Updating hotel:', id, cleanUpdateData);
-    const response = await api.put(`/hotels/${id}`, cleanUpdateData);
-    console.log('✅ Hotel updated successfully');
+    const response = await api.put(`/hotels/${id}`, cleanUpdateData, {
+      headers: { 'x-user-id': userId },
+    });
     return response.data.data;
   },
 
   // Delete hotel
-  deleteHotel: async (id: string): Promise<void> => {
+  deleteHotel: async (id: string, userId: string): Promise<void> => {
     console.log('🏨 Deleting hotel:', id);
-    await api.delete(`/hotels/${id}`);
+    await api.delete(`/hotels/${id}`, {
+      headers: { 'x-user-id': userId },
+    });
     console.log('✅ Hotel deleted successfully');
   },
 

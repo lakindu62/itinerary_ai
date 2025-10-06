@@ -370,11 +370,11 @@ Thank you for booking with us!
           <div className="bg-white rounded-lg p-8 shadow-lg border-0">
             <h3 className="text-2xl font-bold text-gray-800 mb-4">🙏 Thank You for Your Booking!</h3>
             <p className="text-gray-600 mb-4">
-              Your reservation is confirmed and we can't wait to welcome you. A detailed confirmation 
+              Your reservation is confirmed and we can&apos;t wait to welcome you. A detailed confirmation 
               email has been sent to <span className="font-medium text-blue-600">{guestEmail}</span>.
             </p>
             <p className="text-gray-600 mb-4">
-              If you have any questions or need assistance, please don't hesitate to contact our 
+              If you have any questions or need assistance, please don&apos;t hesitate to contact our 
               support team at any time.
             </p>
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mt-4 border">

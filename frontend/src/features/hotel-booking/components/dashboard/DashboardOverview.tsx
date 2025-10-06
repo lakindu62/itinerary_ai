@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  DollarSign, 
-  Calendar, 
-  Building, 
+import {
+  DollarSign,
+  Calendar,
+  Building,
   Star,
   TrendingUp,
   Users,
@@ -18,9 +18,11 @@ import {
   Loader2
 } from 'lucide-react';
 import { useHotels } from '../../hooks/useHotels';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
 export default function DashboardOverview() {
   const { myHotels, isLoading: isLoadingHotels } = useHotels();
+  const { userId } = useAuth(); // Get current user ID
   const [totalRooms, setTotalRooms] = useState(0);
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({
@@ -32,28 +34,30 @@ export default function DashboardOverview() {
     conversionRate: '0%'
   });
 
-  // Current timestamp for NadPerz context
-  const currentTimestamp = '2025-09-26 17:50:44';
-  const currentUser = 'NadPerz';
+  const [currentTimestamp, setCurrentTimestamp] = useState('');
+
+  useEffect(() => {
+    setCurrentTimestamp(new Date().toISOString());
+  }, []);
 
   console.log('🏨 Dashboard Loading for:', {
-    user: currentUser,
+    user: userId,
     timestamp: currentTimestamp,
     utc: true
   });
 
-  // Calculate total rooms across all hotels for NadPerz
+  // Calculate total rooms across all hotels for the current user
   useEffect(() => {
     const calculateRealData = async () => {
-      if (myHotels.length === 0) {
+      if (!userId || myHotels.length === 0) {
         setTotalRooms(0);
         setIsLoadingRooms(false);
         return;
       }
 
-      console.log(`🏨 Dashboard: ${currentUser} calculating real data for ${myHotels.length} hotels`, {
+      console.log(`🏨 Dashboard: ${userId} calculating real data for ${myHotels.length} hotels`, {
         timestamp: currentTimestamp,
-        user: currentUser,
+        user: userId,
         hotels: myHotels.map(h => ({ id: h.id, title: h.title }))
       });
 
@@ -70,10 +74,7 @@ export default function DashboardOverview() {
             const response = await fetch(`http://localhost:3000/api/rooms/hotel/${hotel.id}`, {
               headers: {
                 'Content-Type': 'application/json',
-                'X-User-Login': currentUser,
-                'X-User-ID': currentUser,
-                'Authorization': 'Bearer NadPerz-token',
-                'X-Request-Timestamp': currentTimestamp
+                'x-user-id': userId, // Pass userId in header
               }
             });
 
@@ -91,16 +92,16 @@ export default function DashboardOverview() {
           }
         }
 
-        console.log(`✅ Dashboard: Real data calculated for ${currentUser}:`, {
+        console.log(`✅ Dashboard: Real data calculated for ${userId}:`, {
           timestamp: currentTimestamp,
-          user: currentUser,
+          user: userId,
           totalHotels: myHotels.length,
           totalRooms: roomCount
         });
 
         setTotalRooms(roomCount);
       } catch (error) {
-        console.error(`❌ Dashboard: Error calculating real data for ${currentUser}:`, error);
+        console.error(`❌ Dashboard: Error calculating real data for ${userId}:`, error);
         setTotalRooms(0);
       } finally {
         setIsLoadingRooms(false);
@@ -108,9 +109,9 @@ export default function DashboardOverview() {
     };
 
     calculateRealData();
-  }, [myHotels]);
+  }, [myHotels, userId]); // Add userId to dependency array
 
-  // Real stats for NadPerz
+  // Real stats for the current user
   const realStats = {
     totalHotels: myHotels.length,
     totalRooms: totalRooms,
@@ -123,17 +124,17 @@ export default function DashboardOverview() {
   };
 
   const handleRefreshData = () => {
-    console.log(`🔄 Dashboard: ${currentUser} refreshing real data...`, {
+    console.log(`🔄 Dashboard: ${userId} refreshing real data...`, {
       timestamp: currentTimestamp,
-      user: currentUser
+      user: userId
     });
     window.location.reload();
   };
 
   const handleViewAnalytics = () => {
-    console.log(`📊 Dashboard: ${currentUser} viewing analytics...`, {
+    console.log(`📊 Dashboard: ${userId} viewing analytics...`, {
       timestamp: currentTimestamp,
-      user: currentUser
+      user: userId
     });
   };
 
@@ -146,7 +147,7 @@ export default function DashboardOverview() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
               <p className="text-gray-600 mt-1">
-                Welcome back, <span className="font-semibold text-blue-600">{currentUser}</span>! Here's your REAL hotel performance summary.
+                Welcome back, <span className="font-semibold text-blue-600">{userId}</span>! Here's your REAL hotel performance summary.
               </p>
               <p className="text-sm text-gray-500">
                 Last updated: {currentTimestamp} UTC • Revenue from Stripe-confirmed bookings only
@@ -269,7 +270,7 @@ export default function DashboardOverview() {
                 {isLoadingHotels ? (
                   <div className="text-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
-                    <p className="text-gray-600 mt-2">Loading {currentUser} hotels...</p>
+                    <p className="text-gray-600 mt-2">Loading {userId} hotels...</p>
                   </div>
                 ) : myHotels.length === 0 ? (
                   <div className="text-center py-8">
@@ -352,7 +353,7 @@ export default function DashboardOverview() {
 
                 <div className="mt-6 pt-4 border-t border-gray-200">
                   <div className="text-sm text-gray-600">
-                    <p><strong>Current User:</strong> {currentUser}</p>
+                    <p><strong>Current User:</strong> {userId}</p>
                     <p><strong>Last Updated:</strong> {currentTimestamp} UTC</p>
                     <p><strong>Data Source:</strong> Live API + Stripe Integration</p>
                     <p><strong>Status:</strong> <span className="text-green-600 font-medium">Active</span></p>

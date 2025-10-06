@@ -9,11 +9,6 @@ import {
   CheckCircle,
   Calendar,
   MapPin,
-  Users,
-  Phone,
-  Mail,
-  Download,
-  Share,
   Home
 } from 'lucide-react';
 import { useHotel } from '@/features/hotel-booking/hooks/useHotels';

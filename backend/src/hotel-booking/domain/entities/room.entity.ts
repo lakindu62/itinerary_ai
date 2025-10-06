@@ -1,6 +1,7 @@
 export class Room {
   constructor(
     public readonly id: string,
+    public readonly userId: string,
     public readonly title: string,
     public readonly description: string,
     public readonly bedCount: number = 0,
@@ -22,9 +23,11 @@ export class Room {
     public readonly airCondition: boolean = false,
     public readonly soundProofed: boolean = false,
     public readonly hotelId: string
-  ) {}
+  )
+  {}
 
   static create(data: {
+    userId: string;
     title: string;
     description: string;
     bedCount?: number;
@@ -49,6 +52,7 @@ export class Room {
   }): Room {
     return new Room(
       this.generateId(),
+      data.userId,
       data.title,
       data.description,
       data.bedCount ?? 0,
@@ -101,6 +105,8 @@ export class Room {
   }): Room {
     return new Room(
       this.id,
+      // Preserve the original userId when updating
+      (this as any).userId, 
       updates.title ?? this.title,
       updates.description ?? this.description,
       updates.bedCount ?? this.bedCount,

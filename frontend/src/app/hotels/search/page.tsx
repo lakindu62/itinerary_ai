@@ -205,11 +205,7 @@ export default function HotelSearchPage() {
         </div>
 
         {/* Your Existing HotelSearch Component - No changes needed! */}
-        <HotelSearch
-          hotels={filteredHotels}
-          isLoading={isLoadingAllHotels || isSearching}
-          onSearch={handleSearch}
-        />
+        <HotelSearch />
 
         {/* Footer */}
         <div className="text-center text-sm text-gray-500 py-6 mt-8">

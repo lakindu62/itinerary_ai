@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
+import {
   ArrowLeft,
   Calendar as CalendarIcon,
   Users,
@@ -26,16 +26,23 @@ import {
 import { useHotel } from '@/features/hotel-booking/hooks/useHotels';
 import { useRooms } from '@/features/hotel-booking/hooks/useRooms';
 import { Room } from '@/features/hotel-booking/types/room.types';
+import { Booking } from '@/features/hotel-booking/services/api/bookings.api';
 import HotelImageSimple from '@/features/hotel-booking/components/shared/HotelImageSimple';
 import LoadingSpinner from '@/features/hotel-booking/components/shared/LoadingSpinner';
 import StripePaymentModal from '@/features/hotel-booking/components/payments/StripePaymentModal';
 import { bookingsApi } from '@/features/hotel-booking/services/api/bookings.api';
 import { format, addDays, differenceInDays } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
+
+interface PaymentResult {
+  paymentId: string;
+}
 
 export default function HotelBookingPage() {
   const params = useParams();
   const router = useRouter();
   const hotelId = params.id as string;
+  const { user } = useAuth();
   
   const { data: hotel, isLoading: isLoadingHotel } = useHotel(hotelId);
   const { rooms, isLoading: isLoadingRooms } = useRooms(hotelId);
@@ -48,7 +55,7 @@ export default function HotelBookingPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [currentBooking, setCurrentBooking] = useState<any>(null);
+  const [currentBooking, setCurrentBooking] = useState<Booking | null>(null);
 
   console.log('📅 Hotel Booking Page with Stripe Modal:', {
     hotelId,
@@ -130,6 +137,7 @@ export default function HotelBookingPage() {
       const bookingData = {
         hotelId,
         roomId: selectedRoom.id,
+        userId: user?.id || '',
         checkIn: format(checkInDate, 'yyyy-MM-dd'),
         checkOut: format(checkOutDate, 'yyyy-MM-dd'),
         guests: guestCount,
@@ -155,21 +163,25 @@ export default function HotelBookingPage() {
         setSuccess(null);
       }, 1000);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Booking process failed:', {
-        message: error.message,
+        message: (error as Error).message,
         timestamp: '2025-09-25 13:37:43',
         user: 'NadPerz'
       });
       
-      setError(error.message || 'Booking failed. Please try again.');
+      setError((error as Error).message || 'Booking failed. Please try again.');
       setIsProcessing(false);
     }
   };
-
-  const handlePaymentSuccess = async (paymentResult: any) => {
+  const handlePaymentSuccess = async (paymentResult: PaymentResult) => {
     console.log('✅ Payment successful, finalizing booking...', paymentResult);
     
+    if (!currentBooking) {
+      setError('Booking information missing. Please try again.');
+      return;
+    }
+
     try {
       // Update booking with payment info
       const paymentUpdated = await bookingsApi.updatePaymentStatus(
@@ -202,7 +214,7 @@ export default function HotelBookingPage() {
       } else {
         setError('Payment successful but failed to update booking. Please contact support.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Failed to finalize booking:', error);
       setError('Payment successful but booking finalization failed. Please contact support.');
     }

@@ -40,23 +40,20 @@ interface HotelBookingManagementProps {
 
 interface HotelBooking {
   id: string;
-  paymentId?: string;
+  userId: string;
   hotelId: string;
-  hotelName?: string;
   roomId: string;
-  roomName?: string;
-  checkIn: string;
-  checkOut: string;
-  guests: number;
+  checkInDate: string;
+  checkOutDate: string;
+  numberOfGuests: number;
   totalPrice: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
-  guestName: string;
-  guestEmail: string;
-  guestPhone?: string;
-  specialRequests?: string;
-  createdAt: string;
-  updatedAt: string;
-  canCancel: boolean;
+  paymentStatus: 'pending' | 'completed' | 'failed';
+  startDate: string;
+  endDate: string;
+  currency: string;
+  hotelName?: string;
+  roomName?: string;
+  hotelCity?: string;
 }
 
 export default function HotelBookingManagement({ hotelId }: HotelBookingManagementProps) {
@@ -104,7 +101,7 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
       });
 
       setIsLoading(true);
-      const allBookings = await bookingsApi.getAll();
+      const allBookings = await bookingsApi.getAll(currentUser);
       
       // Filter bookings for this specific hotel
       const hotelSpecificBookings = allBookings.filter(booking => booking.hotelId === hotelId);
@@ -132,15 +129,13 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
     if (searchTerm) {
       filtered = filtered.filter(booking => 
         booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.guestEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.roomName?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Status filter
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(booking => booking.status === filterStatus);
+      filtered = filtered.filter(booking => booking.paymentStatus === filterStatus);
     }
 
     console.log('🔍 Hotel bookings filtered for NadPerz:', {
@@ -204,11 +199,11 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
   // Calculate hotel-specific statistics
   const stats = {
     total: hotelBookings.length,
-    confirmed: hotelBookings.filter(b => b.status === 'confirmed').length,
-    pending: hotelBookings.filter(b => b.status === 'pending').length,
-    cancelled: hotelBookings.filter(b => b.status === 'cancelled').length,
-    completed: hotelBookings.filter(b => b.status === 'completed').length,
-    revenue: hotelBookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.totalPrice, 0),
+    confirmed: hotelBookings.filter(b => b.paymentStatus === 'completed').length,
+    pending: hotelBookings.filter(b => b.paymentStatus === 'pending').length,
+    cancelled: hotelBookings.filter(b => b.paymentStatus === 'failed').length,
+    completed: hotelBookings.filter(b => b.paymentStatus === 'completed').length,
+    revenue: hotelBookings.filter(b => b.paymentStatus === 'completed').reduce((sum, b) => sum + b.totalPrice, 0),
     avgBookingValue: hotelBookings.length > 0 ? 
       (hotelBookings.reduce((sum, b) => sum + b.totalPrice, 0) / hotelBookings.length).toFixed(2) : '0.00',
     occupancyRate: rooms.length > 0 ? Math.round((hotelBookings.length / (rooms.length * 30)) * 100) : 0 // Rough estimate
@@ -477,14 +472,14 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0">
-                            {booking.status === 'confirmed' ? (
+                            {booking.paymentStatus === 'completed' ? (
                               <CheckCircle className="h-8 w-8 text-green-600" />
-                            ) : booking.status === 'cancelled' ? (
+                            ) : booking.paymentStatus === 'failed' ? (
                               <XCircle className="h-8 w-8 text-red-600" />
-                            ) : booking.status === 'completed' ? (
-                              <CheckCircle className="h-8 w-8 text-blue-600" />
-                            ) : (
+                            ) : booking.paymentStatus === 'pending' ? (
                               <AlertCircle className="h-8 w-8 text-orange-600" />
+                            ) : (
+                              <AlertCircle className="h-8 w-8 text-gray-600" />
                             )}
                           </div>
                           
@@ -495,13 +490,13 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
                               </h3>
                               <Badge 
                                 variant={
-                                  booking.status === 'confirmed' ? "default" : 
-                                  booking.status === 'cancelled' ? "destructive" : 
-                                  booking.status === 'completed' ? "secondary" : "outline"
+                                  booking.paymentStatus === 'completed' ? "default" : 
+                                  booking.paymentStatus === 'failed' ? "destructive" : 
+                                  booking.paymentStatus === 'pending' ? "secondary" : "outline"
                                 }
                                 className="text-xs"
                               >
-                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                {booking.paymentStatus.charAt(0).toUpperCase() + booking.paymentStatus.slice(1)}
                               </Badge>
                             </div>
                             
@@ -509,7 +504,7 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
                                 <span className="truncate">
-                                  {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
+                                  {new Date(booking.checkInDate).toLocaleDateString()} - {new Date(booking.checkOutDate).toLocaleDateString()}
                                 </span>
                               </div>
                               <div className="flex items-center">
@@ -517,25 +512,8 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
                                 <span className="truncate">{booking.roomName || 'Room'}</span>
                               </div>
                               <div className="flex items-center">
-                                <User className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="truncate">{booking.guestName}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-500 mt-1">
-                              <div className="flex items-center">
-                                <Mail className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="truncate">{booking.guestEmail}</span>
-                              </div>
-                              <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="truncate">{booking.guests} guest{booking.guests !== 1 ? 's' : ''}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-                                <span className="truncate">
-                                  Booked: {new Date(booking.createdAt).toLocaleDateString()}
-                                </span>
+                                <span className="truncate">{booking.numberOfGuests} guest{booking.numberOfGuests !== 1 ? 's' : ''}</span>
                               </div>
                             </div>
                           </div>
@@ -545,7 +523,7 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
                           <div className="text-right">
                             <p className="text-lg font-bold text-gray-900">${booking.totalPrice}</p>
                             <p className="text-sm text-gray-500">
-                              {booking.guests} guest{booking.guests !== 1 ? 's' : ''}
+                              {booking.numberOfGuests} guest{booking.numberOfGuests !== 1 ? 's' : ''}
                             </p>
                           </div>
                           
@@ -564,24 +542,9 @@ export default function HotelBookingManagement({ hotelId }: HotelBookingManageme
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            {booking.canCancel && booking.status !== 'cancelled' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleCancelBooking(booking.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
                           </div>
                         </div>
                       </div>
-                      
-                      {booking.specialRequests && (
-                        <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
-                          <strong>Special Requests:</strong> {booking.specialRequests}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>

@@ -1,7 +1,5 @@
-"use client";
-
-import { useState } from 'react';
-import { useForm, SubmitHandler } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import { useForm, SubmitHandler, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,81 +8,84 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Badge } from '@/components/ui/badge';
-import { X, Loader2, Bed, ArrowLeft } from 'lucide-react';
+import { X, Loader2, Bed, Users, Bath, Ruler, DollarSign, Wifi, Tv, Mountain, Waves, Snowflake, Volume2, Building } from 'lucide-react';
 import MinioImageUpload from '../shared/MinioImageUpload';
-import { useHotels } from '../../hooks/useHotels';
 import { useRooms } from '../../hooks/useRooms';
-import { Room } from '../../types/room.types';
+import { Room as RoomType } from '../../types/room.types';
+import { useAuth } from '@/hooks/useAuth'; // Import useAuth
 
-// Room form validation schema
+// Define the room schema
 const roomSchema = z.object({
   title: z.string().min(1, 'Room title is required'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  bedCount: z.number().min(1, 'At least 1 bed is required'),
-  guestCount: z.number().min(1, 'At least 1 guest capacity is required'),
-  bathroomCount: z.number().min(1, 'At least 1 bathroom is required'),
-  kingBed: z.number().min(0),
-  queenBed: z.number().min(0),
-  breakfastPrice: z.number().min(0),
-  roomPrice: z.number().min(1, 'Room price must be at least $1'),
-  roomService: z.boolean(),
-  tv: z.boolean(),
-  balcony: z.boolean(),
-  freeWifi: z.boolean(),
-  cityView: z.boolean(),
-  oceanView: z.boolean(),
-  forestView: z.boolean(),
-  mountainView: z.boolean(),
-  airCondition: z.boolean(),
-  soundProofed: z.boolean(),
+  bedCount: z.coerce.number().min(0).default(0),
+  guestCount: z.coerce.number().min(1, 'At least 1 guest is required').default(1),
+  bathroomCount: z.coerce.number().min(0).default(0),
+  kingBed: z.coerce.number().min(0).default(0),
+  queenBed: z.coerce.number().min(0).default(0),
+  breakfastPrice: z.coerce.number().min(0, 'Breakfast price cannot be negative').default(0),
+  roomPrice: z.coerce.number().min(0, 'Room price cannot be negative').default(0),
+  roomService: z.boolean().default(false),
+  tv: z.boolean().default(false),
+  balcony: z.boolean().default(false),
+  freeWifi: z.boolean().default(false),
+  cityView: z.boolean().default(false),
+  oceanView: z.boolean().default(false),
+  forestView: z.boolean().default(false),
+  mountainView: z.boolean().default(false),
+  airCondition: z.boolean().default(false),
+  soundProofed: z.boolean().default(false),
 });
 
 type RoomFormData = z.infer<typeof roomSchema>;
 
 interface RoomFormProps {
-  selectedHotelId: string;
-  room?: Room; // Optional - for edit mode
+  selectedHotelId?: string;
+  room?: RoomType | null;
+  hotelId: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }: RoomFormProps) {
-  const { myHotels } = useHotels();
-  const { createRoom, updateRoom, isCreating, isUpdating } = useRooms(selectedHotelId);
+export default function RoomForm({ room, hotelId, onSuccess, onCancel }: RoomFormProps) {
+  const { createRoom, updateRoom, isCreating, isUpdating } = useRooms(hotelId);
+  const { userId } = useAuth(); // Get current user ID
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
   const isEditMode = !!room;
   const isSubmitting = isCreating || isUpdating;
 
-  // Find the selected hotel
-  const selectedHotel = myHotels.find(h => h.id === selectedHotelId);
-
   const form = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
     defaultValues: {
       title: room?.title || '',
       description: room?.description || '',
-      bedCount: room?.bedCount || 1,
-      guestCount: room?.guestCount || 2,
-      bathroomCount: room?.bathroomCount || 1,
-      kingBed: room?.kingBed || 0,
-      queenBed: room?.queenBed || 1,
-      breakfastPrice: room?.breakfastPrice || 0,
-      roomPrice: room?.roomPrice || 100,
+      bedCount: Number(room?.bedCount || 0),
+      guestCount: Number(room?.guestCount || 1),
+      bathroomCount: Number(room?.bathroomCount || 0),
+      kingBed: Number(room?.kingBed || 0),
+      queenBed: Number(room?.queenBed || 0),
+      breakfastPrice: Number(room?.breakfastPrice || 0),
+      roomPrice: Number(room?.roomPrice || 0),
       roomService: room?.roomService || false,
-      tv: room?.tv || true,
+      tv: room?.tv || false,
       balcony: room?.balcony || false,
-      freeWifi: room?.freeWifi || true,
+      freeWifi: room?.freeWifi || false,
       cityView: room?.cityView || false,
       oceanView: room?.oceanView || false,
       forestView: room?.forestView || false,
       mountainView: room?.mountainView || false,
-      airCondition: room?.airCondition || true,
+      airCondition: room?.airCondition || false,
       soundProofed: room?.soundProofed || false,
     },
   });
+
+  useEffect(() => {
+    if (room?.image) {
+      setImagePreview(room.image);
+    }
+  }, [room]);
 
   const handleImageSelect = (file: File | null) => {
     setSelectedImage(file);
@@ -99,26 +100,29 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
     }
   };
 
-  const onSubmit: SubmitHandler<RoomFormData> = async (data) => {
+  const onSubmit: SubmitHandler<RoomFormData> = async (data: RoomFormData) => {
+    if (!userId) {
+      alert('User not authenticated. Please log in.');
+      return;
+    }
+
     try {
       console.log(`🏠 ${isEditMode ? 'Updating' : 'Creating'} room:`, data);
       
-      const roomData = {
+      const cleanData = {
         ...data,
-        hotelId: selectedHotelId,
         imageFile: selectedImage || undefined,
       };
-
+      
       if (isEditMode && room) {
         // UPDATE existing room
-        await updateRoom({
-          id: room.id,
-          data: roomData,
-        });
+        console.log('🔄 Updating room ID:', room.id);
+        await updateRoom(room.id, cleanData, userId);
         console.log('✅ Room updated successfully');
       } else {
         // CREATE new room
-        await createRoom(roomData);
+        console.log('🆕 Creating new room for hotel:', hotelId);
+        await createRoom({ ...cleanData, hotelId }, userId);
         console.log('✅ Room created successfully');
       }
 
@@ -128,20 +132,17 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
     }
   };
 
-  const amenities = [
-    { key: 'roomService', label: 'Room Service' },
-    { key: 'tv', label: 'TV' },
-    { key: 'balcony', label: 'Balcony' },
-    { key: 'freeWifi', label: 'Free WiFi' },
-    { key: 'airCondition', label: 'Air Conditioning' },
-    { key: 'soundProofed', label: 'Sound Proofed' },
-  ] as const;
-
-  const views = [
-    { key: 'cityView', label: 'City View' },
-    { key: 'oceanView', label: 'Ocean View' },
-    { key: 'forestView', label: 'Forest View' },
-    { key: 'mountainView', label: 'Mountain View' },
+  const roomFeatures = [
+    { key: 'roomService', label: 'Room Service', icon: DollarSign },
+    { key: 'tv', label: 'TV', icon: Tv },
+    { key: 'balcony', label: 'Balcony', icon: Mountain },
+    { key: 'freeWifi', label: 'Free WiFi', icon: Wifi },
+    { key: 'cityView', label: 'City View', icon: Building },
+    { key: 'oceanView', label: 'Ocean View', icon: Waves },
+    { key: 'forestView', label: 'Forest View', icon: Mountain },
+    { key: 'mountainView', label: 'Mountain View', icon: Mountain },
+    { key: 'airCondition', label: 'Air Condition', icon: Snowflake },
+    { key: 'soundProofed', label: 'Sound Proofed', icon: Volume2 },
   ] as const;
 
   return (
@@ -150,9 +151,7 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bed className="h-5 w-5" />
-            <CardTitle>
-              {isEditMode ? `Edit Room: ${room?.title}` : 'Create New Room'}
-            </CardTitle>
+            <CardTitle>{isEditMode ? 'Edit Room' : 'Create New Room'}</CardTitle>
           </div>
           {onCancel && (
             <Button variant="ghost" size="sm" onClick={onCancel}>
@@ -160,35 +159,15 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
             </Button>
           )}
         </div>
-        
-        {/* Hotel Info & Current User */}
-        <div className="space-y-2">
-          <p className="text-sm text-gray-600">
-            {isEditMode 
-              ? `Update room details (current image will be preserved if no new image is selected)`
-              : `Adding room to: ${selectedHotel?.title || 'Unknown Hotel'} (${selectedHotel?.city || 'Unknown Location'})`
-            }
-          </p>
-          
-          {selectedHotel && (
-            <div className="flex items-center space-x-2 text-xs text-blue-600">
-              <Badge variant="outline" className="text-xs">
-                🏨 {selectedHotel.title}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                📍 {selectedHotel.city}, {selectedHotel.state}
-              </Badge>
-            </div>
-          )}
-          
-          <div className="flex items-center space-x-2 text-xs text-gray-500">
-            <span>👤 User: NadPerz</span>
-            <span>•</span>
-            <span>📅 {new Date().toLocaleDateString()}</span>
-            <span>•</span>
-            <span>💾 Images stored in room-bucket</span>
-          </div>
-        </div>
+        <p className="text-sm text-gray-600">
+          {isEditMode 
+            ? `Update "${room?.title}" details for hotel ID: ${hotelId}`
+            : `Fill in the details to add a new room to hotel ID: ${hotelId}`
+          }
+        </p>
+        <p className="text-xs text-blue-600">
+          📦 Images will be stored in room-bucket/images/rooms_{userId}_{Date.now()}_filename.jpg
+        </p>
       </CardHeader>
       
       <CardContent>
@@ -196,17 +175,17 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Room Information</h3>
+              <h3 className="text-lg font-semibold">Basic Information</h3>
               
               <FormField
-                control={form.control}
+                control={form.control as Control<RoomFormData>}
                 name="title"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Room Title *</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="e.g. Deluxe Ocean View Suite" 
+                        placeholder="e.g. Deluxe Ocean View" 
                         {...field} 
                         disabled={isSubmitting}
                       />
@@ -217,14 +196,14 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
               />
 
               <FormField
-                control={form.control}
+                control={form.control as Control<RoomFormData>}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Room Description *</FormLabel>
+                    <FormLabel>Description *</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Describe the room features, layout, and amenities..." 
+                        placeholder="Describe the room, its features, and what makes it special..." 
                         className="min-h-[100px]"
                         {...field} 
                         disabled={isSubmitting}
@@ -246,68 +225,44 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                   isUploading={isSubmitting}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  💾 File will be stored as: room-bucket/images/rooms_NadPerz_timestamp_filename.jpg
+                  💾 File will be stored as: room-bucket/images/rooms_{userId}_{Date.now()}_filename.jpg
                 </p>
               </div>
             </div>
 
-            {/* Room Configuration */}
+            {/* Room Capacity & Pricing */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Room Configuration</h3>
-              
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <h3 className="text-lg font-semibold">Capacity & Pricing</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
+                  control={form.control as Control<RoomFormData>}
                   name="guestCount"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Guest Capacity *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="1"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  <FormItem>
+                    <FormLabel>Max Guests *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="e.g. 2" 
+                        {...field} 
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
                 />
-
                 <FormField
-                  control={form.control}
+                  control={form.control as Control<RoomFormData>}
                   name="bedCount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Beds *</FormLabel>
+                      <FormLabel>Total Beds</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
-                          min="1"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                          disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="bathroomCount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bathrooms *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min="1"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                          placeholder="e.g. 1" 
+                          {...field} 
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -316,10 +271,9 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                   )}
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
+                  control={form.control as Control<RoomFormData>}
                   name="kingBed"
                   render={({ field }) => (
                     <FormItem>
@@ -327,9 +281,8 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                       <FormControl>
                         <Input 
                           type="number" 
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          placeholder="e.g. 1" 
+                          {...field} 
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -337,9 +290,8 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                     </FormItem>
                   )}
                 />
-
                 <FormField
-                  control={form.control}
+                  control={form.control as Control<RoomFormData>}
                   name="queenBed"
                   render={({ field }) => (
                     <FormItem>
@@ -347,9 +299,8 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                       <FormControl>
                         <Input 
                           type="number" 
-                          min="0"
-                          {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          placeholder="e.g. 0" 
+                          {...field} 
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -358,27 +309,37 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                   )}
                 />
               </div>
-            </div>
-
-            {/* Pricing */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Pricing</h3>
-              
+              <FormField
+                control={form.control as Control<RoomFormData>}
+                name="bathroomCount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bathrooms</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="e.g. 1" 
+                        {...field} 
+                        disabled={isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
-                  control={form.control}
+                  control={form.control as Control<RoomFormData>}
                   name="roomPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Room Price (per night) *</FormLabel>
+                      <FormLabel>Room Price per Night *</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
-                          min="1"
+                          placeholder="e.g. 150.00" 
                           step="0.01"
-                          placeholder="100.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          {...field} 
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -386,21 +347,18 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                     </FormItem>
                   )}
                 />
-
                 <FormField
-                  control={form.control}
+                  control={form.control as Control<RoomFormData>}
                   name="breakfastPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Breakfast Price (optional)</FormLabel>
+                      <FormLabel>Breakfast Price per Person</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
-                          min="0"
+                          placeholder="e.g. 25.00" 
                           step="0.01"
-                          placeholder="25.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          {...field} 
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -411,15 +369,15 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
               </div>
             </div>
 
-            {/* Room Amenities */}
+            {/* Room Features */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Room Amenities</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {amenities.map((amenity) => (
+              <h3 className="text-lg font-semibold">Room Features & Views</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {roomFeatures.map((feature) => (
                   <FormField
-                    key={amenity.key}
-                    control={form.control}
-                    name={amenity.key}
+                    key={feature.key}
+                    control={form.control as Control<RoomFormData>}
+                    name={feature.key}
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                         <FormControl>
@@ -433,7 +391,7 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="text-sm font-normal">
-                            {amenity.label}
+                            {feature.label}
                           </FormLabel>
                         </div>
                       </FormItem>
@@ -443,39 +401,7 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
               </div>
             </div>
 
-            {/* Room Views */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Room Views</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {views.map((view) => (
-                  <FormField
-                    key={view.key}
-                    control={form.control}
-                    name={view.key}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value as boolean}
-                            onCheckedChange={(checked) => {
-                              field.onChange(checked === true);
-                            }}
-                            disabled={isSubmitting}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="text-sm font-normal">
-                            {view.label}
-                          </FormLabel>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Submit Buttons */}
+            {/* Submit Button */}
             <div className="flex justify-end space-x-4 pt-6 border-t">
               {onCancel && (
                 <Button
@@ -484,7 +410,6 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
                   onClick={onCancel}
                   disabled={isSubmitting}
                 >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
                   Cancel
                 </Button>
               )}
