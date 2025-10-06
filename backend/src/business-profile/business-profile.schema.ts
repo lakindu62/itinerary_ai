@@ -35,6 +35,15 @@ export class BusinessProfile {
   @Prop({ type: [String], default: [] })
   videos: string[];
 
+  @Prop({ type: Array, default: [] })
+  posts: any[];
+
+  @Prop({ type: Array, default: [] })
+  reels: any[];
+
+  @Prop({ type: Array, default: [] })
+  menuItems: any[];
+
   @Prop({ default: true })
   isActive: boolean;
 }

@@ -15,30 +15,34 @@ import {
   FileText,
   Plus,
   Eye,
-  TrendingUp,
   Users,
   DollarSign,
-  Calendar,
-  Bell
+  Calendar
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { BusinessProfileApiService } from '@/services/business-profile-api.service'
 
 // Import dashboard components
 import SliderManagement from './components/SliderManagement'
 import MenuManagement from './components/MenuManagement'
 import RatingManagement from './components/RatingManagement'
-import ReviewsManagement from './components/ReviewsManagement'
 import ReelsManagement from './components/ReelsManagement'
 import PostsManagement from './components/PostsManagement'
-import Analytics from './components/Analytics'
-import NotificationCenter from './components/NotificationCenter'
 import ProfileManagement from './components/ProfileManagement'
 
 export default function BusinessDashboard() {
-  const { userId, isAuthenticated, isLoaded, isBusinessUser, userType } = useAuth()
+  const { userId, isAuthenticated, isLoaded, isBusinessUser, userType, getToken } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
   const [businessProfile, setBusinessProfile] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+
+  // Refresh data when switching to overview tab
+  const handleTabChange = (value: string) => {
+    setActiveTab(value)
+    if (value === 'overview' && userId) {
+      loadBusinessProfile()
+    }
+  }
 
 
 
@@ -49,18 +53,87 @@ export default function BusinessDashboard() {
     }
   }, [userId])
 
+  // Listen for business profile updates from child components
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      if (userId && activeTab === 'overview') {
+        loadBusinessProfile()
+      }
+    }
+
+    window.addEventListener('businessProfileUpdated', handleProfileUpdate)
+    return () => window.removeEventListener('businessProfileUpdated', handleProfileUpdate)
+  }, [userId, activeTab])
+
   const loadBusinessProfile = async () => {
     if (!userId) return
     
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setBusinessProfile(data.profile)
+      // Get JWT token for authentication
+      const token = await getToken()
+      if (!token) {
+        console.error('No authentication token available')
+        return
+      }
+
+      // Use MongoDB backend API instead of JSON file
+      const response = await fetch(`http://localhost:3000/api/business-profiles/my-profiles`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        console.error('Failed to fetch business profiles:', response.status, response.statusText)
+        return
+      }
+      
+      const profiles = await response.json()
+      console.log('MongoDB profiles data:', profiles)
+      
+      // Take the first profile if multiple exist
+      if (profiles && profiles.length > 0) {
+        const profile = profiles[0]
+        
+        // Debug logging to see what data we're getting from MongoDB
+        console.log('MongoDB Profile data debug:', {
+          menuItemsCount: profile.menuItems?.length || 0,
+          sliderImagesCount: profile.sliderImages?.length || 0,
+          postsCount: profile.posts?.length || 0,
+          reelsCount: profile.reels?.length || 0,
+          ratingsCount: profile.ratings?.length || 0,
+          reviewsCount: profile.reviews?.length || 0
+        })
+        
+        // Set the profile data directly from MongoDB
+        const fullProfile = {
+          ...profile,
+          sliderImages: profile.sliderImages || [],
+          menuItems: profile.menuItems || [],
+          posts: profile.posts || [],
+          reels: profile.reels || [],
+          ratings: profile.ratings || [],
+          reviews: profile.reviews || []
+        }
+        
+        console.log('Final MongoDB profile data:', {
+          businessName: fullProfile.businessName,
+          menuItemsCount: fullProfile.menuItems?.length || 0,
+          sliderImagesCount: fullProfile.sliderImages?.length || 0,
+          postsCount: fullProfile.posts?.length || 0,
+          reelsCount: fullProfile.reels?.length || 0
+        })
+        
+        setBusinessProfile(fullProfile)
+      } else {
+        console.log('No profiles found for user')
+        setBusinessProfile(null)
       }
     } catch (error) {
-      console.error('Error loading business profile:', error)
+      // Handle error silently
     } finally {
       setLoading(false)
     }
@@ -69,7 +142,7 @@ export default function BusinessDashboard() {
   // Show loading while checking authentication
   if (!isLoaded) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center pt-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
@@ -81,7 +154,7 @@ export default function BusinessDashboard() {
   // Restrict access to business users only
   if (isLoaded && isAuthenticated && !isBusinessUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
         <div className="text-center max-w-md mx-auto p-8">
           <div className="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +189,7 @@ export default function BusinessDashboard() {
   // Redirect to sign-in if not authenticated
   if (isLoaded && !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
         <div className="text-center max-w-md mx-auto p-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
           <p className="text-gray-600 mb-6">Please sign in to access the business dashboard.</p>
@@ -148,6 +221,20 @@ export default function BusinessDashboard() {
       change: 'Available items',
       icon: Menu,
       color: 'text-green-600'
+    },
+    {
+      title: 'Posts',
+      value: businessProfile?.posts?.length || '0',
+      change: 'Published posts',
+      icon: FileText,
+      color: 'text-indigo-600'
+    },
+    {
+      title: 'Reels',
+      value: businessProfile?.reels?.length || '0',
+      change: 'Video content',
+      icon: Video,
+      color: 'text-red-600'
     },
     {
       title: 'Pending Reviews',
@@ -204,7 +291,7 @@ export default function BusinessDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your business dashboard...</p>
@@ -214,14 +301,14 @@ export default function BusinessDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 pt-20 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Business Dashboard</h1>
           <p className="text-gray-600">
             {businessProfile ? 
-              `Manage ${businessProfile.businessName || 'your business'} profile, content, and analytics` :
+              `Manage ${businessProfile.businessName || 'your business'} profile and content` :
               'Create and manage your business profile'
             }
           </p>
@@ -234,8 +321,8 @@ export default function BusinessDashboard() {
           )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:grid-cols-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:grid-cols-7">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -252,10 +339,6 @@ export default function BusinessDashboard() {
               <Star className="h-4 w-4" />
               Ratings
             </TabsTrigger>
-            <TabsTrigger value="reviews" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Reviews
-            </TabsTrigger>
             <TabsTrigger value="reels" className="flex items-center gap-2">
               <Video className="h-4 w-4" />
               Reels
@@ -263,14 +346,6 @@ export default function BusinessDashboard() {
             <TabsTrigger value="posts" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Posts
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Notifications
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
@@ -281,7 +356,7 @@ export default function BusinessDashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
               {stats.map((stat, index) => (
                 <Card key={index}>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -291,7 +366,7 @@ export default function BusinessDashboard() {
                   <CardContent>
                     <div className="text-2xl font-bold">{stat.value}</div>
                     <p className="text-xs text-muted-foreground">
-                      <span className="text-green-600">{stat.change}</span> from last month
+                      <span className="text-green-600">{stat.change}</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -324,8 +399,8 @@ export default function BusinessDashboard() {
                         className="w-full justify-start"
                         variant="outline"
                       >
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Manage Reviews ({businessProfile.ratings?.filter((r: any) => !r.isApproved)?.length || 0} pending)
+                        <Star className="mr-2 h-4 w-4" />
+                        Manage Ratings ({businessProfile.ratings?.filter((r: any) => !r.isApproved)?.length || 0} pending)
                       </Button>
                       <Button 
                         onClick={() => setActiveTab('slider')} 
@@ -396,24 +471,12 @@ export default function BusinessDashboard() {
             <RatingManagement />
           </TabsContent>
 
-          <TabsContent value="reviews">
-            <ReviewsManagement />
-          </TabsContent>
-
           <TabsContent value="reels">
             <ReelsManagement />
           </TabsContent>
 
           <TabsContent value="posts">
             <PostsManagement />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <Analytics />
-          </TabsContent>
-
-          <TabsContent value="notifications">
-            <NotificationCenter />
           </TabsContent>
 
           <TabsContent value="profile">

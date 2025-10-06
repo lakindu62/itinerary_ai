@@ -21,14 +21,18 @@ import {
   Eye
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
+import { BusinessProfileApiService, BackendBusinessProfile } from '@/services/business-profile-api.service'
 
 interface Business {
   id: string
   businessName: string
   description: string
-  category: string
+  categories: string[]
   location: string
-  coverImage: string
+  phone?: string
+  email?: string
+  website?: string
+  coverImage?: string
   rating: number
   totalReviews: number
   sliderImages: SliderImage[]
@@ -36,6 +40,10 @@ interface Business {
   reels: Reel[]
   menuItems: MenuItem[]
   reviews: Review[]
+  isActive: boolean
+  isVerified: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface MenuItem {
@@ -58,6 +66,7 @@ interface Review {
   comment: string
   createdAt: string
   businessReply?: string
+  isApproved?: boolean
 }
 
 interface SliderImage {
@@ -100,6 +109,7 @@ export default function BusinessProfilesPage() {
   const [feedTab, setFeedTab] = useState<'posts' | 'reels'>('posts')
   const [reviewFormOpen, setReviewFormOpen] = useState(false)
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
+  const [isBusinessOwner, setIsBusinessOwner] = useState(false)
   const [menuPopupOpen, setMenuPopupOpen] = useState(false)
   const [autoSlide, setAutoSlide] = useState(true) // Auto-slide state
   const currentUserId = userId || 'guest_user' // Use authenticated user ID or guest
@@ -199,6 +209,28 @@ export default function BusinessProfilesPage() {
   useEffect(() => {
     loadBusinesses()
   }, [])
+  
+  // Check if current user is the business owner
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (businesses.length > 0 && currentUserId && currentUserId !== 'guest_user') {
+        const currentBusiness = businesses[currentBusinessIndex]
+        if (currentBusiness) {
+          try {
+            const ownerId = await getOwnerIdForBusiness(currentBusiness.id)
+            setIsBusinessOwner(ownerId === currentUserId)
+          } catch (error) {
+            console.log('Could not check ownership:', error)
+            setIsBusinessOwner(false)
+          }
+        }
+      } else {
+        setIsBusinessOwner(false)
+      }
+    }
+    
+    checkOwnership()
+  }, [currentBusinessIndex, businesses, currentUserId])
 
   useEffect(() => {
     // Auto-slide every 20 seconds - cycle through slider images first, then businesses
@@ -238,54 +270,134 @@ export default function BusinessProfilesPage() {
   const loadBusinesses = async () => {
     setLoading(true)
     try {
-      // Load all public businesses
-      const response = await fetch('/api/business-profiles?getAllBusinesses=true')
-      let allBusinesses: Business[] = []
+      console.log('🔄 Loading businesses from MongoDB and ratings from file-based system...')
       
-      if (response.ok) {
-        const data = await response.json()
-        allBusinesses = data.businesses || []
+      // Load business profiles from MongoDB backend
+      const response = await BusinessProfileApiService.getAllBusinessProfiles(1, 50)
+      if (response.error) {
+        console.error('❌ Error loading businesses:', response.error)
+        setBusinesses([])
+        return
       }
       
-      // If user is authenticated, also load their own business for testing
-      if (userId) {
-        try {
-          const userBusinessResponse = await fetch(`/api/business-profiles?ownerId=${userId}`)
-          if (userBusinessResponse.ok) {
-            const userData = await userBusinessResponse.json()
-            if (userData.profile && userData.profile.businessName) {
-              // Convert user's profile to business format for display
-              const userBusiness: Business = {
-                id: userData.profile.id || `user-business-${userId}`,
-                businessName: userData.profile.businessName,
-                description: userData.profile.description || 'My Business Profile',
-                category: userData.profile.category || 'Business',
-                location: userData.profile.location || 'Location not specified',
-                coverImage: userData.profile.coverImage || '/placeholder-business.jpg',
-                rating: 0, // Will be calculated from ratings
-                totalReviews: (userData.ratings || []).filter((r: any) => r.isApproved).length,
-                sliderImages: userData.sliderImages || [],
-                posts: userData.posts || [],
-                reels: userData.reels || [],
-                menuItems: userData.menuItems || [],
-                reviews: (userData.ratings || []).filter((r: any) => r.isApproved) || []
-              }
-              
-              // Add user's business to the list if it's not already there
-              const existingIndex = allBusinesses.findIndex(b => b.id === userBusiness.id)
-              if (existingIndex === -1) {
-                allBusinesses.unshift(userBusiness) // Add at the beginning
+      const backendProfiles = response.data?.profiles || []
+      console.log('📊 Loaded', backendProfiles.length, 'business profiles from MongoDB')
+      
+      // Load ratings from file-based API (same as dashboard)
+      let businessRatingsMap: any = {}
+      try {
+        // For each business profile, get its ratings using the same API as dashboard
+        for (const profile of backendProfiles) {
+          if (profile.ownerId) {
+            console.log('� Fetching ratings for business:', profile.businessName, 'ownerId:', profile.ownerId)
+            const ratingsResponse = await fetch(`/api/business-profiles?ownerId=${profile.ownerId}`)
+            if (ratingsResponse.ok) {
+              const ratingsData = await ratingsResponse.json()
+              if (ratingsData && ratingsData.ratings && Array.isArray(ratingsData.ratings)) {
+                businessRatingsMap[profile.ownerId] = ratingsData.ratings
+                console.log('✅ Loaded', ratingsData.ratings.length, 'ratings for', profile.businessName)
               }
             }
           }
-        } catch (error) {
-          console.error('Error loading user business:', error)
         }
+      } catch (error) {
+        console.warn('⚠️ Could not load file-based ratings:', error)
       }
       
+      // Convert backend profiles to frontend format with file-based ratings
+      const allBusinesses: Business[] = backendProfiles.map((profile: any) => {
+        // Get ratings from file-based system (same as dashboard)
+        const ownerId = profile.ownerId
+        
+        let allRatings = businessRatingsMap[ownerId] || []
+        console.log('🔍 Ratings for', profile.businessName, ':', allRatings.length, 'total ratings (from file-based API)')
+        
+        // Filter for approved ratings only
+        const approvedRatings = allRatings.filter((rating: any) => rating.isApproved === true)
+        console.log('✅ Approved ratings for', profile.businessName, ':', approvedRatings.length, 'approved ratings')
+        if (approvedRatings.length > 0) {
+          console.log('📝 Sample approved rating:', approvedRatings[0])
+        }
+        
+        // Calculate average rating from approved ratings
+        const rating = approvedRatings.length > 0 
+          ? approvedRatings.reduce((sum: number, rating: any) => sum + (rating.rating || 0), 0) / approvedRatings.length
+          : 0
+        
+        return {
+          id: profile.id || profile._id,
+          businessName: profile.businessName,
+          description: profile.description || '',
+          categories: profile.categories || [],
+          location: profile.location || 'Location not specified',
+          phone: profile.phone,
+          email: profile.email,
+          website: profile.website,
+          coverImage: profile.sliderImages?.[0]?.url || '/placeholder-business.jpg',
+          rating: Math.round(rating * 10) / 10, // Round to 1 decimal
+          totalReviews: approvedRatings.length,
+          sliderImages: profile.sliderImages?.map((img: any, index: number) => ({
+            id: img._id || img.id || `slider-${index}`,
+            url: img.url || img.imageUrl || '/placeholder-image.jpg',
+            title: img.title || img.filename || `Image ${index + 1}`,
+            description: img.description || '',
+            order: img.order || index,
+            isActive: img.isActive !== false
+          })) || [],
+          posts: profile.posts?.map((post: any, index: number) => ({
+            id: post._id || post.id || `post-${index}`,
+            title: post.title || 'Untitled Post',
+            content: post.content || post.caption || '',
+            imageUrls: post.imageUrls || (post.imageUrl ? [post.imageUrl] : []),
+            author: profile.businessName,
+            publishedAt: post.createdAt || post.publishedAt || new Date().toISOString(),
+            likes: post.likes?.length || post.likeCount || 0,
+            comments: post.comments?.length || post.commentCount || 0
+          })) || [],
+          reels: profile.reels?.map((reel: any, index: number) => ({
+            id: reel._id || reel.id || `reel-${index}`,
+            title: reel.title || 'Untitled Reel',
+            videoUrl: reel.videoUrl || '',
+            thumbnailUrl: reel.thumbnailUrl || reel.videoUrl || '/placeholder-video.jpg',
+            author: profile.businessName,
+            publishedAt: reel.createdAt || reel.publishedAt || new Date().toISOString(),
+            likes: reel.likes?.length || reel.likeCount || 0,
+            comments: reel.comments?.length || reel.commentCount || 0
+          })) || [],
+          menuItems: profile.menuItems?.map((item: any, index: number) => ({
+            id: item._id || item.id || `menu-${index}`,
+            name: item.name || 'Unnamed Item',
+            description: item.description || '',
+            price: item.price || 0,
+            category: item.category || 'General',
+            imageUrl: item.imageUrl,
+            isAvailable: item.isAvailable !== false,
+            likes: item.likes || [],
+            likeCount: item.likes?.length || item.likeCount || 0
+          })) || [],
+          reviews: approvedRatings.map((rating: any, index: number) => ({
+            id: rating.id || `review-${index}`,
+            customerName: rating.customerName || 'Anonymous',
+            rating: rating.rating || 0,
+            title: rating.title || 'Review',
+            comment: rating.comment || '',
+            createdAt: rating.createdAt || new Date().toISOString(),
+            businessReply: rating.businessReply,
+            isApproved: rating.isApproved
+          })),
+          isActive: profile.isActive !== false,
+          isVerified: profile.isVerified || false,
+          createdAt: new Date(profile.createdAt),
+          updatedAt: new Date(profile.updatedAt)
+        }
+      })
+      
+      console.log('✅ Converted', allBusinesses.length, 'business profiles for display')
       setBusinesses(allBusinesses)
+      
     } catch (error) {
-      console.error('Error loading businesses:', error)
+      console.error('💥 Error loading businesses:', error)
+      setBusinesses([])
     } finally {
       setLoading(false)
     }
@@ -305,6 +417,13 @@ export default function BusinessProfilesPage() {
       
       if (!ownerId) {
         alert('Unable to submit review: Business owner not found')
+        return
+      }
+      
+      // Check if the current user is the business owner
+      if (currentUserId && ownerId === currentUserId) {
+        alert("❌ Business owners cannot review their own business. You can manage your business through the dashboard instead!")
+        setReviewFormOpen(false)
         return
       }
       
@@ -571,7 +690,7 @@ export default function BusinessProfilesPage() {
         <div className="relative z-10 h-full flex items-center justify-center text-center text-white">
           <div className="max-w-4xl mx-auto px-6">
             <Badge className="mb-4 bg-white/20 text-white">
-              {currentBusiness.category}
+              {currentBusiness.categories?.[0] || 'Business'}
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold mb-4">
               {currentBusiness.businessName}
@@ -599,13 +718,19 @@ export default function BusinessProfilesPage() {
               >
                 View Menu
               </Button>
-              <Button 
-                onClick={() => setReviewFormOpen(true)}
-                className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
-                variant="outline"
-              >
-                Write Review
-              </Button>
+              {!isBusinessOwner ? (
+                <Button 
+                  onClick={() => setReviewFormOpen(true)}
+                  className="bg-white/20 hover:bg-white/30 text-white border border-white/30"
+                  variant="outline"
+                >
+                  Write Review
+                </Button>
+              ) : (
+                <div className="bg-blue-500/20 px-4 py-2 rounded-lg border border-blue-300/30">
+                  <span className="text-white text-sm">📊 This is your business</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -773,31 +898,40 @@ export default function BusinessProfilesPage() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-4">Recent Reviews</h3>
                   <div className="space-y-4 max-h-64 overflow-y-auto">
-                    {currentBusiness.reviews?.slice(0, 4).map((review) => (
-                      <div key={review.id} className="border-b pb-3 last:border-b-0">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium text-sm">{review.customerName}</span>
-                            <div className="flex">
-                              {renderStars(review.rating)}
+                    {(() => {
+                      const allReviews = currentBusiness.reviews || []
+                      const approvedReviews = allReviews.filter(review => review.isApproved !== false)
+                      console.log('🎯 Displaying reviews for', currentBusiness.businessName)
+                      console.log('📊 Total reviews:', allReviews.length, 'Approved:', approvedReviews.length)
+                      
+                      if (approvedReviews.length === 0) {
+                        return <p className="text-gray-600 text-sm">No approved reviews yet</p>
+                      }
+                      
+                      return approvedReviews.slice(0, 4).map((review) => (
+                        <div key={review.id} className="border-b pb-3 last:border-b-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-sm">{review.customerName}</span>
+                              <div className="flex">
+                                {renderStars(review.rating)}
+                              </div>
                             </div>
+                            <span className="text-xs text-gray-500">
+                              {new Date(review.createdAt).toLocaleDateString()}
+                            </span>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            {new Date(review.createdAt).toLocaleDateString()}
-                          </span>
+                          <p className="text-sm font-medium mb-1">{review.title}</p>
+                          <p className="text-xs text-gray-600 mb-2">{review.comment}</p>
+                          {review.businessReply && (
+                            <div className="bg-gray-50 p-2 rounded text-xs">
+                              <span className="font-medium text-blue-600">Business Reply:</span>
+                              <p className="text-gray-700 mt-1">{review.businessReply}</p>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm font-medium mb-1">{review.title}</p>
-                        <p className="text-xs text-gray-600 mb-2">{review.comment}</p>
-                        {review.businessReply && (
-                          <div className="bg-gray-50 p-2 rounded text-xs">
-                            <span className="font-medium text-blue-600">Business Reply:</span>
-                            <p className="text-gray-700 mt-1">{review.businessReply}</p>
-                          </div>
-                        )}
-                      </div>
-                    )) || (
-                      <p className="text-gray-600 text-sm">No reviews yet</p>
-                    )}
+                      ))
+                    })()}
                   </div>
                 </CardContent>
               </Card>

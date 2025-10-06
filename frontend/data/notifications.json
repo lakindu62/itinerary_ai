@@ -1,28 +1,41 @@
 [
   {
-    "id": "notif_1758974869849_rj7e4iv4t",
+    "id": "notif_1759769716762_53wnkg78q",
     "customerEmail": "dc@gmail.com",
-    "customerName": "wfwef",
+    "customerName": "ssfsdfsdf",
     "businessName": "Your Business",
-    "reviewTitle": "wdqd",
+    "reviewTitle": "dsfsdfsds",
     "isApproved": true,
-    "message": "Great news! Your review \"wdqd\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
-    "sentAt": "2025-09-27T12:07:49.849Z",
+    "message": "Great news! Your review \"dsfsdfsds\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
+    "sentAt": "2025-10-06T16:55:16.762Z",
     "type": "review_approval",
     "status": "sent",
-    "messageId": "msg_1758974869853"
+    "messageId": "msg_1759769716767"
   },
   {
-    "id": "notif_1758974873403_whzpdwyho",
-    "customerEmail": "sadun2@gmail.com",
-    "customerName": "sadun ",
+    "id": "notif_1759770248663_6fkk3fpyw",
+    "customerEmail": "tds@gmail.com",
+    "customerName": "yttdduduu",
     "businessName": "Your Business",
-    "reviewTitle": "fasf",
+    "reviewTitle": "efefasfasf",
     "isApproved": true,
-    "message": "Great news! Your review \"fasf\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
-    "sentAt": "2025-09-27T12:07:53.403Z",
+    "message": "Great news! Your review \"efefasfasf\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
+    "sentAt": "2025-10-06T17:04:08.663Z",
     "type": "review_approval",
     "status": "sent",
-    "messageId": "msg_1758974873405"
+    "messageId": "msg_1759770248670"
+  },
+  {
+    "id": "notif_1759772946182_ckodmw1cs",
+    "customerEmail": "dc@gmail.com",
+    "customerName": "Dushan",
+    "businessName": "Your Business",
+    "reviewTitle": "ffgfdgfdg",
+    "isApproved": true,
+    "message": "Great news! Your review \"ffgfdgfdg\" for Your Business has been approved and is now live on our platform. Thank you for sharing your experience!",
+    "sentAt": "2025-10-06T17:49:06.182Z",
+    "type": "review_approval",
+    "status": "sent",
+    "messageId": "msg_1759772946189"
   }
 ]

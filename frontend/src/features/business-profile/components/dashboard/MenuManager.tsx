@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { convertToBase64 } from '../../utils/fileUtils';
+
 import { useMenuItemsQuery, useCreateMenuItem, useDeleteMenuItem } from '../../hooks/useBusinessProfile';
-import { MenuItem } from '../../api/business-profile.api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { MenuItem } from '../../types/business-profile.types';
+import { createMenuItem } from '../../services/business-profile.service';
+import { convertToBase64 } from '../../utils/fileUtils';
 import { Loader2 } from 'lucide-react';
 
 export default function MenuManager() {
@@ -34,7 +37,24 @@ export default function MenuManager() {
     }
 
     try {
+      // Validate file size (5MB max)
+      const maxSizeMB = 5
+      const maxSizeBytes = maxSizeMB * 1024 * 1024
+      
+      if (selectedFile.size > maxSizeBytes) {
+        alert(`Image is too large. Please select an image smaller than ${maxSizeMB}MB.`)
+        return
+      }
+      
       const base64Image = await convertToBase64(selectedFile);
+      
+      // Check base64 size
+      const base64SizeInMB = (base64Image.length * 0.75) / 1024 / 1024
+      if (base64SizeInMB > 5) {
+        alert('Image is too large after processing. Please choose a smaller image.')
+        return
+      }
+      
       const newMenuItem: Omit<MenuItem, 'id'> = {
         name,
         description,

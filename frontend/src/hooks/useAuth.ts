@@ -1,8 +1,9 @@
-import { useUser } from '@clerk/nextjs'
+import { useUser, useAuth as useClerkAuth } from '@clerk/nextjs'
 import { UserType } from '@shared/types/user-management/user.types'
 
 export const useAuth = () => {
   const { user, isLoaded, isSignedIn } = useUser()
+  const { getToken } = useClerkAuth()
   
   // Get user type from unsafe_metadata
   const userType = user?.unsafeMetadata?.userType as UserType
@@ -17,6 +18,7 @@ export const useAuth = () => {
     isTraveller,
     isLoaded,
     isSignedIn,
-    isAuthenticated: isLoaded && isSignedIn
+    isAuthenticated: isLoaded && isSignedIn,
+    getToken
   }
 }

@@ -33,6 +33,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from '@/components/ui/textarea'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { 
   Plus, 
   Edit, 
@@ -47,13 +61,21 @@ import {
   Share,
   TrendingUp,
   Video,
-  Clock
+  Clock,
+  MoreVertical,
+  Copy,
+  Download,
+  ExternalLink,
+  Loader2
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/useAuth'
+import { BusinessProfileApiService } from '@/services/business-profile-api.service'
+import { useAuth as useClerkAuth } from '@clerk/nextjs'
 
 interface Reel {
   id: string
+  _id?: string // MongoDB ID for API calls
   title: string
   description: string
   videoUrl: string
@@ -85,12 +107,17 @@ const categories = [
 
 export default function ReelsManagement() {
   const { userId } = useAuth()
+  const { getToken } = useClerkAuth()
   const [reels, setReels] = useState<Reel[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingReel, setEditingReel] = useState<Reel | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [uploadProgress, setUploadProgress] = useState<number>(0)
+  // Enhanced loading states for better UX
+  const [deletingReelId, setDeletingReelId] = useState<string | null>(null)
+  const [editingReelId, setEditingReelId] = useState<string | null>(null)
+  const [togglingStates, setTogglingStates] = useState<{ [key: string]: boolean }>({})
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -107,20 +134,117 @@ export default function ReelsManagement() {
     loadReels()
   }, [])
 
+  // Keyboard shortcuts for accessibility
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle shortcuts when not in input fields
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        event.target instanceof HTMLSelectElement
+      ) {
+        return
+      }
+
+      // Ctrl/Cmd + N to create new reel
+      if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+        event.preventDefault()
+        setDialogOpen(true)
+        toast.info('New reel dialog opened')
+      }
+
+      // R key to refresh reels
+      if (event.key === 'r' && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault()
+        loadReels()
+        toast.info('Reels refreshed')
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Utility functions
+  const copyToClipboard = async (text: string, description: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`${description} copied to clipboard!`)
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error)
+      toast.error('Failed to copy to clipboard')
+    }
+  }
+
+  const downloadReel = (reel: Reel) => {
+    try {
+      const link = document.createElement('a')
+      link.href = reel.videoUrl
+      link.download = `${reel.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp4`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('Download started!')
+    } catch (error) {
+      console.error('Failed to download reel:', error)
+      toast.error('Failed to download reel')
+    }
+  }
+
+  const [businessProfileId, setBusinessProfileId] = useState<string | null>(null)
+
   const loadReels = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setReels(data.reels || [])
+      const result = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      
+      if (result.data && result.data.length > 0) {
+        const businessProfile = result.data[0]
+        const profileId = businessProfile.id || businessProfile._id
+        setBusinessProfileId(profileId) // Store the profile ID for CRUD operations
+        
+        const reelsData = businessProfile.reels || []
+        console.log('🔍 Raw reels data from backend:', reelsData)
+        
+        // Ensure each reel has default values for numeric properties and proper ID handling
+        const processedReels = reelsData.map((reel: any, index: number) => {
+          // Prioritize MongoDB _id over custom id field for consistency
+          const mongoObjectId = reel._id?.toString()
+          const customId = reel.id
+          const reelId = mongoObjectId || customId
+          
+          console.log(`📊 Processing reel ${index}:`, {
+            originalId: reel.id,
+            originalMongoId: reel._id,
+            mongoObjectIdString: mongoObjectId,
+            finalId: reelId,
+            title: reel.title
+          })
+          
+          if (!reelId) {
+            console.warn('⚠️ Reel without proper ID found:', reel)
+          }
+          
+          return {
+            ...reel,
+            id: reelId || `temp-${index}-${Date.now()}`, // Use MongoDB _id if available, otherwise custom id
+            _id: mongoObjectId || customId, // Keep the MongoDB _id for API calls
+            views: reel.views || 0,
+            likes: reel.likes || 0,
+            comments: reel.comments || 0,
+            shares: reel.shares || 0,
+            duration: reel.duration || 0
+          }
+        })
+        setReels(processedReels)
       } else {
-        console.error('Failed to load reels')
         setReels([])
+        setBusinessProfileId(null)
       }
     } catch (error) {
       console.error('Error loading reels:', error)
       setReels([])
+      setBusinessProfileId(null)
     } finally {
       setLoading(false)
     }
@@ -128,6 +252,12 @@ export default function ReelsManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!businessProfileId) {
+      toast.error('Business profile not found. Please refresh the page.')
+      return
+    }
+    
     setLoading(true)
 
     try {
@@ -151,28 +281,36 @@ export default function ReelsManagement() {
       }
 
       if (editingReel) {
-        const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...reelData, id: editingReel.id })
-        })
-        if (response.ok) {
+        // Update existing reel using BusinessProfileApiService  
+        const reelId = editingReel._id || editingReel.id
+        console.log('🔄 Updating reel with ID:', reelId, 'Profile ID:', businessProfileId)
+        
+        const result = await BusinessProfileApiService.updateReel(
+          businessProfileId,
+          reelId,
+          reelData,
+          getToken
+        )
+        
+        if (result.data) {
           toast.success('Reel updated successfully!')
-          loadReels()
+          await loadReels() // Reload the reels to get updated data
         } else {
-          throw new Error('Failed to update reel')
+          throw new Error(result.error || 'Failed to update reel')
         }
       } else {
-        const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(reelData)
-        })
-        if (response.ok) {
+        // Create new reel using BusinessProfileApiService
+        const result = await BusinessProfileApiService.addReel(
+          businessProfileId,
+          reelData,
+          getToken
+        )
+        
+        if (result.data) {
           toast.success('Reel created successfully!')
-          loadReels()
+          await loadReels() // Reload the reels to get updated data
         } else {
-          throw new Error('Failed to create reel')
+          throw new Error(result.error || 'Failed to create reel')
         }
       }
 
@@ -180,61 +318,235 @@ export default function ReelsManagement() {
       resetForm()
     } catch (error) {
       console.error('Error saving reel:', error)
-      toast.error('Failed to save reel')
+      toast.error(`Failed to ${editingReel ? 'update' : 'create'} reel: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEdit = (reel: Reel) => {
-    setEditingReel(reel)
-    setFormData({
-      title: reel.title,
-      description: reel.description,
-      videoUrl: reel.videoUrl,
-      thumbnailUrl: reel.thumbnailUrl || '',
-      duration: reel.duration,
-      category: reel.category,
-      hashtags: (reel.hashtags || []).join(', '),
-      isPublished: reel.isPublished,
-      isPromoted: reel.isPromoted
-    })
-    setDialogOpen(true)
+  const handleEdit = async (reel: Reel) => {
+    // Set loading state for this specific reel
+    setEditingReelId(reel.id)
+    
+    try {
+      setEditingReel(reel)
+      setFormData({
+        title: reel.title || '',
+        description: reel.description || '',
+        videoUrl: reel.videoUrl || '',
+        thumbnailUrl: reel.thumbnailUrl || '',
+        duration: reel.duration || 0,
+        category: reel.category || '',
+        hashtags: (reel.hashtags || []).join(', '),
+        isPublished: reel.isPublished ?? true,
+        isPromoted: reel.isPromoted ?? false
+      })
+      setDialogOpen(true)
+      toast.success('Reel loaded for editing')
+    } catch (error) {
+      console.error('Error preparing edit:', error)
+      toast.error('Failed to prepare reel for editing')
+    } finally {
+      setEditingReelId(null)
+    }
   }
 
   const handleDelete = async (reelId: string) => {
+    if (!businessProfileId) {
+      toast.error('Business profile not found. Please refresh the page.')
+      return
+    }
+
+    // Find the reel to get its proper _id
+    const reel = reels.find(r => r.id === reelId)
+    if (!reel) {
+      toast.error('Reel not found. Please refresh the page.')
+      return
+    }
+
+    const actualReelId = reel?._id || reel?.id || reelId
+    console.log('🗑️ Attempting to delete reel:', {
+      reelId,
+      actualReelId,
+      businessProfileId,
+      reelTitle: reel.title,
+      reelData: reel
+    })
+
+    // Set loading state for this specific reel
+    setDeletingReelId(reelId)
+    
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${reelId}&itemType=reel`, {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        toast.success('Reel deleted successfully!')
-        loadReels()
-      } else {
-        throw new Error('Failed to delete reel')
+      // Delete reel using BusinessProfileApiService
+      console.log('📡 Making delete API call...')
+      const result = await BusinessProfileApiService.deleteReel(
+        businessProfileId,
+        actualReelId,
+        getToken
+      )
+      
+      console.log('📡 Delete API response:', result)
+      
+      // Check if deletion failed
+      if (result.error) {
+        throw new Error(result.error)
       }
+      
+      // For DELETE operations, success means no error (data might be null for 204 responses)
+      toast.success(`Reel "${reel.title}" deleted successfully!`)
+      console.log('✅ Reel deleted successfully, reloading data...')
+      await loadReels() // Reload the reels to get updated data
+      
     } catch (error) {
-      console.error('Error deleting reel:', error)
-      toast.error('Failed to delete reel')
+      console.error('❌ Error deleting reel:', error)
+      
+      // Provide more specific error messages
+      let errorMessage = 'Unknown error occurred'
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message
+      }
+      
+      // Check for common error scenarios
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        errorMessage = 'Reel not found. It may have been already deleted.'
+      } else if (errorMessage.includes('403') || errorMessage.includes('unauthorized')) {
+        errorMessage = 'You do not have permission to delete this reel.'
+      } else if (errorMessage.includes('500') || errorMessage.includes('Internal Server Error')) {
+        errorMessage = 'Server error occurred. Please try again later.'
+      }
+      
+      toast.error(`Failed to delete reel: ${errorMessage}`)
+    } finally {
+      setDeletingReelId(null)
+    }
+  }
+
+  const handleMigrateReelIds = async () => {
+    if (!businessProfileId) {
+      toast.error('Business profile not found. Please refresh the page.')
+      return
+    }
+
+    console.log('🔄 Starting reel ID migration for profile:', businessProfileId)
+    setLoading(true)
+    
+    try {
+      const result = await BusinessProfileApiService.migrateReelIds(
+        businessProfileId,
+        getToken
+      )
+      
+      console.log('📡 Migration API response:', result)
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
+      
+      toast.success('Reel IDs migrated successfully!')
+      console.log('✅ Reel IDs migrated successfully, reloading data...')
+      await loadReels() // Reload the reels to get updated data
+      
+    } catch (error) {
+      console.error('❌ Error migrating reel IDs:', error)
+      
+      let errorMessage = 'Unknown error occurred'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      toast.error(`Failed to migrate reel IDs: ${errorMessage}`)
+    } finally {
+      setLoading(false)
     }
   }
 
   const togglePublished = async (reelId: string, isPublished: boolean) => {
-    setReels(prev => prev.map(reel => 
-      reel.id === reelId 
-        ? { ...reel, isPublished: !isPublished, updatedAt: new Date().toISOString() }
-        : reel
-    ))
-    toast.success(`Reel ${!isPublished ? 'published' : 'unpublished'}!`)
+    if (!businessProfileId) {
+      toast.error('Business profile not found. Please refresh the page.')
+      return
+    }
+
+    // Set loading state for this specific action
+    setTogglingStates(prev => ({ ...prev, [`publish-${reelId}`]: true }))
+    
+    try {
+      // Find the reel to get its proper _id
+      const reel = reels.find(r => r.id === reelId)
+      const actualReelId = reel?._id || reel?.id || reelId
+      console.log('🔄 Toggling published status for reel ID:', actualReelId, 'Profile ID:', businessProfileId)
+      
+      // Update the reel's published status via API
+      const result = await BusinessProfileApiService.updateReel(
+        businessProfileId,
+        actualReelId,
+        { isPublished: !isPublished },
+        getToken
+      )
+      
+      if (result.data) {
+        // Update local state
+        setReels(prev => prev.map(reel => 
+          reel.id === reelId 
+            ? { ...reel, isPublished: !isPublished, updatedAt: new Date().toISOString() }
+            : reel
+        ))
+        toast.success(`Reel ${!isPublished ? 'published' : 'unpublished'}!`)
+      } else {
+        throw new Error(result.error || 'Failed to update reel status')
+      }
+    } catch (error) {
+      console.error('Error toggling published status:', error)
+      toast.error(`Failed to update reel status: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setTogglingStates(prev => ({ ...prev, [`publish-${reelId}`]: false }))
+    }
   }
 
   const togglePromoted = async (reelId: string, isPromoted: boolean) => {
-    setReels(prev => prev.map(reel => 
-      reel.id === reelId 
-        ? { ...reel, isPromoted: !isPromoted, updatedAt: new Date().toISOString() }
-        : reel
-    ))
-    toast.success(`Reel promotion ${!isPromoted ? 'enabled' : 'disabled'}!`)
+    if (!businessProfileId) {
+      toast.error('Business profile not found. Please refresh the page.')
+      return
+    }
+
+    // Set loading state for this specific action
+    setTogglingStates(prev => ({ ...prev, [`promote-${reelId}`]: true }))
+    
+    try {
+      // Find the reel to get its proper _id
+      const reel = reels.find(r => r.id === reelId)
+      const actualReelId = reel?._id || reel?.id || reelId
+      console.log('🎯 Toggling promoted status for reel ID:', actualReelId, 'Profile ID:', businessProfileId)
+      
+      // Update the reel's promoted status via API
+      const result = await BusinessProfileApiService.updateReel(
+        businessProfileId,
+        actualReelId,
+        { isPromoted: !isPromoted },
+        getToken
+      )
+      
+      if (result.data) {
+        // Update local state
+        setReels(prev => prev.map(reel => 
+          reel.id === reelId 
+            ? { ...reel, isPromoted: !isPromoted, updatedAt: new Date().toISOString() }
+            : reel
+        ))
+        toast.success(`Reel promotion ${!isPromoted ? 'enabled' : 'disabled'}!`)
+      } else {
+        throw new Error(result.error || 'Failed to update reel promotion')
+      }
+    } catch (error) {
+      console.error('Error toggling promoted status:', error)
+      toast.error(`Failed to update reel promotion: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setTogglingStates(prev => ({ ...prev, [`promote-${reelId}`]: false }))
+    }
   }
 
   const resetForm = () => {
@@ -291,17 +603,18 @@ export default function ReelsManagement() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
+  const formatNumber = (num: number | undefined | null) => {
+    const safeNum = num || 0
+    if (safeNum >= 1000000) return `${(safeNum / 1000000).toFixed(1)}M`
+    if (safeNum >= 1000) return `${(safeNum / 1000).toFixed(1)}K`
+    return safeNum.toString()
   }
 
   const totalStats = {
-    views: reels.reduce((sum, reel) => sum + reel.views, 0),
-    likes: reels.reduce((sum, reel) => sum + reel.likes, 0),
-    comments: reels.reduce((sum, reel) => sum + reel.comments, 0),
-    shares: reels.reduce((sum, reel) => sum + reel.shares, 0)
+    views: reels.reduce((sum, reel) => sum + (reel.views || 0), 0),
+    likes: reels.reduce((sum, reel) => sum + (reel.likes || 0), 0),
+    comments: reels.reduce((sum, reel) => sum + (reel.comments || 0), 0),
+    shares: reels.reduce((sum, reel) => sum + (reel.shares || 0), 0)
   }
 
   return (
@@ -309,15 +622,49 @@ export default function ReelsManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Reels Management</h2>
-          <p className="text-gray-600">Create and manage your business reels</p>
+          <p className="text-gray-600">
+            Create and manage your business reels 
+            {(deletingReelId || editingReelId || Object.values(togglingStates).some(state => state)) && (
+              <span className="ml-2 inline-flex items-center">
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                <span className="text-sm text-blue-600">Processing...</span>
+              </span>
+            )}
+          </p>
+          {/* Keyboard shortcuts hint */}
+          <p className="text-xs text-gray-400 mt-1">
+            Press <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs">Ctrl+N</kbd> for new reel, 
+            <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs ml-1">R</kbd> to refresh
+          </p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="mr-2 h-4 w-4" />
-              Upload Reel
+        <div className="flex space-x-2">
+          {/* Show migration button if there are reels without proper MongoDB IDs */}
+          {reels.some(reel => !reel._id || reel._id.toString().startsWith('temp-')) && (
+            <Button 
+              variant="outline" 
+              onClick={handleMigrateReelIds}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Migrating...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Fix IDs
+                </>
+              )}
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" />
+                Upload Reel
+              </Button>
+            </DialogTrigger>
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -346,7 +693,7 @@ export default function ReelsManagement() {
                 )}
                 <Input
                   placeholder="Or enter video URL"
-                  value={formData.videoUrl}
+                  value={formData.videoUrl || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, videoUrl: e.target.value }))}
                 />
               </div>
@@ -356,7 +703,7 @@ export default function ReelsManagement() {
                   <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
-                    value={formData.title}
+                    value={formData.title || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Enter reel title"
                     required
@@ -367,7 +714,7 @@ export default function ReelsManagement() {
                   <Input
                     id="duration"
                     type="number"
-                    value={formData.duration}
+                    value={formData.duration.toString()}
                     onChange={(e) => setFormData(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
                     min="1"
                     max="90"
@@ -379,7 +726,7 @@ export default function ReelsManagement() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Describe your reel"
                   rows={3}
@@ -389,7 +736,7 @@ export default function ReelsManagement() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+                  <Select value={formData.category || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -406,7 +753,7 @@ export default function ReelsManagement() {
                   <Label htmlFor="thumbnailUrl">Thumbnail URL</Label>
                   <Input
                     id="thumbnailUrl"
-                    value={formData.thumbnailUrl}
+                    value={formData.thumbnailUrl || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, thumbnailUrl: e.target.value }))}
                     placeholder="https://example.com/thumb.jpg"
                   />
@@ -417,7 +764,7 @@ export default function ReelsManagement() {
                 <Label htmlFor="hashtags">Hashtags (comma separated)</Label>
                 <Input
                   id="hashtags"
-                  value={formData.hashtags}
+                  value={formData.hashtags || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, hashtags: e.target.value }))}
                   placeholder="#food, #restaurant, #cooking"
                 />
@@ -457,6 +804,7 @@ export default function ReelsManagement() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -528,23 +876,43 @@ export default function ReelsManagement() {
 
       {/* Reels Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredReels.map((reel) => (
-          <Card key={reel.id} className="overflow-hidden">
-            <div className="aspect-[9/16] bg-gray-100 relative">
+        {filteredReels.map((reel, index) => (
+          <Card 
+            key={reel.id || `reel-card-${index}`} 
+            className={`overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02] ${
+              deletingReelId === reel.id ? 'opacity-50 pointer-events-none' : ''
+            } ${editingReelId === reel.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''}`}
+          >
+            <div className="aspect-[9/16] bg-gray-100 relative group cursor-pointer">
               {reel.thumbnailUrl ? (
                 <img
                   src={reel.thumbnailUrl}
                   alt={reel.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onClick={() => window.open(reel.videoUrl, '_blank')}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Video className="h-12 w-12 text-gray-400" />
+                <div className="w-full h-full flex items-center justify-center transition-colors duration-300 group-hover:bg-gray-200">
+                  <Video className="h-12 w-12 text-gray-400 transition-colors duration-300 group-hover:text-gray-600" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                <Play className="h-12 w-12 text-white" />
+              <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <div className="bg-white bg-opacity-90 rounded-full p-3 transform scale-95 group-hover:scale-100 transition-transform duration-300">
+                  <Play className="h-8 w-8 text-gray-800" />
+                </div>
               </div>
+              
+              {/* Loading overlay for actions in progress */}
+              {(deletingReelId === reel.id || editingReelId === reel.id) && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                  <div className="bg-white rounded-lg p-4 flex items-center space-x-2">
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <span className="text-sm font-medium">
+                      {deletingReelId === reel.id ? 'Deleting...' : 'Loading...'}
+                    </span>
+                  </div>
+                </div>
+              )}
               <div className="absolute top-2 right-2 flex flex-col space-y-1">
                 {reel.isPromoted && (
                   <Badge className="bg-yellow-500">
@@ -569,7 +937,7 @@ export default function ReelsManagement() {
               
               <div className="flex flex-wrap gap-1 mb-3">
                 {(reel.hashtags || []).slice(0, 3).map((hashtag, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
+                  <Badge key={`${reel.id}-hashtag-${index}-${hashtag}`} variant="outline" className="text-xs">
                     {hashtag}
                   </Badge>
                 ))}
@@ -600,35 +968,97 @@ export default function ReelsManagement() {
               </div>
 
               <div className="flex justify-between items-center">
+                <TooltipProvider>
+                  <div className="flex space-x-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => togglePublished(reel.id, reel.isPublished)}
+                          disabled={togglingStates[`publish-${reel.id}`]}
+                        >
+                          {togglingStates[`publish-${reel.id}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : reel.isPublished ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{reel.isPublished ? 'Unpublish reel' : 'Publish reel'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => togglePromoted(reel.id, reel.isPromoted)}
+                          disabled={togglingStates[`promote-${reel.id}`]}
+                        >
+                          {togglingStates[`promote-${reel.id}`] ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <TrendingUp className={`h-4 w-4 ${reel.isPromoted ? 'text-yellow-500' : ''}`} />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{reel.isPromoted ? 'Remove promotion' : 'Promote reel'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+
                 <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => togglePublished(reel.id, reel.isPublished)}
-                  >
-                    {reel.isPublished ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => togglePromoted(reel.id, reel.isPromoted)}
-                  >
-                    <TrendingUp className={`h-4 w-4 ${reel.isPromoted ? 'text-yellow-500' : ''}`} />
-                  </Button>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(reel)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(reel)}
+                          disabled={editingReelId === reel.id}
+                        >
+                          {editingReelId === reel.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Edit className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit reel</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled={deletingReelId === reel.id}
+                            >
+                              {deletingReelId === reel.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Delete reel</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
@@ -639,12 +1069,53 @@ export default function ReelsManagement() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(reel.id)}>
-                          Delete
+                        <AlertDialogAction 
+                          onClick={() => handleDelete(reel.id)}
+                          disabled={deletingReelId === reel.id}
+                        >
+                          {deletingReelId === reel.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Deleting...
+                            </>
+                          ) : (
+                            'Delete'
+                          )}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => copyToClipboard(reel.videoUrl, 'Video URL')}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy video URL
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => copyToClipboard(reel.thumbnailUrl || '', 'Thumbnail URL')}
+                        disabled={!reel.thumbnailUrl}
+                      >
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy thumbnail URL
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => window.open(reel.videoUrl, '_blank')}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View reel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => downloadReel(reel)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Download
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </CardContent>

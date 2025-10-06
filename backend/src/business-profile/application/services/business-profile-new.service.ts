@@ -107,6 +107,8 @@ export class BusinessProfileService {
       url: createMediaDto.url,
       filename: createMediaDto.filename,
       order: createMediaDto.order || profile.sliderImages.length,
+      title: createMediaDto.title,
+      description: createMediaDto.description,
     };
 
     const updatedProfile = await this.businessProfileRepository.addSliderImage(profileId, mediaData);
@@ -192,6 +194,310 @@ export class BusinessProfileService {
     return videos;
   }
 
+  // Posts management methods
+  async addPost(profileId: string, postData: any, ownerId: string): Promise<BusinessProfileResponseDto> {
+    console.log('🚀 Adding post to profile:', profileId);
+    console.log('📝 Post data:', JSON.stringify(postData, null, 2));
+    
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    console.log('📊 Current posts count:', profile.posts?.length || 0);
+
+    // Use atomic operation to add post directly to MongoDB
+    const updatedProfile = await this.businessProfileRepository.addPost(profileId, postData);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update profile with post');
+    }
+
+    console.log('✅ Service: Post added successfully. Updated profile posts count:', updatedProfile.posts?.length || 0);
+    const responseDto = this.mapToResponseDto(updatedProfile);
+    console.log('📤 Service: Response DTO posts count:', responseDto.posts?.length || 0);
+    
+    return responseDto;
+  }
+
+  async removePost(profileId: string, postId: string, ownerId: string): Promise<BusinessProfileResponseDto> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Use atomic operation to remove post directly from MongoDB
+    const updatedProfile = await this.businessProfileRepository.removePost(profileId, postId);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update profile');
+    }
+
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async updatePost(profileId: string, postId: string, updateData: any, ownerId: string): Promise<BusinessProfileResponseDto> {
+    console.log('🚀 Updating post:', postId, 'in profile:', profileId);
+    console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
+    
+    // Find the profile first
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    // Verify ownership
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Check if the post exists in the profile
+    const existingPost = profile.posts?.find((p: any) => p.id === postId || p._id === postId);
+    if (!existingPost) {
+      throw new NotFoundException('Post not found in profile');
+    }
+
+    // Use atomic operation to update post directly in MongoDB
+    const updatedProfile = await this.businessProfileRepository.updatePost(profileId, postId, updateData);
+    
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update post in profile');
+    }
+
+    console.log('✅ Service: Post updated successfully');
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async updateReel(profileId: string, reelId: string, updateData: any, ownerId: string): Promise<BusinessProfileResponseDto> {
+    console.log('🚀 Updating reel:', reelId, 'in profile:', profileId);
+    console.log('📝 Update data:', JSON.stringify(updateData, null, 2));
+    
+    // Find the profile first
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    // Verify ownership
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Check if the reel exists in the profile
+    const existingReel = profile.reels?.find((r: any) => r.id === reelId || r._id === reelId);
+    if (!existingReel) {
+      throw new NotFoundException('Reel not found in profile');
+    }
+
+    // Use atomic operation to update reel directly in MongoDB
+    const updatedProfile = await this.businessProfileRepository.updateReel(profileId, reelId, updateData);
+    
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update reel in profile');
+    }
+
+    console.log('✅ Service: Reel updated successfully');
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async getPosts(profileId: string): Promise<any[]> {
+    // Use dedicated method to get only posts
+    const posts = await this.businessProfileRepository.getPosts(profileId);
+    return posts;
+  }
+
+  // Reels management methods
+  async addReel(profileId: string, reelData: any, ownerId: string): Promise<BusinessProfileResponseDto> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Use atomic operation to add reel directly to MongoDB
+    const updatedProfile = await this.businessProfileRepository.addReel(profileId, reelData);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update profile with reel');
+    }
+
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async removeReel(profileId: string, reelId: string, ownerId: string): Promise<BusinessProfileResponseDto> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Use atomic operation to remove reel directly from MongoDB
+    const updatedProfile = await this.businessProfileRepository.removeReel(profileId, reelId);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update profile');
+    }
+
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async getReels(profileId: string): Promise<any[]> {
+    // Use dedicated method to get only reels
+    const reels = await this.businessProfileRepository.getReels(profileId);
+    return reels;
+  }
+
+  // Menu items management methods
+  async addMenuItem(profileId: string, menuItemData: any, ownerId: string): Promise<BusinessProfileResponseDto> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Use atomic operation to add menu item directly to MongoDB
+    const updatedProfile = await this.businessProfileRepository.addMenuItem(profileId, menuItemData);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update profile with menu item');
+    }
+
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async removeMenuItem(profileId: string, menuItemId: string, ownerId: string): Promise<BusinessProfileResponseDto> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Use atomic operation to remove menu item directly from MongoDB
+    const updatedProfile = await this.businessProfileRepository.removeMenuItem(profileId, menuItemId);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to update profile');
+    }
+
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async updateMenuItem(profileId: string, menuItemId: string, updateData: any, ownerId: string): Promise<BusinessProfileResponseDto> {
+    console.log('🔍 Service: updateMenuItem called with:', {
+      profileId,
+      menuItemId,
+      ownerId,
+      updateDataKeys: Object.keys(updateData),
+      updateDataSize: JSON.stringify(updateData).length
+    });
+
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      console.log('❌ Service: Business profile not found');
+      throw new NotFoundException('Business profile not found');
+    }
+
+    console.log('✅ Service: Profile found, owner check:', {
+      profileOwnerId: profile.ownerId,
+      requestOwnerId: ownerId,
+      matches: profile.ownerId === ownerId
+    });
+
+    if (profile.ownerId !== ownerId) {
+      console.log('❌ Service: Not authorized to update this profile');
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    console.log('📍 Service: Calling repository updateMenuItem');
+    // Use atomic operation to update menu item directly in MongoDB
+    const updatedProfile = await this.businessProfileRepository.updateMenuItem(profileId, menuItemId, updateData);
+
+    if (!updatedProfile) {
+      console.log('❌ Service: Failed to update menu item - repository returned null');
+      throw new BadRequestException('Failed to update menu item');
+    }
+
+    console.log('✅ Service: Menu item updated successfully');
+    return this.mapToResponseDto(updatedProfile);
+  }
+
+  async getMenuItems(profileId: string): Promise<any[]> {
+    // Use dedicated method to get only menu items
+    const menuItems = await this.businessProfileRepository.getMenuItems(profileId);
+    return menuItems;
+  }
+
+  async fixMenuItemIds(profileId: string): Promise<number> {
+    console.log('🔧 Service: Fixing menu item IDs for profile:', profileId);
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    const menuItems = profile.menuItems || [];
+    let fixedCount = 0;
+
+    // Add _id to menu items that don't have it
+    menuItems.forEach(item => {
+      if (!item._id) {
+        // Generate a new MongoDB ObjectId for the menu item
+        const { ObjectId } = require('mongodb');
+        item._id = new ObjectId();
+        fixedCount++;
+        console.log('🔧 Service: Added _id to menu item:', item.name, 'ID:', item._id);
+      }
+    });
+
+    if (fixedCount > 0) {
+      await this.businessProfileRepository.update(profileId, { menuItems });
+      console.log('✅ Service: Fixed', fixedCount, 'menu items');
+    } else {
+      console.log('ℹ️ Service: No menu items needed fixing');
+    }
+
+    return fixedCount;
+  }
+
+  async migrateReelIds(profileId: string, ownerId: string): Promise<BusinessProfileResponseDto> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.ownerId !== ownerId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    // Migrate reels to have proper MongoDB ObjectIds
+    const updatedProfile = await this.businessProfileRepository.migrateReelIds(profileId);
+
+    if (!updatedProfile) {
+      throw new BadRequestException('Failed to migrate reel IDs');
+    }
+
+    return this.mapToResponseDto(updatedProfile);
+  }
+
   private mapToResponseDto(profile: BusinessProfile): BusinessProfileResponseDto {
     return {
       id: profile.id,
@@ -205,6 +511,9 @@ export class BusinessProfileService {
       website: profile.website,
       sliderImages: profile.sliderImages,
       videos: profile.videos,
+      posts: profile.posts || [], // Include posts in response
+      reels: profile.reels || [], // Include reels in response
+      menuItems: profile.menuItems || [], // Include menu items in response
       isActive: profile.isActive,
       isVerified: profile.isVerified,
       createdAt: (profile as any).createdAt || new Date(),

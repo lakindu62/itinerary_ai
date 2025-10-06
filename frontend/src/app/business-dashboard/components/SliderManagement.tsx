@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/useAuth'
+import { BusinessProfileApiService } from '@/services/business-profile-api.service'
 
 interface SliderImage {
   id: string
@@ -50,8 +51,53 @@ interface SliderImage {
   type: 'sliderImage'
 }
 
+// Image compression utility
+const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1920, maxHeight: number = 1080): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = img
+      
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = (height * maxWidth) / width
+          width = maxWidth
+        } else {
+          width = (width * maxHeight) / height
+          height = maxHeight
+        }
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          })
+          resolve(compressedFile)
+        } else {
+          resolve(file) // Return original if compression fails
+        }
+      }, file.type, quality)
+    }
+    
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function SliderManagement() {
-  const { userId } = useAuth()
+  const { userId, getToken } = useAuth()
+  const [businessProfileId, setBusinessProfileId] = useState<string | null>(null)
   const [sliderImages, setSliderImages] = useState<SliderImage[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -65,12 +111,33 @@ export default function SliderManagement() {
     isActive: true
   })
 
-  // Load slider images when userId is available
+  // Load business profile ID first, then slider images
   useEffect(() => {
-    if (userId) {
+    const loadBusinessProfile = async () => {
+      if (!userId) return
+      
+      try {
+        const result = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+        if (result.data && result.data.length > 0) {
+          const profileId = result.data[0]._id || result.data[0].id
+          if (profileId) {
+            setBusinessProfileId(profileId)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading business profile:', error)
+      }
+    }
+    
+    loadBusinessProfile()
+  }, [userId])
+  
+  // Load slider images when business profile ID is available
+  useEffect(() => {
+    if (businessProfileId) {
       loadSliderImages()
     }
-  }, [userId])
+  }, [businessProfileId])
 
   // Don't render if no user ID
   if (!userId) {
@@ -78,28 +145,39 @@ export default function SliderManagement() {
   }
 
   const loadSliderImages = async () => {
-    console.log('🔍 Loading slider images for userId:', userId)
+    if (!businessProfileId) return
+    
     setLoading(true)
     try {
-      const apiUrl = `/api/business-profiles?ownerId=${userId}`
-      console.log('📡 API URL:', apiUrl)
+      const result = await BusinessProfileApiService.getSliderImages(businessProfileId, getToken)
       
-      const response = await fetch(apiUrl)
-      console.log('📡 Response status:', response.status)
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('📡 Response data:', data)
-        setSliderImages(data.sliderImages || [])
-        console.log('✅ Slider images loaded:', data.sliderImages?.length || 0)
-      } else {
-        const errorData = await response.json()
-        console.error('❌ API Error:', errorData)
-        toast.error(`Failed to load slider images: ${errorData.error || 'Unknown error'}`)
+      if (result.error) {
+        toast.error('Failed to load slider images')
+        setSliderImages([])
+        return
       }
+
+      const sliderImages = result.data || []
+      
+      // Format images - base64 URLs are ready to use directly
+      const formattedImages = sliderImages.map((image: any, index: number) => {
+        return {
+          id: image.id || image._id || `slider-${index}`,
+          url: image.url, // Base64 URL, ready to display
+          title: image.title || `Slider Image ${index + 1}`,
+          description: image.description || '',
+          order: image.order || index,
+          isActive: image.isActive !== undefined ? image.isActive : true,
+          filename: image.filename || `image-${index}`,
+          type: 'sliderImage' as const
+        }
+      })
+      
+      setSliderImages(formattedImages)
     } catch (error) {
-      console.error('❌ Network error loading slider images:', error)
+      console.error('Error loading slider images:', error)
       toast.error('Failed to load slider images')
+      setSliderImages([])
     } finally {
       setLoading(false)
     }
@@ -107,45 +185,50 @@ export default function SliderManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('🚀 Submitting slider image for userId:', userId)
-    console.log('📝 Form data:', formData)
+    if (!businessProfileId) {
+      toast.error('Business profile not found')
+      return
+    }
+    
     setLoading(true)
 
     try {
-      const method = editingImage ? 'PUT' : 'POST'
-      const apiUrl = `/api/business-profiles?ownerId=${userId}`
-      const payload = {
-        type: 'sliderImage',
-        id: editingImage?.id,
-        ...formData
-      }
-      
-      console.log('📡 API Request:', { method, url: apiUrl, payload })
-      
-      const response = await fetch(apiUrl, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
+      if (editingImage) {
+        // For now, we'll add update functionality later
+        toast.error('Update functionality coming soon')
+        return
+      } else {
+        // Add new slider image
+        const sliderImageData = {
+          type: 'image' as const,
+          url: formData.url,
+          filename: formData.filename,
+          order: formData.order,
+          title: formData.title,
+          description: formData.description
+        }
+        
+        const result = await BusinessProfileApiService.addSliderImage(
+          businessProfileId,
+          sliderImageData,
+          getToken
+        )
 
-      console.log('📡 Submit response status:', response.status)
+        if (result.error) {
+          toast.error(result.error || 'Failed to add slider image')
+          return
+        }
 
-      if (response.ok) {
-        const responseData = await response.json()
-        console.log('✅ Submit success:', responseData)
-        toast.success(editingImage ? 'Slider image updated successfully!' : 'Slider image added successfully!')
+        toast.success('Slider image added successfully!')
         setDialogOpen(false)
         resetForm()
-        loadSliderImages()
-      } else {
-        const errorData = await response.json()
-        console.error('❌ Submit error:', errorData)
-        throw new Error(errorData.error || 'Failed to save slider image')
+        await loadSliderImages()
+        
+        // Trigger a custom event to refresh dashboard overview
+        window.dispatchEvent(new CustomEvent('businessProfileUpdated'))
       }
     } catch (error) {
-      console.error('❌ Submit exception:', error)
+      console.error('Error saving slider image:', error)
       toast.error('Failed to save slider image')
     } finally {
       setLoading(false)
@@ -166,18 +249,29 @@ export default function SliderManagement() {
   }
 
   const handleDelete = async (imageId: string) => {
+    if (!businessProfileId) {
+      toast.error('Business profile not found')
+      return
+    }
+    
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${imageId}&itemType=sliderImage`, {
-        method: 'DELETE'
-      })
+      const result = await BusinessProfileApiService.removeSliderImage(
+        businessProfileId,
+        imageId,
+        getToken
+      )
 
-      if (response.ok) {
-        toast.success('Slider image deleted successfully!')
-        loadSliderImages()
-      } else {
-        throw new Error('Failed to delete slider image')
+      if (result.error) {
+        toast.error(result.error || 'Failed to delete slider image')
+        return
       }
+
+      toast.success('Slider image deleted successfully!')
+      await loadSliderImages()
+      
+      // Trigger a custom event to refresh dashboard overview
+      window.dispatchEvent(new CustomEvent('businessProfileUpdated'))
     } catch (error) {
       console.error('Error deleting slider image:', error)
       toast.error('Failed to delete slider image')
@@ -187,8 +281,13 @@ export default function SliderManagement() {
   }
 
   const toggleActive = async (imageId: string, isActive: boolean) => {
+    // For now, this functionality is not implemented in the backend
+    toast.error('Toggle active functionality coming soon')
+    return
+    
     setLoading(true)
     try {
+      // This would need to be implemented in the backend API
       const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
         method: 'PUT',
         headers: {
@@ -227,20 +326,49 @@ export default function SliderManagement() {
     setEditingImage(null)
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Convert file to base64 data URL for persistent storage
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        const url = event.target?.result as string
-        setFormData(prev => ({
-          ...prev,
-          url,
-          filename: file.name
-        }))
+      try {
+        // Validate file size (5MB max to prevent BSON buffer overflow)
+        const maxSizeMB = 5
+        const maxSizeBytes = maxSizeMB * 1024 * 1024
+        
+        if (file.size > maxSizeBytes) {
+          toast.error(`Image is too large. Please select an image smaller than ${maxSizeMB}MB.`)
+          return
+        }
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          toast.error('Please select a valid image file.')
+          return
+        }
+        
+        // Compress and convert file to base64
+        const compressedFile = await compressImage(file, 0.8, 1920, 1080)
+        const reader = new FileReader()
+        reader.onload = (event) => {
+          const base64Url = event.target?.result as string
+          
+          // Check base64 size (should be much smaller after compression)
+          const base64Size = base64Url.length * 0.75 // Approximate bytes
+          console.log(`Compressed image size: ${(base64Size / 1024 / 1024).toFixed(2)}MB`)
+          
+          // Set the base64 URL in form data
+          setFormData(prev => ({
+            ...prev,
+            url: base64Url,
+            filename: file.name
+          }))
+          
+          toast.success(`Image loaded: ${file.name} (${(base64Size / 1024 / 1024).toFixed(2)}MB)`)
+        }
+        reader.readAsDataURL(compressedFile)
+      } catch (error) {
+        console.error('Error processing image:', error)
+        toast.error('Failed to process image. Please try again.')
       }
-      reader.readAsDataURL(file)
     }
   }
 
@@ -345,6 +473,10 @@ export default function SliderManagement() {
 
       {/* Slider Images Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {(() => {
+          console.log('🎨 Rendering slider images:', sliderImages.length, 'images')
+          return null
+        })()}
         {sliderImages.map((image) => (
           <Card key={image.id} className="overflow-hidden">
             <div className="aspect-video bg-gray-100 relative">
@@ -428,6 +560,7 @@ export default function SliderManagement() {
           </CardContent>
         </Card>
       )}
+
     </div>
   )
 }

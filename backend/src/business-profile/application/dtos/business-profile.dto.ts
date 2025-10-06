@@ -80,6 +80,9 @@ export class BusinessProfileResponseDto {
   website?: string;
   sliderImages: any[];
   videos: any[];
+  posts: any[]; // Add posts array
+  reels: any[]; // Add reels array
+  menuItems: any[]; // Add menu items array
   isActive: boolean;
   isVerified: boolean;
   createdAt: Date;

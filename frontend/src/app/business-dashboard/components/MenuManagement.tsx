@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -47,6 +47,7 @@ import {
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/useAuth'
+import { BusinessProfileApiService } from '@/services/business-profile-api.service'
 
 interface MenuItem {
   id: string
@@ -89,8 +90,52 @@ const allergens = [
   'Sesame'
 ]
 
+// Image compression utility
+const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1200, maxHeight: number = 800): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = img
+      
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = (height * maxWidth) / width
+          width = maxWidth
+        } else {
+          width = (width * maxHeight) / height
+          height = maxHeight
+        }
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          })
+          resolve(compressedFile)
+        } else {
+          resolve(file) // Return original if compression fails
+        }
+      }, file.type, quality)
+    }
+    
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function MenuManagement() {
-  const { userId } = useAuth()
+  const { userId, getToken } = useAuth()
   const [menuItems, setMenuItems] = useState<MenuItem[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -119,14 +164,65 @@ export default function MenuManagement() {
   const loadMenuItems = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setMenuItems(data.menuItems || [])
+      const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      
+      if (profileResult.error) {
+        console.error('Failed to load business profile:', profileResult.error)
+        toast.error(`Failed to load menu items: ${profileResult.error}`)
+        setMenuItems([])
+        return
+      }
+      
+      if (profileResult.data && profileResult.data.length > 0) {
+        const profile = profileResult.data[0]
+        const menuItems = profile.menuItems || []
+        
+
+        
+        // Convert MongoDB format to component format
+        const formattedMenuItems = menuItems.map((item: any) => {
+          // Handle date fields safely - try multiple possible date fields
+          const getValidDate = (dateValue: any): string => {
+            if (!dateValue) return new Date().toISOString()
+            
+            const date = new Date(dateValue)
+            if (isNaN(date.getTime())) {
+              return new Date().toISOString()
+            }
+            return date.toISOString()
+          }
+
+          const createdDate = getValidDate(item.createdAt || item.updatedAt)
+          const updatedDate = getValidDate(item.updatedAt || item.createdAt)
+
+          return {
+            id: item._id || item.id,
+            name: item.name,
+            description: item.description || '',
+            price: item.price || 0,
+            category: item.category || 'Main Courses',
+            imageUrl: item.imageUrl,
+            isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
+            preparationTime: item.preparationTime || 15,
+            ingredients: item.ingredients || [],
+            allergens: item.allergens || [],
+            isVegetarian: item.isVegetarian || false,
+            isVegan: item.isVegan || false,
+            isGlutenFree: item.isGlutenFree || false,
+            calories: item.calories || 0,
+            createdAt: createdDate,
+            updatedAt: updatedDate
+          }
+        })
+        
+        setMenuItems(formattedMenuItems)
+      } else {
+        setMenuItems([])
       }
     } catch (error) {
       console.error('Error loading menu items:', error)
       toast.error('Failed to load menu items')
+      setMenuItems([])
     } finally {
       setLoading(false)
     }
@@ -137,29 +233,94 @@ export default function MenuManagement() {
     setLoading(true)
 
     try {
-      const ingredientsArray = formData.ingredients.split(',').map(i => i.trim()).filter(i => i)
-      const method = editingItem ? 'PUT' : 'POST'
+      // Get the business profile first
+      const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
       
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'menuItem',
-          id: editingItem?.id,
-          ...formData,
-          ingredients: ingredientsArray
-        }),
-      })
+      if (profileResult.error || !profileResult.data || profileResult.data.length === 0) {
+        toast.error('Business profile not found. Please refresh and try again.')
+        return
+      }
 
-      if (response.ok) {
-        toast.success(editingItem ? 'Menu item updated successfully!' : 'Menu item added successfully!')
-        setDialogOpen(false)
-        resetForm()
-        loadMenuItems()
+      const profile = profileResult.data[0]
+      const profileId = profile._id || profile.id // Try both _id and id fields
+      
+      if (!profileId) {
+        console.error('No valid profileId found in profile data:', profile)
+        toast.error('Unable to find business profile ID. Please refresh and try again.')
+        return
+      }
+
+      if (editingItem) {
+        console.log('🍽️ Frontend: Updating menu item with editingItem:', {
+          id: editingItem.id,
+          _id: (editingItem as any)._id,
+          name: editingItem.name,
+          hasId: !!editingItem.id,
+          idType: typeof editingItem.id,
+          fullObject: editingItem
+        })
+
+        // Use _id if available, fallback to id for legacy compatibility
+        const menuItemId = (editingItem as any)._id || editingItem.id
+        console.log('🍽️ Frontend: Using menuItemId for update:', menuItemId)
+
+        // Update existing menu item
+        const result = await BusinessProfileApiService.updateMenuItem(profileId, menuItemId, {
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          category: formData.category,
+          imageUrl: formData.imageUrl,
+          isAvailable: formData.isAvailable,
+          preparationTime: formData.preparationTime,
+          ingredients: formData.ingredients,
+          allergens: formData.allergens,
+          isVegetarian: formData.isVegetarian,
+          isVegan: formData.isVegan,
+          isGlutenFree: formData.isGlutenFree,
+          calories: formData.calories
+        }, getToken)
+
+        if (result.error) {
+          toast.error(`Failed to update menu item: ${result.error}`)
+        } else {
+          toast.success('Menu item updated successfully!')
+          setDialogOpen(false)
+          resetForm()
+          loadMenuItems()
+          window.dispatchEvent(new CustomEvent('businessProfileUpdated'))
+        }
       } else {
-        throw new Error('Failed to save menu item')
+        // Add new menu item
+        const result = await BusinessProfileApiService.addMenuItem(profileId, {
+          name: formData.name,
+          description: formData.description,
+          price: formData.price,
+          category: formData.category,
+          imageUrl: formData.imageUrl,
+          isAvailable: formData.isAvailable,
+          preparationTime: formData.preparationTime,
+          ingredients: formData.ingredients,
+          allergens: formData.allergens,
+          isVegetarian: formData.isVegetarian,
+          isVegan: formData.isVegan,
+          isGlutenFree: formData.isGlutenFree,
+          calories: formData.calories
+        }, getToken)
+
+        if (result.error) {
+          if (result.error.includes('not yet implemented')) {
+            toast.info('Menu items management will be available once the backend endpoints are implemented.')
+          } else {
+            toast.error(`Failed to add menu item: ${result.error}`)
+          }
+        } else {
+          toast.success('Menu item added successfully!')
+          setDialogOpen(false)
+          resetForm()
+          loadMenuItems()
+          window.dispatchEvent(new CustomEvent('businessProfileUpdated'))
+        }
       }
     } catch (error) {
       console.error('Error saving menu item:', error)
@@ -170,6 +331,13 @@ export default function MenuManagement() {
   }
 
   const handleEdit = (item: MenuItem) => {
+    console.log('🔍 Frontend: Editing item:', {
+      id: item.id,
+      _id: (item as any)._id,
+      name: item.name,
+      hasId: !!item.id,
+      keys: Object.keys(item)
+    });
     setEditingItem(item)
     setFormData({
       name: item.name,
@@ -191,15 +359,33 @@ export default function MenuManagement() {
 
   const handleDelete = async (itemId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${itemId}&itemType=menuItem`, {
-        method: 'DELETE'
-      })
+      // Get the business profile first
+      const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      
+      if (profileResult.error || !profileResult.data || profileResult.data.length === 0) {
+        toast.error('Business profile not found. Please refresh and try again.')
+        return
+      }
 
-      if (response.ok) {
+      const profile = profileResult.data[0]
+      const profileId = profile._id || profile.id // Try both _id and id fields
+      
+      if (!profileId) {
+        console.error('No valid profileId found in profile data:', profile)
+        toast.error('Unable to find business profile ID. Please refresh and try again.')
+        return
+      }
+      
+      // Remove the menu item
+      const result = await BusinessProfileApiService.removeMenuItem(profileId, itemId, getToken)
+
+      if (result.error) {
+        console.error('Error deleting menu item:', result.error)
+        toast.error(`Failed to delete menu item: ${result.error}`)
+      } else {
         toast.success('Menu item deleted successfully!')
         loadMenuItems()
-      } else {
-        throw new Error('Failed to delete menu item')
+        window.dispatchEvent(new CustomEvent('businessProfileUpdated'))
       }
     } catch (error) {
       console.error('Error deleting menu item:', error)
@@ -289,8 +475,8 @@ export default function MenuManagement() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div key="name-price-section" className="grid grid-cols-2 gap-4">
+                <div key="name-field" className="space-y-2">
                   <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
@@ -300,7 +486,7 @@ export default function MenuManagement() {
                     required
                   />
                 </div>
-                <div className="space-y-2">
+                <div key="price-field" className="space-y-2">
                   <Label htmlFor="price">Price ($)</Label>
                   <Input
                     id="price"
@@ -314,7 +500,7 @@ export default function MenuManagement() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div key="description-section" className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -325,8 +511,8 @@ export default function MenuManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div key="category-prep-section" className="grid grid-cols-2 gap-4">
+                <div key="category-field" className="space-y-2">
                   <Label htmlFor="category">Category</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
                     <SelectTrigger>
@@ -341,7 +527,7 @@ export default function MenuManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div key="prep-time-field" className="space-y-2">
                   <Label htmlFor="preparationTime">Prep Time (minutes)</Label>
                   <Input
                     id="preparationTime"
@@ -370,15 +556,40 @@ export default function MenuManagement() {
                         const input = document.createElement('input')
                         input.type = 'file'
                         input.accept = 'image/*'
-                        input.onchange = (e) => {
+                        input.onchange = async (e) => {
                           const file = (e.target as HTMLInputElement).files?.[0]
                           if (file) {
-                            const reader = new FileReader()
-                            reader.onload = (e) => {
-                              const url = e.target?.result as string
-                              setFormData(prev => ({ ...prev, imageUrl: url }))
+                            try {
+                              // Validate file size (5MB max)
+                              const maxSizeMB = 5
+                              const maxSizeBytes = maxSizeMB * 1024 * 1024
+                              
+                              if (file.size > maxSizeBytes) {
+                                toast.error(`Image is too large. Please select an image smaller than ${maxSizeMB}MB.`)
+                                return
+                              }
+                              
+                              // Validate file type
+                              if (!file.type.startsWith('image/')) {
+                                toast.error('Please select a valid image file.')
+                                return
+                              }
+                              
+                              // Compress image
+                              const compressedFile = await compressImage(file, 0.8, 1200, 800)
+                              const reader = new FileReader()
+                              reader.onload = (e) => {
+                                const url = e.target?.result as string
+                                const sizeInMB = (url.length * 0.75) / 1024 / 1024
+
+                                setFormData(prev => ({ ...prev, imageUrl: url }))
+                                toast.success(`Image loaded (${sizeInMB.toFixed(2)}MB)`)
+                              }
+                              reader.readAsDataURL(compressedFile)
+                            } catch (error) {
+                              console.error('Error processing image:', error)
+                              toast.error('Failed to process image')
                             }
-                            reader.readAsDataURL(file)
                           }
                         }
                         input.click()
@@ -391,7 +602,7 @@ export default function MenuManagement() {
                   
                   {/* Image Preview */}
                   {formData.imageUrl && (
-                    <div className="relative group w-32 h-32">
+                    <div key="menu-item-image-preview" className="relative group w-32 h-32">
                       <img 
                         src={formData.imageUrl} 
                         alt="Menu item preview"
@@ -411,7 +622,7 @@ export default function MenuManagement() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div key="ingredients-section" className="space-y-2">
                 <Label htmlFor="ingredients">Ingredients (comma separated)</Label>
                 <Textarea
                   id="ingredients"
@@ -422,7 +633,7 @@ export default function MenuManagement() {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div key="allergens-section" className="space-y-2">
                 <Label>Allergens</Label>
                 <div className="grid grid-cols-4 gap-2">
                   {allergens.map((allergen) => (
@@ -440,8 +651,8 @@ export default function MenuManagement() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div key="calories-dietary-section" className="grid grid-cols-2 gap-4">
+                <div key="calories-field" className="space-y-2">
                   <Label htmlFor="calories">Calories (optional)</Label>
                   <Input
                     id="calories"
@@ -451,8 +662,8 @@ export default function MenuManagement() {
                     placeholder="0"
                   />
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
+                <div key="dietary-restrictions" className="space-y-4">
+                  <div key="vegetarian" className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="isVegetarian"
@@ -462,7 +673,7 @@ export default function MenuManagement() {
                     />
                     <Label htmlFor="isVegetarian">Vegetarian</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div key="vegan" className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="isVegan"
@@ -472,7 +683,7 @@ export default function MenuManagement() {
                     />
                     <Label htmlFor="isVegan">Vegan</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div key="gluten-free" className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="isGlutenFree"
@@ -485,11 +696,11 @@ export default function MenuManagement() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+              <div key="form-actions" className="flex justify-end space-x-2">
+                <Button key="cancel-btn" type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading}>
+                <Button key="submit-btn" type="submit" disabled={loading}>
                   {loading ? 'Saving...' : editingItem ? 'Update' : 'Add'}
                 </Button>
               </div>
@@ -550,19 +761,19 @@ export default function MenuManagement() {
               <p className="text-sm text-gray-600 mb-3">{item.description}</p>
               
               <div className="flex flex-wrap gap-1 mb-3">
-                {item.isVegetarian && <Badge variant="outline" className="text-xs">Vegetarian</Badge>}
-                {item.isVegan && <Badge variant="outline" className="text-xs">Vegan</Badge>}
-                {item.isGlutenFree && <Badge variant="outline" className="text-xs">Gluten Free</Badge>}
+                {item.isVegetarian && <Badge key="vegetarian" variant="outline" className="text-xs">Vegetarian</Badge>}
+                {item.isVegan && <Badge key="vegan" variant="outline" className="text-xs">Vegan</Badge>}
+                {item.isGlutenFree && <Badge key="gluten-free" variant="outline" className="text-xs">Gluten Free</Badge>}
               </div>
 
               <div className="flex items-center text-sm text-gray-500 mb-4">
                 <Clock className="h-4 w-4 mr-1" />
                 <span>{item.preparationTime} min</span>
                 {item.calories && (
-                  <>
+                  <React.Fragment key="calories">
                     <span className="mx-2">•</span>
                     <span>{item.calories} cal</span>
-                  </>
+                  </React.Fragment>
                 )}
               </div>
 

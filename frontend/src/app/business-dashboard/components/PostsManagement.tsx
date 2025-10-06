@@ -50,6 +50,8 @@ import {
   Clock
 } from 'lucide-react'
 import { toast } from '@/components/ui/sonner'
+import { useAuth } from '@/hooks/useAuth'
+import { BusinessProfileApiService } from '@/services/business-profile-api.service'
 
 interface Post {
   id: string
@@ -90,7 +92,52 @@ const postStatuses = [
   { value: 'published', label: 'Published', color: 'default' }
 ]
 
+// Image compression utility
+const compressImage = (file: File, quality: number = 0.8, maxWidth: number = 1920, maxHeight: number = 1080): Promise<File> => {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    img.onload = () => {
+      // Calculate new dimensions
+      let { width, height } = img
+      
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = (height * maxWidth) / width
+          width = maxWidth
+        } else {
+          width = (width * maxHeight) / height
+          height = maxHeight
+        }
+      }
+      
+      canvas.width = width
+      canvas.height = height
+      
+      // Draw and compress
+      ctx?.drawImage(img, 0, 0, width, height)
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const compressedFile = new File([blob], file.name, {
+            type: file.type,
+            lastModified: Date.now()
+          })
+          resolve(compressedFile)
+        } else {
+          resolve(file) // Return original if compression fails
+        }
+      }, file.type, quality)
+    }
+    
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 export default function PostsManagement() {
+  const { userId, getToken } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -110,6 +157,7 @@ export default function PostsManagement() {
   })
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [imagePreview, setImagePreview] = useState<string[]>([])
+  const [selectedPosts, setSelectedPosts] = useState<string[]>([])
 
   useEffect(() => {
     loadPosts()
@@ -118,16 +166,59 @@ export default function PostsManagement() {
   const loadPosts = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/business-profiles?ownerId=user_123')
-      if (response.ok) {
-        const data = await response.json()
-        setPosts(data.posts || [])
-      } else {
-        console.error('Failed to load posts')
+      const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      
+      if (profileResult.error) {
+        console.error('Failed to load business profile:', profileResult.error)
+        toast.error(`Failed to load posts: ${profileResult.error}`)
         setPosts([])
+        return
+      }
+      
+      if (profileResult.data && profileResult.data.length > 0) {
+        const profile = profileResult.data[0]
+        const posts = profile.posts || []
+        
+        // Convert MongoDB format to component format
+        const formattedPosts = posts.map((post: any, index: number) => {
+          // Handle both imageUrl (single) and imageUrls (array) for backward compatibility
+          const imageUrls = post.imageUrls || (post.imageUrl ? [post.imageUrl] : [])
+          const imageUrl = imageUrls.length > 0 ? imageUrls[0] : undefined
+          
+          // Ensure unique ID for React keys
+          const postId = post._id || post.id || `temp-${index}-${Date.now()}`
+          
+          return {
+            id: postId,
+            title: post.title || post.caption || 'Untitled Post',
+            content: post.content || post.caption,
+            excerpt: (post.content || post.caption || '').substring(0, 150) + '...',
+            imageUrl, // First image for backward compatibility
+            imageUrls, // All images
+            category: post.category || 'General',
+            tags: post.tags || [],
+            status: 'published' as const,
+            isPromoted: post.isPromoted || false,
+            publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
+            views: post.views || 0,
+            likes: post.likes || 0,
+            comments: post.comments || 0,
+            shares: post.shares || 0,
+            createdAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
+            updatedAt: post.updatedAt ? new Date(post.updatedAt).toISOString() : new Date().toISOString(),
+            author: post.author || 'Business Owner'
+          }
+        })
+        
+        setPosts(formattedPosts)
+      } else {
+        setPosts([])
+        // Show info message that posts functionality is coming soon
+        toast.info('Posts management will be available once the backend endpoints are implemented.')
       }
     } catch (error) {
       console.error('Error loading posts:', error)
+      toast.error('Failed to load posts')
       setPosts([])
     } finally {
       setLoading(false)
@@ -162,28 +253,112 @@ export default function PostsManagement() {
       }
 
       if (editingPost) {
-        const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...postData, id: editingPost.id })
-        })
-        if (response.ok) {
-          toast.success('Post updated successfully!')
-          loadPosts()
+        // Update existing post
+        const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+        
+        if (profileResult.error || !profileResult.data || profileResult.data.length === 0) {
+          toast.error('Business profile not found. Please refresh and try again.')
+          return
+        }
+
+        const profile = profileResult.data[0]
+        const profileId = profile._id || profile.id
+        
+        if (!profileId) {
+          console.error('No valid profileId found in profile data:', profile)
+          toast.error('Unable to find business profile ID. Please refresh and try again.')
+          return
+        }
+
+        const postId = editingPost.id
+        if (!postId) {
+          console.error('No valid postId found in editing post:', editingPost)
+          toast.error('Unable to find post ID. Please refresh and try again.')
+          return
+        }
+
+        console.log('📝 Frontend: Updating post', postId, 'in profile', profileId)
+        
+        const updateData = {
+          caption: formData.content || formData.title,
+          imageUrl: formData.imageUrls?.[0],
+          imageUrls: formData.imageUrls,
+          title: formData.title,
+          content: formData.content,
+          status: formData.status,
+          tags: formData.tags,
+          isPromoted: formData.isPromoted,
+          scheduledAt: formData.scheduledAt || undefined,
+          author: 'Business Owner'
+        }
+
+        const result = await BusinessProfileApiService.updatePost(profileId, postId, updateData, getToken)
+        
+        if (result.error) {
+          console.error('Failed to update post:', result.error)
+          toast.error('Failed to update post: ' + result.error)
         } else {
-          throw new Error('Failed to update post')
+          console.log('✅ Post updated successfully')
+          toast.success('Post updated successfully!')
+          
+          // Update the post in the local state
+          setPosts(posts.map(post => 
+            post.id === postId 
+              ? { 
+                  ...post, 
+                  title: updateData.title,
+                  content: updateData.content,
+                  caption: updateData.caption,
+                  imageUrl: updateData.imageUrl,
+                  imageUrls: updateData.imageUrls,
+                  status: updateData.status,
+                  tags: Array.isArray(updateData.tags) ? updateData.tags : (updateData.tags ? updateData.tags.split(',').map(t => t.trim()) : []),
+                  isPromoted: updateData.isPromoted,
+                  scheduledAt: updateData.scheduledAt,
+                  updatedAt: new Date().toISOString()
+                }
+              : post
+          ))
+          
+          // Clear the editing state
+          setEditingPost(null)
+          setDialogOpen(false)
+          resetForm()
         }
       } else {
-        const response = await fetch('/api/business-profiles?ownerId=user_123', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(postData)
-        })
-        if (response.ok) {
-          toast.success('Post created successfully!')
-          loadPosts()
+        // Get the business profile to get the profileId
+        const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+        
+        if (profileResult.error || !profileResult.data || profileResult.data.length === 0) {
+          toast.error('Business profile not found. Please refresh and try again.')
+          return
+        }
+
+        const profile = profileResult.data[0]
+        const profileId = profile._id || profile.id // Try both _id and id fields
+        
+        if (!profileId) {
+          console.error('No valid profileId found in profile data:', profile)
+          toast.error('Unable to find business profile ID. Please refresh and try again.')
+          return
+        }
+        
+        const result = await BusinessProfileApiService.addPost(profileId, {
+          caption: formData.content || formData.title, // Use content as caption, fallback to title
+          imageUrl: formData.imageUrls?.[0], // Use first image URL for backward compatibility
+          imageUrls: formData.imageUrls, // Send all image URLs
+          title: formData.title,
+          content: formData.content,
+          category: formData.category,
+          tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+          isPromoted: formData.isPromoted
+        }, getToken)
+
+        if (result.error) {
+          toast.error(`Failed to add post: ${result.error}`)
         } else {
-          throw new Error('Failed to create post')
+          toast.success('Post added successfully!')
+          loadPosts()
         }
       }
 
@@ -216,20 +391,96 @@ export default function PostsManagement() {
 
   const handleDelete = async (postId: string) => {
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=user_123`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: postId, type: 'post' })
-      })
-      if (response.ok) {
-        toast.success('Post deleted successfully!')
-        loadPosts()
+      // Get the business profile to get the profileId
+      const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      
+      if (profileResult.error || !profileResult.data || profileResult.data.length === 0) {
+        toast.error('Business profile not found. Please refresh and try again.')
+        return
+      }
+
+      const profileId = profileResult.data[0]._id || profileResult.data[0].id
+      
+      if (!profileId) {
+        console.error('No valid profileId found in profile data:', profileResult.data[0])
+        toast.error('Profile ID not found. Please refresh and try again.')
+        return
+      }
+      
+      console.log('Attempting to delete post:', { profileId, postId })
+      const result = await BusinessProfileApiService.removePost(profileId, postId, getToken)
+      console.log('Delete result:', result)
+
+      if (result.error) {
+        console.error('Delete failed:', result.error)
+        toast.error(`Failed to delete post: ${result.error}`)
       } else {
-        throw new Error('Failed to delete post')
+        console.log('Delete successful, reloading posts...')
+        toast.success('Post deleted successfully!')
+        await loadPosts()
       }
     } catch (error) {
       console.error('Error deleting post:', error)
       toast.error('Failed to delete post')
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedPosts.length === 0) return
+    
+    try {
+      // Get the business profile to get the profileId
+      const profileResult = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      
+      if (profileResult.error || !profileResult.data || profileResult.data.length === 0) {
+        toast.error('Business profile not found. Please refresh and try again.')
+        return
+      }
+
+      const profileId = profileResult.data[0]._id || profileResult.data[0].id
+      
+      if (!profileId) {
+        console.error('No valid profileId found in profile data:', profileResult.data[0])
+        toast.error('Profile ID not found. Please refresh and try again.')
+        return
+      }
+      
+      // Delete posts one by one (since there's no bulk delete API yet)
+      let successCount = 0
+      let errorCount = 0
+      
+      console.log('Bulk deleting posts:', selectedPosts, 'with profileId:', profileId)
+      for (const postId of selectedPosts) {
+        try {
+          console.log('Deleting post:', postId)
+          const result = await BusinessProfileApiService.removePost(profileId, postId, getToken)
+          console.log('Delete result for', postId, ':', result)
+          if (result.error) {
+            errorCount++
+          } else {
+            successCount++
+          }
+        } catch (error) {
+          console.error('Delete error for', postId, ':', error)
+          errorCount++
+        }
+      }
+      
+      // Clear selection and refresh
+      setSelectedPosts([])
+      loadPosts()
+      
+      // Show result toast
+      if (successCount > 0 && errorCount === 0) {
+        toast.success(`Successfully deleted ${successCount} posts`)
+      } else if (successCount > 0 && errorCount > 0) {
+        toast.info(`Deleted ${successCount} posts, ${errorCount} failed`)
+      } else {
+        toast.error('Failed to delete posts')
+      }
+    } catch (error) {
+      console.error('Error bulk deleting posts:', error)
+      toast.error('Failed to delete posts')
     }
   }
 
@@ -414,27 +665,57 @@ export default function PostsManagement() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => {
+                      onClick={async () => {
                         const input = document.createElement('input')
                         input.type = 'file'
                         input.accept = 'image/*'
                         input.multiple = true
-                        input.onchange = (e) => {
+                        input.onchange = async (e) => {
                           const files = Array.from((e.target as HTMLInputElement).files || [])
-                          files.forEach(file => {
-                            const reader = new FileReader()
-                            reader.onload = (e) => {
-                              const url = e.target?.result as string
-                              if (url && !formData.imageUrls.includes(url)) {
-                                setFormData(prev => ({ 
-                                  ...prev, 
-                                  imageUrls: [...prev.imageUrls, url] 
-                                }))
-                                setImagePreview(prev => [...prev, url])
+                          
+                          for (const file of files) {
+                            try {
+                              // Validate file size (5MB max to prevent BSON buffer overflow)
+                              const maxSizeMB = 5
+                              const maxSizeBytes = maxSizeMB * 1024 * 1024
+                              
+                              if (file.size > maxSizeBytes) {
+                                toast.error(`Image "${file.name}" is too large. Please select an image smaller than ${maxSizeMB}MB.`)
+                                continue
                               }
+                              
+                              // Validate file type
+                              if (!file.type.startsWith('image/')) {
+                                toast.error(`"${file.name}" is not a valid image file.`)
+                                continue
+                              }
+                              
+                              // Compress and convert file to base64
+                              const compressedFile = await compressImage(file, 0.8, 1920, 1080)
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                const base64Url = event.target?.result as string
+                                
+                                // Check base64 size (should be much smaller after compression)
+                                const base64Size = base64Url.length * 0.75 // Approximate bytes
+                                console.log(`Compressed image size: ${(base64Size / 1024 / 1024).toFixed(2)}MB`)
+                                
+                                // Add the base64 image URL
+                                if (base64Url && !formData.imageUrls.includes(base64Url)) {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    imageUrls: [...prev.imageUrls, base64Url] 
+                                  }))
+                                  setImagePreview(prev => [...prev, base64Url])
+                                  toast.success(`Image loaded: ${file.name} (${(base64Size / 1024 / 1024).toFixed(2)}MB)`)
+                                }
+                              }
+                              reader.readAsDataURL(compressedFile)
+                            } catch (error) {
+                              console.error('Failed to load image:', error)
+                              toast.error(`Failed to load ${file.name}`)
                             }
-                            reader.readAsDataURL(file)
-                          })
+                          }
                         }
                         input.click()
                       }}
@@ -448,7 +729,7 @@ export default function PostsManagement() {
                   {imagePreview.length > 0 && (
                     <div className="grid grid-cols-3 gap-2">
                       {imagePreview.map((url, index) => (
-                        <div key={index} className="relative group">
+                        <div key={`preview-${url}-${index}`} className="relative group">
                           <img 
                             src={url} 
                             alt={`Preview ${index + 1}`}
@@ -636,6 +917,63 @@ export default function PostsManagement() {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Select All */}
+        {filteredPosts.length > 0 && (
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm" 
+              onClick={() => {
+                if (selectedPosts.length === filteredPosts.length) {
+                  setSelectedPosts([])
+                } else {
+                  setSelectedPosts(filteredPosts.map(p => p.id))
+                }
+              }}
+            >
+              {selectedPosts.length === filteredPosts.length ? 'Deselect All' : 'Select All'}
+            </Button>
+          </div>
+        )}
+
+        {/* Bulk Actions */}
+        {selectedPosts.length > 0 && (
+          <div className="flex items-center space-x-2 ml-4 p-2 bg-blue-50 rounded-lg">
+            <span className="text-sm text-blue-700">
+              {selectedPosts.length} selected
+            </span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Selected Posts</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete {selectedPosts.length} selected posts? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete}>
+                    Delete {selectedPosts.length} Posts
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setSelectedPosts([])}
+            >
+              Clear Selection
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Posts List */}
@@ -644,6 +982,21 @@ export default function PostsManagement() {
           <Card key={post.id}>
             <CardContent className="pt-6">
               <div className="flex gap-6">
+                {/* Selection Checkbox */}
+                <div className="flex items-start pt-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedPosts.includes(post.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedPosts(prev => [...prev, post.id])
+                      } else {
+                        setSelectedPosts(prev => prev.filter(id => id !== post.id))
+                      }
+                    }}
+                    className="rounded mt-1"
+                  />
+                </div>
                 {post.imageUrl && (
                   <div className="w-32 h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                     <img
@@ -692,7 +1045,7 @@ export default function PostsManagement() {
 
                   <div className="flex flex-wrap gap-1 mb-4">
                     {(post.tags || []).map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
+                      <Badge key={`tag-${post.id}-${tag}-${index}`} variant="outline" className="text-xs">
                         #{tag}
                       </Badge>
                     ))}

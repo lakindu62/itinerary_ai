@@ -16,6 +16,12 @@ export class BusinessMedia {
   @Prop({ default: 0 })
   order: number;
 
+  @Prop({ required: false })
+  title?: string;
+
+  @Prop({ required: false })
+  description?: string;
+
   @Prop({ default: Date.now })
   createdAt: Date;
 }
@@ -54,6 +60,15 @@ export class BusinessProfile extends Document {
   @Prop({ type: [BusinessMediaSchema], default: [] })
   videos: BusinessMedia[];
 
+  @Prop({ type: Array, default: [] })
+  posts: any[];
+
+  @Prop({ type: Array, default: [] })
+  reels: any[];
+
+  @Prop({ type: Array, default: [] })
+  menuItems: any[];
+
   @Prop({ default: true })
   isActive: boolean;
 
@@ -83,6 +98,9 @@ export interface UpdateBusinessProfileData {
   email?: string;
   website?: string;
   categories?: string[];
+  posts?: any[];
+  reels?: any[];
+  menuItems?: any[];
   isActive?: boolean;
 }
 
@@ -91,4 +109,6 @@ export interface CreateMediaData {
   url: string;
   filename: string;
   order?: number;
+  title?: string;
+  description?: string;
 }
