@@ -4,7 +4,7 @@ import { ConversationContext } from 'src/itinerary/domain/value-objects/conversa
 @Injectable()
 export class HandleClarificationUseCase {
   execute(context: ConversationContext): string {
-    console.log(context);
+    // console.log(context);
 
     const missing: string[] = [];
     if (!context.dates) missing.push('travel dates');

@@ -1,11 +1,7 @@
-export type ConversationStageDto =
-  | 'initial'
-  | 'clarifying'
-  | 'creating'
-  | 'modifying';
+export type ConversationStageDto = "initial" | "clarifying" | "creating" | "modifying";
 
 export interface ConversationMessageDto {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
 }
 
@@ -18,6 +14,10 @@ export interface ConversationContextDto {
   travelers?: number;
 }
 
+export interface ConversationDto {
+  messages: ConversationMessageDto[];
+  context: ConversationContextDto;
+}
 export interface ActivityDto {
   time: string;
   name: string;
@@ -45,7 +45,6 @@ export interface ItineraryDto {
 
 export interface ChatItineraryResponseDto {
   response: string;
-  conversation: ConversationMessageDto[];
-  context: ConversationContextDto;
+  conversation: ConversationDto;
   currentItinerary: ItineraryDto | undefined;
 }

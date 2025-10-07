@@ -140,8 +140,11 @@ export class ItineraryChatServiceMock {
 
     return {
       response: responseText,
-      conversation,
-      context,
+      conversation: {
+        messages: conversation,
+        context,
+      },
+
       currentItinerary,
     };
   }

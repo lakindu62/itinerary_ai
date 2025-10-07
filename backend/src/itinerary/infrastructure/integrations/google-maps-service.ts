@@ -22,9 +22,10 @@ export class GoogleMapsService {
 
   constructor(private readonly configService: ConfigService) {
     this.client = new Client({});
-    this.apiKey =
-      this.configService.get<string>('GOOGLE_MAPS_API_KEY') ||
-      'AIzaSyDySpj6a8j-HIbSKGJL0lju9SDMyNq0waE';
+    if (!this.configService.get<string>('GOOGLE_MAPS_API_KEY')) {
+      throw new Error('GOOGLE_MAPS_API_KEY is not set');
+    }
+    this.apiKey = this.configService.get<string>('GOOGLE_MAPS_API_KEY')!;
   }
 
   async getPlaces(
@@ -70,6 +71,7 @@ export class GoogleMapsService {
       this.logger.log(
         `Found ${places.length} places for destination: ${destination}`,
       );
+      this.logger.log(places);
       return places;
     } catch (error) {
       this.logger.error('Google Places API error:', error);
@@ -126,7 +128,7 @@ export class GoogleMapsService {
         },
       });
 
-      return response.data.results.map((place) => ({
+      const places = response.data.results.map((place) => ({
         name: place.name,
         rating: place.rating,
         address: place.vicinity!,
@@ -138,6 +140,9 @@ export class GoogleMapsService {
         ],
         place_id: place.place_id,
       }));
+
+      this.logger.log(places);
+      return places;
     } catch (error) {
       this.logger.error('Google Nearby Places API error:', error);
       return [];

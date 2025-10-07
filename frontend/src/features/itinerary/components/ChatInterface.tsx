@@ -1,3 +1,4 @@
+'use client'
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,20 +6,20 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Loader2, Send, MapPin, Clock, Users, DollarSign } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
-import { Itinerary, ConversationMessage, ConversationContext, ChatItineraryResponse } from './TravelChatbot';
+import { ChatItineraryResponseDto, ConversationContextDto, ConversationMessageDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 
 interface ChatInterfaceProps {
-  onItineraryGenerated: (itinerary: Itinerary | null, context: ConversationContext) => void;
-  context: ConversationContext;
+  onItineraryGenerated: (itinerary: ItineraryDto | null, context: ConversationContextDto) => void;
+  context: ConversationContextDto;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, context }) => {
   const { getToken } = useAuth();
-  const [messages, setMessages] = useState<ConversationMessage[]>([
+  const [messages, setMessages] = useState<ConversationMessageDto[]>([
     {
       role: 'assistant',
       content: "Hi! I'm your AI travel assistant. Tell me about your dream trip and I'll create a personalized itinerary for you. Where would you like to go?",
-      timestamp: new Date()
+
     }
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -37,10 +38,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
-    const userMessage: ConversationMessage = {
+    const userMessage: ConversationMessageDto = {
       role: 'user',
       content: inputValue.trim(),
-      timestamp: new Date()
+
     };
 
     // Optimistically add user message
@@ -66,7 +67,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
         throw new Error('Failed to get response from server');
       }
 
-      const data: ChatItineraryResponse = await response.json();
+      const data: ChatItineraryResponseDto = await response.json();
+      console.log("🚀 ~ handleSendMessage ~ data:", data)
 
       // Update messages and context from backend response
       setMessages(data.conversation);
@@ -81,7 +83,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
         return [...withoutLast, {
           role: 'assistant',
           content: "I apologize, but I couldn't process your request right now. Please try again or be more specific about your destination and preferences.",
-          timestamp: new Date()
+
         }];
       });
     } finally {
@@ -89,7 +91,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
     }
   };
 
-  const getStageDisplay = (stage: ConversationContext['stage']) => {
+  const getStageDisplay = (stage: ConversationContextDto['stage']) => {
     const stages = {
       initial: 'Getting Started',
       clarifying: 'Gathering Details',
@@ -100,15 +102,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
     return stages[stage];
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return '';
-    return `$${amount.toFixed(2)}`;
-  };
 
   const suggestions = [
-    { icon: MapPin, text: "3-day Paris adventure", color: "text-primary" },
-    { icon: Clock, text: "Weekend in Tokyo", color: "text-travel-green" },
-    { icon: Users, text: "Family trip to London", color: "text-accent" }
+    {
+      icon: MapPin,
+      text: "3-day Paris adventure for 2 people in July (adventure)",
+      color: "text-primary"
+    },
+    {
+      icon: Clock,
+      text: "Weekend in Tokyo for 1 traveler in September (food & culture)",
+      color: "text-travel-green"
+    },
+    {
+      icon: Users,
+      text: "Family trip to London for 4 in December (sightseeing)",
+      color: "text-accent"
+    }
   ];
 
   return (
@@ -131,25 +141,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
                   <span>{context.destination}</span>
                 </div>
               )}
-              {context.dates && (
-                <div className="flex items-center space-x-1">
-                  <Clock size={12} className="text-green-500" />
-                  <span>{context.dates.startDate} - {context.dates.endDate}</span>
-                </div>
-              )}
               {context.travelers && (
                 <div className="flex items-center space-x-1">
                   <Users size={12} className="text-purple-500" />
-                  <span>
-                    {context.travelers.adults} adults
-                    {context.travelers.children > 0 && `, ${context.travelers.children} children`}
-                  </span>
                 </div>
               )}
               {context.budget && (
                 <div className="flex items-center space-x-1">
                   <DollarSign size={12} className="text-yellow-500" />
-                  <span>{formatCurrency(context.budget)}</span>
+                  <span>context.budget</span>
                 </div>
               )}
             </div>
@@ -183,7 +183,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
                 <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 <p className={`text-xs mt-1 opacity-70 ${message.role === 'user' ? 'text-primary-foreground' : 'text-muted-foreground'
                   }`}>
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
               </Card>
             </div>
