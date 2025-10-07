@@ -2,21 +2,23 @@
 
 export const API_BASE_URL = "http://localhost:3000/api";
 const API_BASE_URL_SOCIAL = "http://localhost:3000/api/social";
-export const STATIC_USER_ID = "68bb23a6701962edcadb67e0";
+// CHANGE: Removed STATIC_USER_ID - no longer needed with authentication
 
-// Post API
+// CHANGE: Updated createPost to use Clerk authentication
 export const createPost = async (
   content: string,
   mediaFiles?: string[],
-  imageUrl?: string
+  imageUrl?: string,
+  authToken?: string | null // CHANGE: Accept auth token parameter
 ): Promise<any> => {
   const response = await fetch(`${API_BASE_URL_SOCIAL}/posts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(authToken && { Authorization: `Bearer ${authToken}` }), // CHANGE: Add auth header
     },
     body: JSON.stringify({
-      user: STATIC_USER_ID,
+      // CHANGE: Removed user field - backend gets it from authentication
       content: content,
       image: imageUrl,
       mediaFiles: mediaFiles,
@@ -45,13 +47,18 @@ export const getAllPosts = async (userId?: string): Promise<any[]> => {
   return response.json();
 };
 
-export const deletePost = async (postId: string): Promise<any> => {
+// CHANGE: Updated deletePost to use authentication
+export const deletePost = async (
+  postId: string,
+  authToken?: string | null // CHANGE: Accept auth token parameter
+): Promise<any> => {
   const response = await fetch(`${API_BASE_URL_SOCIAL}/posts/${postId}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
+      ...(authToken && { Authorization: `Bearer ${authToken}` }), // CHANGE: Add auth header
     },
-    body: JSON.stringify({ user: STATIC_USER_ID }),
+    // CHANGE: Removed body - backend gets user from authentication
   });
 
   if (!response.ok) {
@@ -72,21 +79,24 @@ export const deletePost = async (postId: string): Promise<any> => {
  * @returns Promise resolving to the API response with updated post data
  * @throws Error if the update request fails
  */
+// CHANGE: Updated updatePost to use authentication
 export const updatePost = async (
   postId: string,
   updates: {
     content?: string;
     mediaFilesToAdd?: string[];
     mediaFilesToRemove?: string[];
-  }
+  },
+  authToken?: string | null // CHANGE: Accept auth token parameter
 ): Promise<any> => {
   const response = await fetch(`${API_BASE_URL_SOCIAL}/posts/${postId}`, {
     method: "PATCH", // Using PATCH for partial updates
     headers: {
       "Content-Type": "application/json",
+      ...(authToken && { Authorization: `Bearer ${authToken}` }), // CHANGE: Add auth header
     },
     body: JSON.stringify({
-      user: STATIC_USER_ID, // Include user ID for ownership verification
+      // CHANGE: Removed user field - backend gets it from authentication
       ...updates, // Spread the update fields
     }),
   });

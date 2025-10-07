@@ -4,7 +4,7 @@ import { Button } from "@frontend/components/ui/button";
 import { Card, CardContent } from "@frontend/components/ui/card";
 import { Textarea } from "@frontend/components/ui/textarea";
 import { Avatar, AvatarImage } from "@frontend/components/ui/avatar";
-// import { useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs"; // CHANGE: Add Clerk auth hook
 // import { SetStateAction, useState } from "react";
 
 import {
@@ -15,11 +15,12 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { createPost, STATIC_USER_ID } from "../../lib";
+import { createPost } from "../../lib"; // CHANGE: Removed STATIC_USER_ID import
 import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
 
 const CreatePost = () => {
-  const user = `${STATIC_USER_ID}`;
+  // CHANGE: Use Clerk authentication instead of static user ID
+  const { getToken, userId } = useAuth();
   const [content, setContent] = useState("");
   // const [imageUrl, setImageUrl] = useState("");
   const [isPosting, setIsPosting] = useState(false);
@@ -35,13 +36,16 @@ const CreatePost = () => {
     let fileKeyStored = "";
 
     try {
+      // CHANGE: Get authentication token from Clerk
+      const token = await getToken();
+
       //If files selected, get signed URL for each and upload
       if (selectedFiles.length > 0) {
         const bucket = "social-media";
 
         // Upload all files concurrently
         const uploadPromises = selectedFiles.map(async (file) => {
-          const filePath = `posts/${user}/${Date.now()}_${file.name}`;
+          const filePath = `posts/${userId}/${Date.now()}_${file.name}`; // CHANGE: Use userId from Clerk
           const fileKeyStored = `${bucket}/${filePath}`;
           const signedUrl = await getSignedUploadUrl(filePath, bucket);
           await uploadFileToSignedUrl(file, signedUrl);
@@ -52,7 +56,7 @@ const CreatePost = () => {
         console.log("Uploaded file keys:", uploadedMediaUrls);
       }
 
-      await createPost(content, uploadedMediaUrls);
+      await createPost(content, uploadedMediaUrls, undefined, token); // CHANGE: Pass token to createPost
       //Create the post with image reference
       // await createPost(content, fileKeyStored);
 

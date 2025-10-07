@@ -1,18 +1,20 @@
 //like.api.ts
 
 const API_BASE_URL = "http://localhost:3000/api/social";
-const STATIC_USER_ID = "68bb23a6701962edcadb67e0";
+// CHANGE: Removed STATIC_USER_ID - no longer needed with authentication
 
-// Like API
-export const likePost = async (postId: string): Promise<any> => {
+// CHANGE: Updated likePost to use authentication
+export const likePost = async (
+  postId: string,
+  authToken?: string | null // CHANGE: Accept auth token parameter
+): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/posts/${postId}/likes`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(authToken && { Authorization: `Bearer ${authToken}` }), // CHANGE: Add auth header
     },
-    body: JSON.stringify({
-      user: STATIC_USER_ID,
-    }),
+    // CHANGE: Removed body - backend gets user from authentication
   });
 
   if (!response.ok) {
@@ -22,15 +24,18 @@ export const likePost = async (postId: string): Promise<any> => {
   return response.json();
 };
 
-export const unlikePost = async (postId: string): Promise<any> => {
+// CHANGE: Updated unlikePost to use authentication
+export const unlikePost = async (
+  postId: string,
+  authToken?: string | null // CHANGE: Accept auth token parameter
+): Promise<any> => {
   const response = await fetch(`${API_BASE_URL}/posts/${postId}/likes`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
+      ...(authToken && { Authorization: `Bearer ${authToken}` }), // CHANGE: Add auth header
     },
-    body: JSON.stringify({
-      user: STATIC_USER_ID,
-    }),
+    // CHANGE: Removed body - backend gets user from authentication
   });
 
   if (!response.ok) {

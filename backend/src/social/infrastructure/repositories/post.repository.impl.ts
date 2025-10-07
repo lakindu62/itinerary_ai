@@ -139,24 +139,57 @@ export class PostRepositoryImpl extends PostRepository {
     );
 
     try {
-      if (!userId) {
-        // If no userId provided, return posts without like status
-        this.logger.debug(
-          `[PostRepositoryImpl.getAllWithLikeStatus] No userId provided, returning posts without like status`,
-        );
-        const posts = await this.getAll();
-        return posts.map((post) => this.toPostWithLikeStatus(post, false));
-      }
+      // Always use MongoDB aggregation to join posts with user information
+      // If userId is provided, also check if the user has liked each post
+      const pipeline: any[] = [
+        // Match all posts
+        { $match: {} },
 
-      // Use MongoDB aggregation to join posts with likes in a single query
-      const docs = await this.postModel
-        .aggregate([
-          // Match all posts
-          { $match: {} },
+        // Sort by creation date (newest first)
+        { $sort: { createdAt: -1 } },
 
-          // Sort by creation date (newest first)
-          { $sort: { createdAt: -1 } },
+        // Convert user field to ObjectId if it's a string (for $lookup to work)
+        {
+          $addFields: {
+            userObjectId: {
+              $cond: {
+                if: { $eq: [{ $type: '$user' }, 'string'] },
+                then: { $toObjectId: '$user' },
+                else: '$user',
+              },
+            },
+          },
+        },
 
+        // Lookup user information (ALWAYS do this to populate userInfo)
+        {
+          $lookup: {
+            from: 'users', // Collection name for users
+            localField: 'userObjectId',
+            foreignField: '_id',
+            as: 'userInfo',
+          },
+        },
+
+        // Unwind userInfo array to object (should only be one user)
+        {
+          $unwind: {
+            path: '$userInfo',
+            preserveNullAndEmptyArrays: true, // Keep posts even if user not found
+          },
+        },
+
+        // Project only the fields we need from userInfo
+        {
+          $addFields: {
+            'userInfo.profilePicture': '$userInfo.travelProfile.profilePicture',
+          },
+        },
+      ];
+
+      // Only add like lookup if userId is provided
+      if (userId) {
+        pipeline.push(
           // Lookup likes for the specific user
           {
             $lookup: {
@@ -177,22 +210,49 @@ export class PostRepositoryImpl extends PostRepository {
               as: 'userLikes',
             },
           },
-
           // Add userLiked field based on whether userLikes array has any items
           {
             $addFields: {
               userLiked: { $gt: [{ $size: '$userLikes' }, 0] },
             },
           },
-
-          // Remove the userLikes array as we only need the boolean
-          {
-            $project: {
-              userLikes: 0,
-            },
+        );
+      } else {
+        // If no userId, set userLiked to false for all posts
+        pipeline.push({
+          $addFields: {
+            userLiked: false,
           },
-        ])
-        .exec();
+        });
+      }
+
+      // Remove temporary fields
+      pipeline.push({
+        $project: {
+          userLikes: 0,
+          userObjectId: 0, // Remove temporary userObjectId field
+          'userInfo.travelProfile': 0, // Remove the full travelProfile, keep only profilePicture
+        },
+      });
+
+      // Use MongoDB aggregation to join posts with likes in a single query
+      const docs = await this.postModel.aggregate(pipeline).exec();
+
+      // Debug: log first post to see structure
+      if (docs.length > 0) {
+        this.logger.debug(
+          '[PostRepositoryImpl.getAllWithLikeStatus] Sample post structure:',
+          {
+            postId: docs[0]._id,
+            userIdValue: docs[0].user,
+            userIdType: typeof docs[0].user,
+            userInfo: docs[0].userInfo,
+            userInfoKeys: docs[0].userInfo ? Object.keys(docs[0].userInfo) : [],
+            hasUserInfoData:
+              docs[0].userInfo && Object.keys(docs[0].userInfo).length > 0,
+          },
+        );
+      }
 
       this.logger.debug(
         `[PostRepositoryImpl.getAllWithLikeStatus] Found ${docs.length} posts with like status`,
@@ -482,6 +542,7 @@ export class PostRepositoryImpl extends PostRepository {
       post.updatedAt,
       post.image,
       post.mediaFiles,
+      undefined, // userInfo not available when not using aggregation
     );
   }
 
@@ -493,6 +554,26 @@ export class PostRepositoryImpl extends PostRepository {
    * @returns The corresponding PostWithLikeStatus entity
    */
   private toPostWithLikeStatusFromDoc(doc: any): PostWithLikeStatus {
+    // Check if userInfo has actual data (not just an empty object)
+    const hasUserInfoData = doc.userInfo && doc.userInfo._id;
+
+    // Debug logging to see what userInfo looks like
+    if (doc.userInfo && !hasUserInfoData) {
+      this.logger.warn(
+        '[toPostWithLikeStatusFromDoc] userInfo exists but is empty for post:',
+        {
+          postId: doc._id,
+          userId: doc.user,
+          userInfo: doc.userInfo,
+        },
+      );
+    } else if (!doc.userInfo) {
+      this.logger.warn(
+        '[toPostWithLikeStatusFromDoc] userInfo is completely missing for post:',
+        doc._id,
+      );
+    }
+
     return new PostWithLikeStatus(
       doc._id.toString(),
       doc.user.toString(),
@@ -504,6 +585,16 @@ export class PostRepositoryImpl extends PostRepository {
       doc.updatedAt,
       doc.image,
       doc.mediaFiles ?? [],
+      hasUserInfoData
+        ? {
+            _id: doc.userInfo._id.toString(),
+            clerkUserId: doc.userInfo.clerkUserId,
+            firstName: doc.userInfo.firstName,
+            lastName: doc.userInfo.lastName,
+            email: doc.userInfo.email,
+            profilePicture: doc.userInfo.profilePicture,
+          }
+        : undefined,
     );
   }
 }

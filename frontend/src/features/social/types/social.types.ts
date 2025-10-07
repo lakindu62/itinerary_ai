@@ -1,4 +1,14 @@
 // Types for social media components
+
+export type PostUserInfo = {
+  _id: string;
+  clerkUserId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture?: string;
+};
+
 export type Comment = {
   id: string;
   user: string;
@@ -18,6 +28,7 @@ export type Post = {
   updatedAt?: string;
   image?: string; // Kept for backward compatibility
   mediaFiles?: string[];
+  userInfo?: PostUserInfo; // Populated user information
 };
 
 export interface PostCardProps {

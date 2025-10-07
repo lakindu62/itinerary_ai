@@ -14,18 +14,31 @@ const PostHeader: React.FC<PostHeaderProps> = ({
   isDeleting,
   isEditing,
 }) => {
+  // Get user display information
+  const userDisplayName = post.userInfo
+    ? `${post.userInfo.firstName} ${post.userInfo.lastName}`
+    : `User: ${post.user}`;
+
+  const profilePicture =
+    post.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
+
+  // Check ownership using Clerk user ID if available, otherwise fall back to MongoDB ID
+  const isOwner = post.userInfo
+    ? post.userInfo.clerkUserId === currentUserId
+    : post.user === currentUserId;
+
   return (
     <div className="flex space-x-3 mb-2">
       <Avatar>
-        <AvatarImage src="/alien-profile-pic-1.jpg" />
+        <AvatarImage src={profilePicture} alt={userDisplayName} />
       </Avatar>
       <div className="flex-grow">
-        <div className="font-semibold">User: {post.user}</div>
+        <div className="font-semibold">{userDisplayName}</div>
         <div className="text-xs text-gray-500">
           {post.createdAt && formatDistanceToNow(new Date(post.createdAt))} ago
         </div>
       </div>
-      {post.user === currentUserId && (
+      {isOwner && (
         <div className="flex gap-2">
           <Button
             variant="ghost"

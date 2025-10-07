@@ -1,15 +1,22 @@
 import { useState } from "react";
+import { useAuth } from "@clerk/nextjs"; // CHANGE: Add Clerk auth hook
 import { likePost, unlikePost } from "../lib/like.api";
 import { addComment, getComments, deleteComment } from "../lib/comment.api";
 import { deletePost } from "../lib/post.api";
 import { Post, Comment } from "../types/social.types";
 
-const STATIC_USER_ID = "68bb23a6701962edcadb67e0";
+// CHANGE: Removed STATIC_USER_ID - no longer needed
 
 export const usePostInteractions = (
   post: Post,
   onDelete?: (id: string) => void
 ) => {
+  // CHANGE: Add Clerk authentication
+  const { getToken, userId } = useAuth();
+
+  // CHANGE: Use Clerk userId directly - ownership is now handled in PostHeader using userInfo.clerkUserId
+  const currentUserId = userId || ""; // Use Clerk user ID
+
   // Like state
   const [hasLiked, setHasLiked] = useState(post.userLiked ?? false);
   const [optimisticLikes, setOptimisticLikes] = useState(post.likeCount ?? 0);
@@ -27,14 +34,15 @@ export const usePostInteractions = (
 
   // Like handling
   const handleLike = async () => {
+    const token = await getToken(); // CHANGE: Get Clerk token
     if (hasLiked) {
       setOptimisticLikes(optimisticLikes - 1);
       setHasLiked(false);
-      await unlikePost(post.id);
+      await unlikePost(post.id, token); // CHANGE: Pass token to API
     } else {
       setOptimisticLikes(optimisticLikes + 1);
       setHasLiked(true);
-      await likePost(post.id);
+      await likePost(post.id, token); // CHANGE: Pass token to API
     }
   };
 
@@ -43,7 +51,8 @@ export const usePostInteractions = (
     if (!content.trim()) return;
     setIsCommenting(true);
     try {
-      await addComment(post.id, content);
+      const token = await getToken(); // CHANGE: Get Clerk token
+      await addComment(post.id, content, token); // CHANGE: Pass token to API
       setCommentText("");
       // Refetch comments after posting (for accurate display)
       if (showComments) {
@@ -64,7 +73,8 @@ export const usePostInteractions = (
   const handleDeletePost = async () => {
     setIsDeleting(true);
     try {
-      await deletePost(post.id);
+      const token = await getToken(); // CHANGE: Get Clerk token
+      await deletePost(post.id, token); // CHANGE: Pass token to API
       if (onDelete) onDelete(post.id); // Remove from list in parent
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -92,7 +102,8 @@ export const usePostInteractions = (
   // Delete comment
   const handleDeleteComment = async (commentId: string) => {
     try {
-      await deleteComment(post.id, commentId);
+      const token = await getToken(); // CHANGE: Get Clerk token
+      await deleteComment(post.id, commentId, token); // CHANGE: Pass token to API
       // Remove comment from local state
       setComments(comments.filter((comment) => comment.id !== commentId));
       // Decrement comment count
@@ -126,6 +137,6 @@ export const usePostInteractions = (
     handleDeleteComment,
 
     // Current user
-    currentUserId: STATIC_USER_ID,
+    currentUserId, // CHANGE: Use currentUserId for ownership comparison
   };
 };

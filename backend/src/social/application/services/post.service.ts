@@ -43,13 +43,18 @@ export class PostService {
    * @throws Error if the creation operation fails
    */
   async create(createPostDto: CreatePostDto): Promise<Post> {
+    // Add validation for required user field
+    if (!createPostDto.user) {
+      throw new Error('User ID is required to create a post');
+    }
+
     this.logger.log(
       `[PostService.create] Creating post for user ${createPostDto.user}`,
     );
 
     const post = new Post(
       'null', // post Id will be given by db
-      createPostDto.user,
+      createPostDto.user, // user id
       createPostDto?.content ?? '',
       undefined, // likeCount
       undefined, // commentCount

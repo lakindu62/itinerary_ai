@@ -1,13 +1,17 @@
 //usePostEdits.ts /Comet
 
 import { useState } from "react";
+import { useAuth } from "@clerk/nextjs"; // CHANGE: Add Clerk auth hook
 import { updatePost } from "../lib/post.api";
 import { Post } from "../types/social.types";
 import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
 
-const STATIC_USER_ID = "68bb23a6701962edcadb67e0";
+// CHANGE: Removed STATIC_USER_ID - no longer needed
 
 export const usePostEdit = (post: Post) => {
+  // CHANGE: Add Clerk authentication
+  const { getToken, userId } = useAuth();
+
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content || "");
   const [editMediaFiles, setEditMediaFiles] = useState<File[]>([]);
@@ -43,7 +47,7 @@ export const usePostEdit = (post: Post) => {
           // Generate unique file path with timestamp and original name
           const timestamp = Date.now();
           const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_"); // Sanitize filename
-          const filePath = `posts/${STATIC_USER_ID}/${timestamp}_${safeName}`;
+          const filePath = `posts/${userId}/${timestamp}_${safeName}`; // CHANGE: Use userId from Clerk
           const fileKey = `${bucket}/${filePath}`;
 
           // Get signed upload URL and upload the file directly to MinIO
@@ -78,8 +82,9 @@ export const usePostEdit = (post: Post) => {
         updatePayload.mediaFilesToRemove = editMediaToRemove;
       }
 
-      // Send update request to backend
-      const response = await updatePost(post.id, updatePayload);
+      // CHANGE: Get authentication token and send update request to backend
+      const token = await getToken();
+      const response = await updatePost(post.id, updatePayload, token);
       const updatedPost = response;
 
       // Update local post object with new values
