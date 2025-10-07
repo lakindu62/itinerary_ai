@@ -1,49 +1,40 @@
-import { useState, useEffect } from 'react';
+import { useAuth as useClerkAuth, useUser as useClerkUser } from '@clerk/nextjs';
 
 export interface UseAuth {
   user: { id: string; email: string; name: string } | null;
   userId: string | null;
   isAuthenticated: boolean;
+  getToken: () => Promise<string | null>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
 export const useAuth = (): UseAuth => {
-  const [user, setUser] = useState<{ id: string; email: string; name: string } | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { isSignedIn, getToken, signOut, userId } = useClerkAuth();
+  const { user } = useClerkUser();
 
-  useEffect(() => {
-    // Simulate authentication check
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
-    }
-  }, []);
+  let userObj: { id: string; email: string; name: string } | null = null;
+  if (user) {
+    userObj = {
+      id: user.id,
+      email: user.primaryEmailAddress?.emailAddress || '',
+      name: user.firstName + ' ' + (user.lastName || ''),
+    };
+  }
 
   const login = async (email: string, password: string) => {
-    // Simulate API call
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        const mockUser = { id: 'user-123', email, name: 'Test User' };
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        resolve();
-      }, 500);
-    });
+    throw new Error('Use Clerk UI for login.');
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
+    signOut();
   };
 
   return {
-    user,
-    userId: user?.id || null,
-    isAuthenticated,
+    user: userObj,
+    userId: userId ?? null,
+    isAuthenticated: !!isSignedIn,
+    getToken,
     login,
     logout,
   };
