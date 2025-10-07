@@ -189,21 +189,29 @@ export default function RatingManagement() {
   const handleDelete = async (ratingId: string) => {
     if (!userId) return
     
+    console.log('🗑️ Deleting rating with ID:', ratingId, 'for user:', userId)
+    
     try {
-      const response = await fetch(`/api/business-profiles?ownerId=${userId}`, {
+      // Use query parameters as expected by the file-based API
+      const response = await fetch(`/api/business-profiles?ownerId=${userId}&itemId=${ratingId}&itemType=rating`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: ratingId, type: 'rating' })
+        headers: { 'Content-Type': 'application/json' }
       })
       
+      console.log('📡 Delete response status:', response.status)
+      
       if (response.ok) {
+        const result = await response.json()
+        console.log('✅ Rating deleted successfully:', result.deletedItem)
         setRatings(ratings.filter(r => r.id !== ratingId))
         toast.success('Rating deleted successfully!')
       } else {
-        toast.error('Failed to delete rating')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('❌ Delete failed:', errorData)
+        toast.error(`Failed to delete rating: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Error deleting rating:', error)
+      console.error('❌ Error deleting rating:', error)
       toast.error('An error occurred while deleting the rating')
     }
   }

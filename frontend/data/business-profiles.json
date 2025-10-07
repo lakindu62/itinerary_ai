@@ -15,21 +15,6 @@
     "ratings": [
       {
         "type": "rating",
-        "customerName": "ssfsdfsdf",
-        "customerEmail": "dc@gmail.com",
-        "rating": 5,
-        "title": "dsfsdfsds",
-        "comment": "ffsdf",
-        "category": "Overall Experience",
-        "isApproved": true,
-        "isPublic": true,
-        "helpful": 0,
-        "id": "1759769563020",
-        "createdAt": "2025-10-06T16:52:43.020Z",
-        "updatedAt": "2025-10-06T16:55:15.966Z"
-      },
-      {
-        "type": "rating",
         "customerName": "yttdduduu",
         "customerEmail": "tds@gmail.com",
         "rating": 5,
@@ -42,21 +27,6 @@
         "id": "1759770214756",
         "createdAt": "2025-10-06T17:03:34.756Z",
         "updatedAt": "2025-10-06T17:04:07.878Z"
-      },
-      {
-        "type": "rating",
-        "customerName": "Dushan",
-        "customerEmail": "dc@gmail.com",
-        "rating": 5,
-        "title": "ffgfdgfdg",
-        "comment": "dfggggggggggggggggggggggggggggggggggggggggggggggggggggg",
-        "category": "Overall Experience",
-        "isApproved": true,
-        "isPublic": true,
-        "helpful": 0,
-        "id": "1759772910297",
-        "createdAt": "2025-10-06T17:48:30.297Z",
-        "updatedAt": "2025-10-06T17:49:05.710Z"
       }
     ],
     "updatedAt": "2025-10-06T18:16:24.757Z"

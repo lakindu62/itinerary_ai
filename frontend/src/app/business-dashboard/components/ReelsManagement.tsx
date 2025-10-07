@@ -194,12 +194,17 @@ export default function ReelsManagement() {
   const [businessProfileId, setBusinessProfileId] = useState<string | null>(null)
 
   const loadReels = async () => {
+    if (!userId) return
+    
     setLoading(true)
     try {
-      const result = await BusinessProfileApiService.getBusinessProfileByOwnerId(getToken)
+      console.log('🔄 loadReels called, fetching data for userId:', userId)
+      const result = await BusinessProfileApiService.getBusinessProfileByOwnerId(userId, getToken)
+      console.log('🔄 loadReels API response:', result)
       
       if (result.data && result.data.length > 0) {
         const businessProfile = result.data[0]
+        console.log('🔄 Business profile reels count:', businessProfile.reels?.length || 0)
         const profileId = businessProfile.id || businessProfile._id
         setBusinessProfileId(profileId) // Store the profile ID for CRUD operations
         
@@ -236,6 +241,19 @@ export default function ReelsManagement() {
             duration: reel.duration || 0
           }
         })
+        // Check if Fix IDs button should be visible
+        const reelsNeedingMigration = processedReels.filter(reel => {
+          const needsMigration = !reel._id || 
+                                reel._id.toString().startsWith('temp-') || 
+                                reel.id.toString().startsWith('temp-') ||
+                                !reel._id.toString().match(/^[0-9a-fA-F]{24}$/) // Not a valid MongoDB ObjectId
+          return needsMigration
+        })
+        console.log('🔧 Reels needing ID migration:', reelsNeedingMigration.length, 'out of', processedReels.length)
+        if (reelsNeedingMigration.length > 0) {
+          console.log('⚠️ Reels that need migration:', reelsNeedingMigration.map(r => ({ id: r.id, _id: r._id, title: r.title })))
+        }
+        
         setReels(processedReels)
       } else {
         setReels([])
@@ -325,10 +343,23 @@ export default function ReelsManagement() {
   }
 
   const handleEdit = async (reel: Reel) => {
+    // Check if reel has valid MongoDB ID before allowing edit
+    const hasValidId = reel._id && 
+                      typeof reel._id === 'string' && 
+                      !reel._id.startsWith('temp-') && 
+                      reel._id.match(/^[0-9a-fA-F]{24}$/)
+    
+    if (!hasValidId) {
+      toast.error('This reel needs ID migration before it can be edited. Please click "Fix IDs" first.')
+      console.log('❌ Cannot edit reel without valid ID:', { id: reel.id, _id: reel._id })
+      return
+    }
+    
     // Set loading state for this specific reel
     setEditingReelId(reel.id)
     
     try {
+      console.log('📝 Starting edit for reel:', reel.title, 'ID:', reel._id)
       setEditingReel(reel)
       setFormData({
         title: reel.title || '',
@@ -364,13 +395,24 @@ export default function ReelsManagement() {
       return
     }
 
-    const actualReelId = reel?._id || reel?.id || reelId
+    // Log reel info for debugging
+    console.log('🗑️ Delete attempt for reel:', { 
+      title: reel.title, 
+      id: reel.id, 
+      _id: reel._id,
+      hasValidId: reel._id && typeof reel._id === 'string' && reel._id.match(/^[0-9a-fA-F]{24}$/)
+    })
+
+    const actualReelId = reel._id || reel.id || reelId // Use any available ID
     console.log('🗑️ Attempting to delete reel:', {
       reelId,
       actualReelId,
       businessProfileId,
       reelTitle: reel.title,
-      reelData: reel
+      reelData: reel,
+      hasMongoId: !!reel?._id,
+      hasCustomId: !!reel?.id,
+      reelIdEqualsActual: reelId === actualReelId
     })
 
     // Set loading state for this specific reel
@@ -378,7 +420,8 @@ export default function ReelsManagement() {
     
     try {
       // Delete reel using BusinessProfileApiService
-      console.log('📡 Making delete API call...')
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000/api"
+      console.log('📡 Making delete API call with URL:', `${backendUrl}/business-profiles/${businessProfileId}/reels/${actualReelId}`)
       const result = await BusinessProfileApiService.deleteReel(
         businessProfileId,
         actualReelId,
@@ -386,16 +429,31 @@ export default function ReelsManagement() {
       )
       
       console.log('📡 Delete API response:', result)
+      console.log('📡 Delete API response type:', typeof result)
+      console.log('📡 Delete API response keys:', result ? Object.keys(result) : 'null/undefined')
       
       // Check if deletion failed
       if (result.error) {
+        console.error('❌ Delete API returned error:', result.error)
         throw new Error(result.error)
       }
+
+      // For DELETE operations, even successful responses might be null/empty for 204 status
+      if (result === null || result === undefined) {
+        console.log('✅ Delete API returned null/undefined - likely successful 204 response')
+      } else if (result.data) {
+        console.log('✅ Delete API returned data:', result.data)
+      }
       
-      // For DELETE operations, success means no error (data might be null for 204 responses)
       toast.success(`Reel "${reel.title}" deleted successfully!`)
-      console.log('✅ Reel deleted successfully, reloading data...')
+      console.log('✅ Reel deleted successfully, removing from UI and reloading data...')
+      console.log('🔄 Current reels count before reload:', reels.length)
+      
+      // Immediately remove from UI for better UX
+      setReels(prevReels => prevReels.filter(r => r.id !== reelId && r._id !== actualReelId))
+      
       await loadReels() // Reload the reels to get updated data
+      console.log('🔄 Reels count after reload:', reels.length)
       
     } catch (error) {
       console.error('❌ Error deleting reel:', error)
@@ -567,30 +625,44 @@ export default function ReelsManagement() {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      // Simulate upload progress
-      setUploadProgress(0)
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval)
-            // Convert file to base64 data URL for persistent storage
-            const reader = new FileReader()
-            reader.onload = (event) => {
-              const url = event.target?.result as string
-              setFormData(prev => ({
-                ...prev,
-                videoUrl: url,
-                duration: 30 // Mock duration
-              }))
-            }
-            reader.readAsDataURL(file)
-            return 100
-          }
-          return prev + 10
-        })
-      }, 200)
+    if (!file) return
+
+    // Check file size (limit to 5MB to prevent MongoDB document size errors)
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    if (file.size > maxSize) {
+      toast.error('Video file is too large. Please choose a file smaller than 5MB.')
+      return
     }
+
+    // Check file type
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please select a valid video file.')
+      return
+    }
+
+    // Simulate upload progress
+    setUploadProgress(0)
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval)
+          // Convert file to base64 data URL for persistent storage
+          const reader = new FileReader()
+          reader.onload = (event) => {
+            const url = event.target?.result as string
+            setFormData(prev => ({
+              ...prev,
+              videoUrl: url,
+              duration: 30 // Mock duration
+            }))
+            toast.success('Video uploaded successfully!')
+          }
+          reader.readAsDataURL(file)
+          return 100
+        }
+        return prev + 10
+      })
+    }, 200)
   }
 
   const filteredReels = selectedCategory === 'all' 
@@ -639,11 +711,18 @@ export default function ReelsManagement() {
         </div>
         <div className="flex space-x-2">
           {/* Show migration button if there are reels without proper MongoDB IDs */}
-          {reels.some(reel => !reel._id || reel._id.toString().startsWith('temp-')) && (
+          {reels.some(reel => {
+            const needsMigration = !reel._id || 
+                                  reel._id.toString().startsWith('temp-') || 
+                                  reel.id.toString().startsWith('temp-') ||
+                                  !reel._id.toString().match(/^[0-9a-fA-F]{24}$/) // Not a valid MongoDB ObjectId
+            return needsMigration
+          }) && (
             <Button 
-              variant="outline" 
+              variant="destructive" 
               onClick={handleMigrateReelIds}
               disabled={loading}
+              className="animate-pulse"
             >
               {loading ? (
                 <>
@@ -653,7 +732,7 @@ export default function ReelsManagement() {
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Fix IDs
+                  Fix IDs (Required!)
                 </>
               )}
             </Button>
@@ -806,6 +885,58 @@ export default function ReelsManagement() {
         </Dialog>
         </div>
       </div>
+
+      {/* Migration Warning Banner */}
+      {reels.some(reel => {
+        const needsMigration = !reel._id || 
+                              reel._id.toString().startsWith('temp-') || 
+                              reel.id.toString().startsWith('temp-') ||
+                              !reel._id.toString().match(/^[0-9a-fA-F]{24}$/)
+        return needsMigration
+      }) && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-yellow-100 rounded-full p-2 mr-3">
+                <Upload className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-yellow-800">
+                  ⚠️ Action Required: Reel ID Migration
+                </h3>
+                <p className="text-sm text-yellow-700">
+                  {reels.filter(reel => {
+                    const needsMigration = !reel._id || 
+                                          reel._id.toString().startsWith('temp-') || 
+                                          reel.id.toString().startsWith('temp-') ||
+                                          !reel._id.toString().match(/^[0-9a-fA-F]{24}$/)
+                    return needsMigration
+                  }).length} out of {reels.length} reels need ID migration before they can be edited or deleted. 
+                  Click "Fix IDs Now" to update them to proper MongoDB format.
+                </p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleMigrateReelIds}
+              disabled={loading}
+              className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Migrating...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Fix IDs Now
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -1039,26 +1170,17 @@ export default function ReelsManagement() {
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              disabled={deletingReelId === reel.id}
-                            >
-                              {deletingReelId === reel.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Delete reel</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        disabled={deletingReelId === reel.id}
+                      >
+                        {deletingReelId === reel.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>

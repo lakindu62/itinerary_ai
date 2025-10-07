@@ -292,32 +292,57 @@ export class MongoBusinessProfileRepository implements IBusinessProfileRepositor
     
     console.log('🗑️ Repository: Attempting to remove reel with ID:', reelId);
     
-    // Check if the reelId is a valid MongoDB ObjectId
-    const isValidObjectId = mongoose.Types.ObjectId.isValid(reelId);
-    
-    let result: BusinessProfile | null = null;
-    
-    if (isValidObjectId) {
-      // Try to remove by '_id' field first if it's a valid ObjectId
-      console.log('🔄 Repository: Removing by MongoDB _id field');
-      result = await this.businessProfileModel.findByIdAndUpdate(
-        profileId,
-        { $pull: { reels: { _id: reelId } } },
-        { new: true }
-      ).exec();
+    // Get the profile first
+    const profile = await this.businessProfileModel.findById(profileId).exec();
+    if (!profile) {
+      console.log('❌ Profile not found');
+      return null;
     }
     
-    // If not removed by _id or not a valid ObjectId, try removing by custom 'id' field
-    if (!result || (result && result.reels?.find((r: any) => r.id === reelId || r._id?.toString() === reelId))) {
-      console.log('🔄 Repository: Removing by custom id field');
-      result = await this.businessProfileModel.findByIdAndUpdate(
-        profileId,
-        { $pull: { reels: { id: reelId } } },
-        { new: true }
-      ).exec();
+    const reelsCountBefore = profile.reels?.length || 0;
+    console.log('📊 Reels count before deletion:', reelsCountBefore);
+    console.log('📊 All reel IDs before deletion:', profile.reels?.map((r: any) => ({ id: r.id, _id: r._id?.toString() })));
+    
+    // Find the reel to delete and log its structure
+    const reelToDelete = profile.reels?.find((r: any) => 
+      r._id?.toString() === reelId || r.id === reelId
+    );
+    
+    if (!reelToDelete) {
+      console.log('❌ Reel not found in profile');
+      return profile;
     }
     
-    console.log('📊 Repository: Remove operation result:', result ? 'Success' : 'Failed');
+    console.log('🎯 Found reel to delete:', {
+      id: reelToDelete.id,
+      _id: reelToDelete._id?.toString(),
+      title: reelToDelete.title
+    });
+    
+    // Use JavaScript array filtering instead of MongoDB $pull for more reliable deletion
+    const filteredReels = profile.reels.filter((r: any) => {
+      const keepReel = r._id?.toString() !== reelId && r.id !== reelId;
+      if (!keepReel) {
+        console.log('�️ Removing reel:', { id: r.id, _id: r._id?.toString(), title: r.title });
+      }
+      return keepReel;
+    });
+    
+    console.log('📊 Reels count after filtering:', filteredReels.length);
+    
+    // Update the profile with the filtered reels array
+    const result = await this.businessProfileModel.findByIdAndUpdate(
+      profileId,
+      { reels: filteredReels },
+      { new: true }
+    ).exec();
+    
+    const finalReelsCount = result?.reels?.length || 0;
+    const deletionSuccessful = finalReelsCount < reelsCountBefore;
+    
+    console.log('📊 Repository: Remove operation result:', deletionSuccessful ? 'Success' : 'Failed');
+    console.log('📊 Final reels count:', finalReelsCount);
+    
     return result;
   }
 
