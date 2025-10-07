@@ -1,31 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAllPosts } from "../../lib/post.api";
+import { useGetPostsQuery } from "../../lib/social.api"; // RTK Query import
 import PostCard from "./PostCard";
-import { Skeleton } from "@frontend/components/ui/skeleton";
 import PostListSkeleton from "./PostListSkeleton";
-import { Post } from "../../types/social.types";
-
-const STATIC_USER_ID = "68bb23a6701962edcadb67e0";
 
 const PostList: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    getAllPosts(STATIC_USER_ID)
-      .then((data) => setPosts(data))
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
-  }, []);
+  // Use RTK Query to fetch posts
+  const { data: posts = [], isLoading } = useGetPostsQuery();
 
   // Optional: remove post from local list after deletion
+  // With RTK Query, you can use cache invalidation or refetch instead
   const handleDelete = (id: string) => {
-    setPosts((prev) => prev.filter((post) => post.id !== id));
+    // Optionally trigger a refetch or use RTK Query's cache update
+    // For now, you can just let RTK Query refetch automatically if you set up invalidation in your API slice
   };
 
-  if (loading) return <PostListSkeleton count={5} />;
+  if (isLoading) return <PostListSkeleton count={5} />;
 
   return (
     <div>
