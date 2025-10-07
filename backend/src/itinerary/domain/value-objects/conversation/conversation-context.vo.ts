@@ -39,7 +39,7 @@ export class ConversationContext {
       stage?: ConversationStage;
     },
   ): ConversationContext {
-    console.log('updating conversationContext - ', updates);
+    // console.log('updating conversationContext - ', updates);
 
     return new ConversationContext(
       updates.stage ?? this.stage,

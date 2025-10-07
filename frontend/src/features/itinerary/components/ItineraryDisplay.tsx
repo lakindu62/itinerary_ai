@@ -3,7 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Calendar, ChevronDown, ChevronUp, DollarSign, Users } from 'lucide-react';
+import { MapPin, Clock, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { ActivityDto, ConversationContextDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 

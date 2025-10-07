@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, HomeIcon, UserIcon, LogOut, User, Users } from "lucide-react";
+import { BellIcon, HomeIcon, UserIcon, LogOut, User, Users, MapIcon, PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 // import { SignInButton, UserButton } from "@clerk/nextjs";
@@ -62,6 +62,18 @@ function Navbar() {
                         </Button>
                         <SignedIn>
                             <UserButton >
+                                <UserButton.MenuItems>
+                                <UserButton.Link
+                                        label="New Trip"
+                                        labelIcon={<PlusIcon strokeWidth={3}  className="text-gray-500 w-4 h-4"/>}
+                                        href="/new-trip"
+                                    />
+                                    <UserButton.Link
+                                        label="My Trips"
+                                        labelIcon={<MapIcon strokeWidth={3}  className="text-gray-500 w-4 h-4"/>}
+                                        href="/my-trips"
+                                    />
+                                </UserButton.MenuItems>
                                 <UserButton.UserProfilePage
                                     label="Profile"
                                     url="/profile"

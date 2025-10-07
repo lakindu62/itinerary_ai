@@ -1,3 +1,5 @@
+// No longer disabling TypeScript checks; all code should be type-safe.
+
 import { Injectable, Logger } from '@nestjs/common';
 import { TravelPlanningSession } from 'src/itinerary/domain/aggregates/travel-planning-session.aggregate';
 import {
@@ -32,10 +34,10 @@ export class ItineraryChatService {
     }
 
     session.addUserMessage(message);
-    console.log(message);
+    // console.log(message);
 
     await this.updateContextUseCase.execute(message, session);
-    console.log(session.getContext());
+    // console.log(session.getContext());
 
     let response: string = '';
 
@@ -49,16 +51,15 @@ export class ItineraryChatService {
     }
 
     session.addAssistantMessage(response);
-    console.log(
-      '🚀 ~ ItineraryChatService ~ chatItinerary ~ session.getContext():',
-      session.getContext(),
-    );
+    // console.log(
+    //   '🚀 ~ ItineraryChatService ~ chatItinerary ~ session.getContext():',
+    //   session.getContext(),
+    // );
     this.sessions.set(sessionId, session);
 
     return {
       response,
-      conversation: session.getConversationMessages(),
-      context: session.getContext(),
+      conversation: session.getConversation(),
       currentItinerary: session.getCurrentItinerary(),
     };
   }
@@ -83,7 +84,7 @@ export class ItineraryChatService {
       session.getContext(),
     );
 
-    console.log(createResult);
+    // console.log(createResult);
 
     // Use aggregate method instead of manual context updates
     session.createItinerary(
@@ -93,10 +94,11 @@ export class ItineraryChatService {
       createResult.itinerary.accommodation,
       createResult.itinerary.tips,
     );
-    console.log(
-      '🚀 ~ ItineraryChatService ~ createItinerary ~ session:',
-      session.getCurrentItinerary(),
-    );
+
+    // console.log(
+    //   '🚀 ~ ItineraryChatService ~ createItinerary ~ session:',
+    //   session.getCurrentItinerary(),
+    // );
     await this.itineraryRepository.create(session.getCurrentItinerary()!);
     return createResult.response;
   }
