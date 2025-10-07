@@ -33,10 +33,12 @@ const CreatePost = () => {
       if (selectedFiles.length > 0) {
         const bucket = "social-media";
         const uploadPromises = selectedFiles.map(async (file) => {
+          const timestamp = Date.now();
+          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_"); // Sanitize filename
           // Use MongoDB user ID in file path
           const filePath = mongoUserId
-            ? `posts/${mongoUserId}/${Date.now()}_${file.name}`
-            : `posts/${Date.now()}_${file.name}`;
+            ? `posts/${mongoUserId}/${timestamp}_${safeName}`
+            : `posts/${timestamp}_${safeName}`;
           const fileKeyStored = `${bucket}/${filePath}`;
           const signedUrl = await getSignedUploadUrl(filePath, bucket);
           await uploadFileToSignedUrl(file, signedUrl);
