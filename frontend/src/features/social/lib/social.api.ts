@@ -14,6 +14,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
           : "/social/posts";
         return { url, method: "GET" };
       },
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] getPosts called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] getPosts response:", data);
+        } catch (error) {
+          console.error("[RTK] getPosts error:", error);
+        }
+      },
     }),
 
     // Create a new post
@@ -26,6 +35,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] createPost called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] createPost response:", data);
+        } catch (error) {
+          console.error("[RTK] createPost error:", error);
+        }
+      },
     }),
 
     // Delete a post
@@ -34,6 +52,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}`,
         method: "DELETE",
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] deletePost called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] deletePost response:", data);
+        } catch (error) {
+          console.error("[RTK] deletePost error:", error);
+        }
+      },
     }),
 
     // Update a post (edit content, add/remove media)
@@ -53,6 +80,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "PATCH",
         body: updates,
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] updatePost called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] updatePost response:", data);
+        } catch (error) {
+          console.error("[RTK] updatePost error:", error);
+        }
+      },
     }),
 
     // Get comments for a post
@@ -61,6 +97,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}/comments`,
         method: "GET",
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] getComments called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] getComments response:", data);
+        } catch (error) {
+          console.error("[RTK] getComments error:", error);
+        }
+      },
     }),
 
     // Add a comment to a post
@@ -70,6 +115,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "POST",
         body: { content },
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] addComment called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] addComment response:", data);
+        } catch (error) {
+          console.error("[RTK] addComment error:", error);
+        }
+      },
     }),
 
     // Delete a comment
@@ -81,6 +135,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}/comments/${commentId}`,
         method: "DELETE",
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] deleteComment called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] deleteComment response:", data);
+        } catch (error) {
+          console.error("[RTK] deleteComment error:", error);
+        }
+      },
     }),
 
     // Like a post
@@ -89,6 +152,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}/likes`,
         method: "POST",
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] likePost called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] likePost response:", data);
+        } catch (error) {
+          console.error("[RTK] likePost error:", error);
+        }
+      },
     }),
 
     // Unlike a post
@@ -97,6 +169,15 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}/likes`,
         method: "DELETE",
       }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] unlikePost called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] unlikePost response:", data);
+        } catch (error) {
+          console.error("[RTK] unlikePost error:", error);
+        }
+      },
     }),
   }),
   overrideExisting: true,
