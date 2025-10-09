@@ -19,6 +19,18 @@ export const socialApi = rootApiSlice.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           console.log("[RTK] getPosts response:", data);
+          // Debug: Log isOwner values for first 3 posts
+          console.log(
+            "[RTK] isOwner values:",
+            data.slice(0, 3).map((p) => ({
+              id: p.id,
+              user: p.user,
+              isOwner: p.isOwner,
+              userInfo: p.userInfo
+                ? `${p.userInfo.firstName} ${p.userInfo.lastName}`
+                : "none",
+            }))
+          );
         } catch (error) {
           console.error("[RTK] getPosts error:", error);
         }
