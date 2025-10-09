@@ -29,8 +29,6 @@ export class PostWithLikeStatus {
   ) {}
 }
 
-
-// New: User info for post display
 export interface PostUserInfo {
   _id: string;
   clerkUserId: string;
