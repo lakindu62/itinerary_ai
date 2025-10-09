@@ -8,7 +8,7 @@ import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
 import { useAuth } from "@clerk/nextjs";
 
 export const usePostEdit = (post: Post) => {
-  const { sessionClaims } = useAuth();
+  const { sessionClaims, isLoaded } = useAuth();
   const mongoUserId = sessionClaims?.metadata?._id;
 
   const [updatePostMutation, { isLoading: isUpdating }] =
@@ -37,6 +37,26 @@ export const usePostEdit = (post: Post) => {
 
   // Save post updates with comprehensive media management
   const handleSaveEdit = async () => {
+    // Validate at action time instead of render time
+    if (!isLoaded) {
+      console.error("[usePostEdit] Auth not loaded yet");
+      alert("Authentication loading. Please try again in a moment.");
+      return;
+    }
+
+    if (
+      !mongoUserId ||
+      typeof mongoUserId !== "string" ||
+      mongoUserId.length !== 24
+    ) {
+      const errorMsg = `[usePostEdit] MongoDB user ID (_id) missing or invalid in Clerk sessionClaims: ${JSON.stringify(
+        sessionClaims?.metadata
+      )}`;
+      console.error(errorMsg);
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
+
     try {
       let mediaFilesToAdd: string[] = [];
 

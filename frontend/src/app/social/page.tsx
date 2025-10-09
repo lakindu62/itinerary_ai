@@ -4,18 +4,19 @@ import Navbar from "@frontend/features/social/components/Navbar";
 import PostList from "@frontend/features/social/components/posts/PostList";
 import Sidebar from "@frontend/features/social/components/Sidebar";
 import React, { useEffect } from "react";
-import { useAuth } from "@clerk/nextjs";
-import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
+// import { useAuth } from "@clerk/nextjs";
+// import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
 
-function AuthSetup() {
-  const { getToken } = useAuth();
-  console.log("🚀 ~ AuthSetup ~ getToken:");
-  useEffect(() => {
-    setClerkGetTokenFunc(() => getToken());
-  }, [getToken]);
+// function AuthSetup() {
+//   const { getToken } = useAuth();
+//   console.log("🚀 ~ AuthSetup ~ getToken:");
+//   useEffect(() => {
+//     setClerkGetTokenFunc(() => getToken());
+//   }, [getToken]);
 
-  return null;
-}
+//   return null;
+// }
 
 type Props = {};
 

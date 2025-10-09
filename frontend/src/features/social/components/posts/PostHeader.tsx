@@ -5,6 +5,7 @@ import { Button } from "@frontend/components/ui/button";
 import { PencilIcon, XIcon, TrashIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PostHeaderProps } from "../../types/social.types";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
 
 const PostHeader: React.FC<PostHeaderProps> = ({
   post,
@@ -15,22 +16,24 @@ const PostHeader: React.FC<PostHeaderProps> = ({
   isEditing,
 }) => {
   // Debug logging
-  console.log('[PostHeader] Post data:', {
+  console.log("[PostHeader] Post data:", {
     postId: post.id,
     isOwner: post.isOwner,
     userInfo: post.userInfo,
-    user: post.user
+    user: post.user,
   });
 
   // Get user display info
-  const displayName = post.userInfo 
+  const displayName = post.userInfo
     ? `${post.userInfo.firstName} ${post.userInfo.lastName}`
     : `User ${post.user}`;
-  
-  const profilePictureUrl = post.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
+
+  const profilePictureUrl =
+    post.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
 
   return (
     <div className="flex space-x-3 mb-2">
+      {/* <AuthSetup /> */}
       <Avatar>
         <AvatarImage src={profilePictureUrl} alt={displayName} />
       </Avatar>

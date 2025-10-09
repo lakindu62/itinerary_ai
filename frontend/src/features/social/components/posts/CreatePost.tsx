@@ -24,10 +24,28 @@ const CreatePost = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [createPost, { isLoading }] = useCreatePostMutation();
-  const { sessionClaims } = useAuth();
+  const { sessionClaims, isLoaded } = useAuth();
   const mongoUserId = sessionClaims?.metadata?._id;
 
+  // Don't render until auth is loaded
+  if (!isLoaded) {
+    return null;
+  }
+
   const handleSubmit = async () => {
+    // Validate at submit time instead of render time
+    if (
+      !mongoUserId ||
+      typeof mongoUserId !== "string" ||
+      mongoUserId.length !== 24
+    ) {
+      const errorMsg = `[CreatePost] MongoDB user ID (_id) missing or invalid in Clerk sessionClaims: ${JSON.stringify(
+        sessionClaims?.metadata
+      )}`;
+      console.error(errorMsg);
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
     let uploadedMediaUrls: string[] = [];
     try {
       if (selectedFiles.length > 0) {

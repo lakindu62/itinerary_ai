@@ -18,6 +18,7 @@ import CommentForm from "../comments/CommentForm";
 import { usePostInteractions } from "../../hooks/usePostInteractions";
 import { usePostEdit } from "../../hooks/usePostEdit";
 import { useMediaManager } from "../../hooks/useMediaManager";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
 
 const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
   // Custom hooks for different concerns
@@ -56,6 +57,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
 
   return (
     <Card className="mb-4">
+      {/* <AuthSetup /> */}
       <CardContent className="p-4">
         {/* Post Header with user info and action buttons */}
         <PostHeader

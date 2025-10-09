@@ -101,12 +101,12 @@ export class PostService {
     // Debug logging
     this.logger.debug(
       `[PostService.getAllWithUserInfo] Posts with like status:`,
-      postsWithLikeStatus.map(p => ({
+      postsWithLikeStatus.map((p) => ({
         id: p.id,
         user: p.user,
         isOwner: p.isOwner,
-        userLiked: p.userLiked
-      }))
+        userLiked: p.userLiked,
+      })),
     );
 
     if (postsWithLikeStatus.length === 0) {
@@ -165,12 +165,14 @@ export class PostService {
     // Debug final result
     this.logger.debug(
       `[PostService.getAllWithUserInfo] Final result:`,
-      result.map(p => ({
+      result.map((p) => ({
         id: p.id,
         user: p.user,
         isOwner: p.isOwner,
-        userInfo: p.userInfo ? `${p.userInfo.firstName} ${p.userInfo.lastName}` : 'No user info'
-      }))
+        userInfo: p.userInfo
+          ? `${p.userInfo.firstName} ${p.userInfo.lastName}`
+          : 'No user info',
+      })),
     );
 
     return result;

@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthSetup } from "@frontend/lib/AuthSetup";
 import { useGetPostsQuery } from "../../lib/social.api"; // RTK Query import
 import PostCard from "./PostCard";
 import PostListSkeleton from "./PostListSkeleton";
@@ -19,6 +20,7 @@ const PostList: React.FC = () => {
 
   return (
     <div>
+      {/* <AuthSetup /> */}
       {posts.length === 0 ? (
         <div>No posts found.</div>
       ) : (
