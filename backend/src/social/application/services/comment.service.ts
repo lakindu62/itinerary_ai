@@ -121,4 +121,46 @@ export class CommentService {
       throw error;
     }
   }
+
+  /**
+   * Updates a comment's content.
+   * Only the owner can update their comment.
+   */
+  async updateComment(
+    commentId: string,
+    userId: string,
+    content: string,
+  ): Promise<Comment> {
+    this.logger.log(
+      `Attempting to update comment ${commentId} by user ${userId}`,
+    );
+
+    if (!commentId || !userId || !content?.trim()) {
+      this.logger.error('Invalid updateComment inputs', {
+        commentId,
+        userId,
+        hasContent: !!content,
+      });
+      throw new Error('Comment ID, User ID and content are required');
+    }
+
+    try {
+      const updated = await this.commentRepository.update(
+        commentId,
+        userId,
+        content.trim(),
+      );
+
+      this.logger.log(
+        `Successfully updated comment ${commentId} by user ${userId}`,
+      );
+      return updated;
+    } catch (error) {
+      this.logger.error(
+        `[CommentService.updateComment] Failed to update comment - CommentID: ${commentId}, UserID: ${userId}`,
+        { error: error.message, code: error.code },
+      );
+      throw error;
+    }
+  }
 }

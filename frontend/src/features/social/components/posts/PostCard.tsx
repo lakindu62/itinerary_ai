@@ -35,6 +35,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
     handleDeletePost,
     handleShowComments,
     handleDeleteComment,
+    handleEditComment,
   } = usePostInteractions(post, onDelete);
 
   const {
@@ -118,6 +119,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
               comments={comments}
               loading={loadingComments}
               onDeleteComment={handleDeleteComment}
+              onEditComment={handleEditComment}
               currentUserId="" // TODO: Handle comment ownership separately
             />
 

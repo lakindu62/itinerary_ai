@@ -24,6 +24,17 @@ export abstract class CommentRepository {
   abstract create(comment: Comment, session?: ClientSession): Promise<Comment>;
 
   /**
+   * Updates an existing comment's content.
+   * Only the owner can update their comment.
+   */
+  abstract update(
+    commentId: string,
+    userId: string,
+    content: string,
+    session?: ClientSession,
+  ): Promise<Comment>;
+
+  /**
    * Deletes an existing comment by its id, user and post for safety.
    */
   abstract delete(

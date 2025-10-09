@@ -183,6 +183,40 @@ export class CommentRepositoryImpl extends CommentRepository {
     return this.toDomainEntity(saved);
   }
 
+  async update(
+    commentId: string,
+    userId: string,
+    content: string,
+    session?: ClientSession,
+  ): Promise<Comment> {
+    this.logger.debug(
+      `[CommentRepositoryImpl.update] Updating comment ${commentId} by user ${userId}`,
+    );
+
+    const updated = await this.commentModel.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(commentId),
+        user: new Types.ObjectId(userId), // Ensure only owner can update
+      },
+      { content, updatedAt: new Date() },
+      { new: true, ...(session ? { session } : {}) },
+    );
+
+    if (!updated) {
+      this.logger.warn(
+        `[CommentRepositoryImpl.update] No comment found to update or user is not the owner`,
+      );
+      throw new Error(
+        'Comment not found or you do not have permission to update it',
+      );
+    }
+
+    this.logger.debug(
+      `[CommentRepositoryImpl.update] Successfully updated comment ${commentId}`,
+    );
+    return this.toDomainEntity(updated);
+  }
+
   async delete(
     comment: Pick<Comment, 'id' | 'user' | 'post'>,
     session?: ClientSession,

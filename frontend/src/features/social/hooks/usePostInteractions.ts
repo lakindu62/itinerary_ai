@@ -4,6 +4,7 @@ import {
   useAddCommentMutation,
   useDeletePostMutation,
   useDeleteCommentMutation,
+  useUpdateCommentMutation,
   useGetCommentsQuery,
 } from "../lib/social.api";
 import { useState } from "react";
@@ -36,6 +37,7 @@ export const usePostInteractions = (
   // Comment mutations
   const [addComment] = useAddCommentMutation();
   const [deleteComment] = useDeleteCommentMutation();
+  const [updateComment] = useUpdateCommentMutation();
 
   // Delete post mutation
   const [deletePost, { isLoading: isDeleting }] = useDeletePostMutation();
@@ -95,6 +97,17 @@ export const usePostInteractions = (
     }
   };
 
+  // Edit comment
+  const handleEditComment = async (commentId: string, content: string) => {
+    try {
+      await updateComment({ postId: post.id, commentId, content });
+      refetchComments(); // Refetch after update
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      throw error; // Re-throw to let UI handle it
+    }
+  };
+
   return {
     hasLiked,
     optimisticLikes,
@@ -110,6 +123,7 @@ export const usePostInteractions = (
     handleDeletePost,
     handleShowComments,
     handleDeleteComment,
+    handleEditComment,
     // No need for currentUserId anymore - using post.isOwner from backend
   };
 };

@@ -178,6 +178,27 @@ export const socialApi = rootApiSlice.injectEndpoints({
       },
     }),
 
+    // Update a comment
+    updateComment: builder.mutation<
+      Comment,
+      { postId: string; commentId: string; content: string }
+    >({
+      query: ({ postId, commentId, content }) => ({
+        url: `/social/posts/${postId}/comments/${commentId}`,
+        method: "PATCH",
+        body: { content },
+      }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] updateComment called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] updateComment response:", data);
+        } catch (error) {
+          console.error("[RTK] updateComment error:", error);
+        }
+      },
+    }),
+
     // Like a post
     likePost: builder.mutation<{ success: boolean }, string>({
       query: (postId) => ({
@@ -224,6 +245,7 @@ export const {
   useGetCommentsQuery,
   useAddCommentMutation,
   useDeleteCommentMutation,
+  useUpdateCommentMutation,
   useLikePostMutation,
   useUnlikePostMutation,
 } = socialApi;

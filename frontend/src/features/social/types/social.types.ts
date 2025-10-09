@@ -76,13 +76,16 @@ export interface PostActionsProps {
 export interface CommentItemProps {
   comment: Comment;
   onDelete?: (commentId: string) => void;
+  onEdit?: (commentId: string, content: string) => Promise<void>;
   canDelete?: boolean;
+  canEdit?: boolean;
 }
 
 export interface CommentsListProps {
   comments: Comment[];
   loading: boolean;
   onDeleteComment?: (commentId: string) => void;
+  onEditComment?: (commentId: string, content: string) => Promise<void>;
   currentUserId?: string;
 }
 
