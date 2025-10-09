@@ -15,6 +15,8 @@ import {
 import { PostRepository } from 'src/social/domain/repositories/post.repository';
 import { CommentRepository } from 'src/social/domain/repositories/comment.repository';
 import { LikeRepository } from 'src/social/domain/repositories/like.repository';
+import { UserRepository } from 'src/user-management/domain/repositories/user.repository';
+import { User } from 'src/user-management/domain/user/user.entity';
 import { StorageApplicationService } from 'src/shared/kernel/storage/application/services/storage.service';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
@@ -32,6 +34,7 @@ export class PostService {
     private readonly postRepository: PostRepository,
     private readonly commentRepository: CommentRepository,
     private readonly likeRepository: LikeRepository,
+    private readonly userRepository: UserRepository,
     private readonly storageService: StorageApplicationService,
     @InjectConnection() private readonly connection: Connection,
   ) {}
@@ -79,7 +82,8 @@ export class PostService {
 
   /**
    * Retrieves all posts with user info, like status, and ownership for a specific user.
-   * Delegates to repository layer for efficient data retrieval.
+   * Uses separate queries following DDD principles: PostRepository handles Post aggregate,
+   * UserRepository handles User aggregate, and this service orchestrates them.
    *
    * @param userId - The current user's MongoDB ID
    * @returns Promise resolving to an array of PostWithUserInfo entities
@@ -89,7 +93,65 @@ export class PostService {
     this.logger.log(
       `[PostService.getAllWithUserInfo] Fetching posts with user info for user: ${userId}`,
     );
-    return await this.postRepository.getAllWithUserInfo(userId);
+
+    // Step 1: Get posts with like status and ownership (Post aggregate only)
+    const postsWithLikeStatus =
+      await this.postRepository.getAllWithLikeStatus(userId);
+
+    if (postsWithLikeStatus.length === 0) {
+      this.logger.debug('[PostService.getAllWithUserInfo] No posts found');
+      return [];
+    }
+
+    // Step 2: Extract unique user IDs from posts
+    const userIds = [...new Set(postsWithLikeStatus.map((post) => post.user))];
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Found ${userIds.length} unique users to fetch`,
+    );
+
+    // Step 3: Batch fetch users (single query for all users)
+    const users = await this.userRepository.findByIds(userIds);
+
+    // Step 4: Create user lookup map for O(1) access
+    const userMap = new Map<string, User>(
+      users.map((user) => [user.id!, user]),
+    );
+
+    // Step 5: Combine posts with user info in application layer
+    const result = postsWithLikeStatus.map((post) => {
+      const user = userMap.get(post.user);
+      const userInfo = user
+        ? {
+            _id: user.id!,
+            clerkUserId: user.clerkUserId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            profilePicture: undefined, // Add this to User entity later if needed
+          }
+        : undefined;
+
+      return new PostWithUserInfo(
+        post.id,
+        post.user,
+        post.content,
+        post.likeCount,
+        post.commentCount,
+        post.userLiked,
+        post.createdAt,
+        post.updatedAt,
+        post.image,
+        post.mediaFiles,
+        userInfo,
+        post.isOwner,
+      );
+    });
+
+    this.logger.log(
+      `[PostService.getAllWithUserInfo] Successfully combined ${result.length} posts with user info`,
+    );
+
+    return result;
   }
 
   /**

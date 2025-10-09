@@ -146,7 +146,9 @@ export class PostRepositoryImpl extends PostRepository {
           `[PostRepositoryImpl.getAllWithLikeStatus] No userId provided, returning posts without like status`,
         );
         const posts = await this.getAll();
-        return posts.map((post) => this.toPostWithLikeStatus(post, false));
+        return posts.map((post) =>
+          this.toPostWithLikeStatus(post, false, false),
+        );
       }
 
       // Use MongoDB aggregation to join posts with likes in a single query
@@ -183,6 +185,13 @@ export class PostRepositoryImpl extends PostRepository {
           {
             $addFields: {
               userLiked: { $gt: [{ $size: '$userLikes' }, 0] },
+            },
+          },
+
+          // Add isOwner field (true if post.user equals current userId)
+          {
+            $addFields: {
+              isOwner: { $eq: ['$user', { $toObjectId: userId }] },
             },
           },
 
@@ -579,11 +588,13 @@ export class PostRepositoryImpl extends PostRepository {
    * @private
    * @param post - The Post entity to convert
    * @param userLiked - Whether the user has liked this post
+   * @param isOwner - Whether the current user owns this post
    * @returns The corresponding PostWithLikeStatus entity
    */
   private toPostWithLikeStatus(
     post: Post,
     userLiked: boolean,
+    isOwner: boolean = false,
   ): PostWithLikeStatus {
     return new PostWithLikeStatus(
       post.id,
@@ -596,6 +607,7 @@ export class PostRepositoryImpl extends PostRepository {
       post.updatedAt,
       post.image,
       post.mediaFiles,
+      isOwner,
     );
   }
 
@@ -618,6 +630,7 @@ export class PostRepositoryImpl extends PostRepository {
       doc.updatedAt,
       doc.image,
       doc.mediaFiles ?? [],
+      doc.isOwner ?? false,
     );
   }
 

@@ -26,6 +26,7 @@ export class PostWithLikeStatus {
     public updatedAt?: string,
     public image?: string, // Keep for backward compatibility
     public mediaFiles?: string[], // New field for multiple files
+    public isOwner: boolean = false, // Add ownership flag
   ) {}
 }
 
