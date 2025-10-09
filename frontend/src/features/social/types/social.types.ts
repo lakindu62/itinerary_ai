@@ -7,6 +7,15 @@ export type Comment = {
   updatedAt: string;
 };
 
+export type PostUserInfo = {
+  _id: string;
+  clerkUserId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture?: string;
+};
+
 export type Post = {
   id: string;
   user: string;
@@ -18,6 +27,8 @@ export type Post = {
   updatedAt?: string;
   image?: string; // Kept for backward compatibility
   mediaFiles?: string[];
+  userInfo?: PostUserInfo; // User details from backend
+  isOwner?: boolean; // Whether current user owns this post
 };
 
 export interface PostCardProps {
@@ -33,7 +44,7 @@ export interface MediaDisplayProps {
 
 export interface PostHeaderProps {
   post: Post;
-  currentUserId: string;
+  currentUserId?: string; // Optional since we use post.isOwner now
   onEdit: () => void;
   onDelete: () => void;
   isDeleting: boolean;

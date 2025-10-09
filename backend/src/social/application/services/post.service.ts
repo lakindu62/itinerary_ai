@@ -98,6 +98,17 @@ export class PostService {
     const postsWithLikeStatus =
       await this.postRepository.getAllWithLikeStatus(userId);
 
+    // Debug logging
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Posts with like status:`,
+      postsWithLikeStatus.map(p => ({
+        id: p.id,
+        user: p.user,
+        isOwner: p.isOwner,
+        userLiked: p.userLiked
+      }))
+    );
+
     if (postsWithLikeStatus.length === 0) {
       this.logger.debug('[PostService.getAllWithUserInfo] No posts found');
       return [];
@@ -127,7 +138,7 @@ export class PostService {
             firstName: user.firstName,
             lastName: user.lastName,
             email: user.email,
-            profilePicture: undefined, // Add this to User entity later if needed
+            profilePicture: user.travelProfile?.profilePicture, // Extract from travelProfile
           }
         : undefined;
 
@@ -149,6 +160,17 @@ export class PostService {
 
     this.logger.log(
       `[PostService.getAllWithUserInfo] Successfully combined ${result.length} posts with user info`,
+    );
+
+    // Debug final result
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Final result:`,
+      result.map(p => ({
+        id: p.id,
+        user: p.user,
+        isOwner: p.isOwner,
+        userInfo: p.userInfo ? `${p.userInfo.firstName} ${p.userInfo.lastName}` : 'No user info'
+      }))
     );
 
     return result;

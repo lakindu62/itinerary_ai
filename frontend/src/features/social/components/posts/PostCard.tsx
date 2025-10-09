@@ -34,7 +34,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
     handleDeletePost,
     handleShowComments,
     handleDeleteComment,
-    currentUserId,
   } = usePostInteractions(post, onDelete);
 
   const {
@@ -61,7 +60,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
         {/* Post Header with user info and action buttons */}
         <PostHeader
           post={post}
-          currentUserId={currentUserId}
           onEdit={handleEditToggle}
           onDelete={handleDeletePost}
           isDeleting={isDeleting}
@@ -118,7 +116,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
               comments={comments}
               loading={loadingComments}
               onDeleteComment={handleDeleteComment}
-              currentUserId={currentUserId}
+              currentUserId="" // TODO: Handle comment ownership separately
             />
 
             <CommentForm

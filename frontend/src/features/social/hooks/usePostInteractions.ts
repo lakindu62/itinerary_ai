@@ -110,6 +110,6 @@ export const usePostInteractions = (
     handleDeletePost,
     handleShowComments,
     handleDeleteComment,
-    currentUserId: "", // Clerk handles user, no static ID
+    // No need for currentUserId anymore - using post.isOwner from backend
   };
 };
