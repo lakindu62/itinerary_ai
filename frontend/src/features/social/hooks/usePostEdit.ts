@@ -2,17 +2,23 @@
 
 import { useState } from "react";
 import { updatePost } from "../lib/post.api";
+import { useUpdatePostMutation } from "../lib/social.api";
 import { Post } from "../types/social.types";
 import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
-
-const STATIC_USER_ID = "68bb23a6701962edcadb67e0";
+import { useAuth } from "@clerk/nextjs";
 
 export const usePostEdit = (post: Post) => {
+  const { sessionClaims } = useAuth();
+  const mongoUserId = sessionClaims?.metadata?._id;
+
+  const [updatePostMutation, { isLoading: isUpdating }] =
+    useUpdatePostMutation();
+
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content || "");
   const [editMediaFiles, setEditMediaFiles] = useState<File[]>([]);
   const [editMediaToRemove, setEditMediaToRemove] = useState<string[]>([]);
-  const [isUpdating, setIsUpdating] = useState(false);
+  // const [isUpdating, setIsUpdating] = useState(false);
   const [editMediaPreviewUrls, setEditMediaPreviewUrls] = useState<string[]>(
     []
   );
@@ -31,7 +37,6 @@ export const usePostEdit = (post: Post) => {
 
   // Save post updates with comprehensive media management
   const handleSaveEdit = async () => {
-    setIsUpdating(true);
     try {
       let mediaFilesToAdd: string[] = [];
 
@@ -43,7 +48,9 @@ export const usePostEdit = (post: Post) => {
           // Generate unique file path with timestamp and original name
           const timestamp = Date.now();
           const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_"); // Sanitize filename
-          const filePath = `posts/${STATIC_USER_ID}/${timestamp}_${safeName}`;
+          const filePath = mongoUserId
+            ? `posts/${mongoUserId}/${timestamp}_${safeName}`
+            : `posts/${timestamp}_${safeName}`;
           const fileKey = `${bucket}/${filePath}`;
 
           // Get signed upload URL and upload the file directly to MinIO
@@ -79,30 +86,30 @@ export const usePostEdit = (post: Post) => {
       }
 
       // Send update request to backend
-      const response = await updatePost(post.id, updatePayload);
-      const updatedPost = response;
+      const updatedPost = await updatePostMutation({
+        postId: post.id,
+        updates: updatePayload,
+      });
 
       // Update local post object with new values
-      post.content = updatedPost.content;
-      post.mediaFiles = updatedPost.mediaFiles;
-      post.updatedAt = updatedPost.updatedAt;
+      if (updatedPost.data) {
+        post.content = updatedPost.data.content;
+        post.mediaFiles = updatedPost.data.mediaFiles;
+        post.updatedAt = updatedPost.data.updatedAt;
 
-      // Reset edit state
-      setEditContent(updatedPost.content || "");
-      setEditMediaFiles([]);
-      setEditMediaToRemove([]);
-      setEditMediaPreviewUrls([]);
-      setIsEditing(false);
+        // Reset edit state
+        setEditContent(updatedPost.data.content || "");
+        setEditMediaFiles([]);
+        setEditMediaToRemove([]);
+        setEditMediaPreviewUrls([]);
+        setIsEditing(false);
 
-      // Refresh media URLs to show updated media
-      // Simple approach: reload the page to refresh all signed URLs
-      // In a more sophisticated app, you'd selectively update the URLs
-      window.location.reload();
+        // Refresh media URLs to show updated media
+        window.location.reload();
+      }
     } catch (error: any) {
       console.error("Error updating post:", error);
       alert("Error updating post: " + error.message);
-    } finally {
-      setIsUpdating(false);
     }
   };
 
