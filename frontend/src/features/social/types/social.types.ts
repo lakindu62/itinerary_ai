@@ -1,10 +1,19 @@
 // Types for social media components
+export type CommentUserInfo = {
+  id: string;
+  name: string;
+  profilePicture?: string;
+};
+
 export type Comment = {
   id: string;
   user: string;
+  post?: string;
   content: string;
   createdAt: string;
   updatedAt: string;
+  userInfo?: CommentUserInfo;
+  isOwner?: boolean;
 };
 
 export type PostUserInfo = {

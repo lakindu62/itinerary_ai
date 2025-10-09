@@ -109,6 +109,26 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}/comments`,
         method: "GET",
       }),
+      transformResponse: (response: any[]): Comment[] => {
+        // Ensure fallback for display name/profile pic
+        return response.map((comment) => {
+          const displayName = comment.userInfo?.name?.trim()
+            ? comment.userInfo.name
+            : comment.userInfo?.id?.slice(0, 8) ||
+              comment.user?.slice(0, 8) ||
+              "Unknown";
+          const displayProfilePic =
+            comment.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
+          return {
+            ...comment,
+            userInfo: {
+              ...comment.userInfo,
+              name: displayName,
+              profilePicture: displayProfilePic,
+            },
+          };
+        });
+      },
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] getComments called with:", arg);
         try {

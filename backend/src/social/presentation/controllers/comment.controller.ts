@@ -27,12 +27,19 @@ export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 
   @Get()
-  async getCommentsForPost(@Param('postId') postId: string) {
+  async getCommentsForPost(
+    @Param('postId') postId: string,
+    @Req() req: Request,
+  ) {
+    if (!req.user?._id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const userId = req.user._id;
     this.logger.log(
       `[CommentController.getCommentsForPost] GET /posts/:postId/comments request`,
-      { postId },
+      { postId, userId },
     );
-    return await this.commentService.getCommentsForPost(postId);
+    return await this.commentService.getCommentsWithUserInfo(postId, userId);
   }
 
   @Post()

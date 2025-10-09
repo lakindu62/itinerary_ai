@@ -42,7 +42,7 @@ const CommentsList: React.FC<CommentsListProps> = ({
           key={comment.id}
           comment={comment}
           onDelete={onDeleteComment}
-          canDelete={comment.user === currentUserId}
+          canDelete={comment.isOwner}
         />
       ))}
     </div>

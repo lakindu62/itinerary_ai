@@ -2,9 +2,14 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const reducerBasePath = "api";
 
 let getClerkGetTokenFunc: (() => Promise<string | null>) | undefined;
-export const setClerkGetTokenFunc = (getToken: () => Promise<string | null>) => {
+export const setClerkGetTokenFunc = (
+  getToken: () => Promise<string | null>
+) => {
   getClerkGetTokenFunc = getToken;
-  console.log("🚀 ~ setClerkGetTokenFunc ~ getClerkGetTokenFunc:", getClerkGetTokenFunc);
+  console.log(
+    "🚀 ~ setClerkGetTokenFunc ~ getClerkGetTokenFunc:",
+    getClerkGetTokenFunc
+  );
 };
 
 const baseQuery = fetchBaseQuery({
@@ -12,10 +17,12 @@ const baseQuery = fetchBaseQuery({
   credentials: "include",
   prepareHeaders: async (headers) => {
     if (!getClerkGetTokenFunc) {
-      console.warn("getClerkGetTokenFunc is not set yet, skipping authorization header");
+      console.warn(
+        "getClerkGetTokenFunc is not set yet, skipping authorization header"
+      );
       return headers;
     }
-    
+
     const token = await getClerkGetTokenFunc();
     console.log("🚀 ~ token:", token);
     if (token) {

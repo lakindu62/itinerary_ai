@@ -11,6 +11,14 @@ export abstract class CommentRepository {
   abstract findCommentsByPostId(postId: string): Promise<Comment[]>;
 
   /**
+   * Aggregation: fetch comments for a post, join user info, add isOwner
+   */
+  abstract findCommentsWithUserInfo(
+    postId: string,
+    currentUserId: string,
+  ): Promise<any[]>;
+
+  /**
    * Creates a new comment record in the database.
    */
   abstract create(comment: Comment, session?: ClientSession): Promise<Comment>;

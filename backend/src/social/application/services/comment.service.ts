@@ -13,9 +13,27 @@ export class CommentService {
     private readonly postRepository: PostRepository,
   ) {}
 
-  async getCommentsForPost(postId: string): Promise<Comment[]> {
-    this.logger.log(`Attempting to fetch comments of post ${postId}`);
-    return await this.commentRepository.findCommentsByPostId(postId);
+  /**
+   * Fetch comments for a post, including user info and isOwner flag
+   * @param postId - The post to fetch comments for
+   * @param currentUserId - The current user's MongoDB ID
+   */
+  async getCommentsWithUserInfo(
+    postId: string,
+    currentUserId: string,
+  ): Promise<
+    import('src/social/domain/entities/comment.entity').CommentWithUserInfo[]
+  > {
+    this.logger.log(
+      `Fetching comments with user info for post ${postId} and user ${currentUserId}`,
+    );
+    const aggResults = await this.commentRepository.findCommentsWithUserInfo(
+      postId,
+      currentUserId,
+    );
+    return aggResults.map((doc) =>
+      (this.commentRepository as any).toCommentWithUserInfoDomainEntity(doc),
+    );
   }
 
   /**
