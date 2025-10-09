@@ -6,6 +6,7 @@ import { ClientSession, Model } from 'mongoose';
 import {
   Post,
   PostWithLikeStatus,
+  PostWithUserInfo,
 } from 'src/social/domain/entities/post.entity';
 import { PostRepository } from 'src/social/domain/repositories/post.repository';
 import { PostDocument } from '../schemas/post.schema';
@@ -203,6 +204,119 @@ export class PostRepositoryImpl extends PostRepository {
     } catch (error) {
       this.logger.error(
         'Failed to fetch posts with like status from database',
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
+   * Uses MongoDB aggregation to join posts with user and like info in a single query.
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities
+   */
+  async getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]> {
+    this.logger.debug(
+      `[PostRepositoryImpl.getAllWithUserInfo] Fetching posts with user info for user: ${userId}`,
+    );
+    try {
+      // MongoDB aggregation pipeline to join user info, like status, and ownership
+      const docs = await this.postModel
+        .aggregate([
+          // 1. Match all posts
+          { $match: {} },
+
+          // 2. Sort by creation date (newest first)
+          { $sort: { createdAt: -1 } },
+
+          // 3. Lookup user info for each post
+          {
+            $lookup: {
+              from: 'users', // Collection name for users
+              localField: 'user',
+              foreignField: '_id',
+              as: 'userInfoArr',
+            },
+          },
+
+          // 4. Lookup likes for the specific user
+          {
+            $lookup: {
+              from: 'likes',
+              let: { postId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$post', '$$postId'] },
+                        { $eq: ['$user', { $toObjectId: userId }] },
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'userLikes',
+            },
+          },
+
+          // 5. Add userLiked field based on whether userLikes array has any items
+          {
+            $addFields: {
+              userLiked: { $gt: [{ $size: '$userLikes' }, 0] },
+            },
+          },
+
+          // 6. Add isOwner field (true if post.user equals current userId)
+          {
+            $addFields: {
+              isOwner: { $eq: ['$user', { $toObjectId: userId }] },
+            },
+          },
+
+          // 7. Unwind userInfoArr to get single userInfo object
+          {
+            $unwind: { path: '$userInfoArr', preserveNullAndEmptyArrays: true },
+          },
+
+          // 8. Project only needed fields
+          {
+            $project: {
+              userLikes: 0,
+              // All post fields
+              _id: 1,
+              user: 1,
+              content: 1,
+              likeCount: 1,
+              commentCount: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              image: 1,
+              mediaFiles: 1,
+              userLiked: 1,
+              isOwner: 1,
+              // User info fields
+              'userInfoArr._id': 1,
+              'userInfoArr.clerkUserId': 1,
+              'userInfoArr.firstName': 1,
+              'userInfoArr.lastName': 1,
+              'userInfoArr.email': 1,
+              'userInfoArr.profilePicture': 1,
+            },
+          },
+        ])
+        .exec();
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfo] Found ${docs.length} posts with user info`,
+      );
+
+      // Convert MongoDB documents to PostWithUserInfo entities
+      return docs.map((doc) => this.toPostWithUserInfoDomainEntity(doc));
+    } catch (error) {
+      this.logger.error(
+        'Failed to fetch posts with user info from database',
         error.stack,
       );
       throw error;
@@ -504,6 +618,39 @@ export class PostRepositoryImpl extends PostRepository {
       doc.updatedAt,
       doc.image,
       doc.mediaFiles ?? [],
+    );
+  }
+
+  /**
+   * Converts a MongoDB aggregation result to PostWithUserInfo entity.
+   * @param doc - The MongoDB aggregation result document
+   * @returns The corresponding PostWithUserInfo entity
+   */
+  private toPostWithUserInfoDomainEntity(doc: any): PostWithUserInfo {
+    // Defensive: handle missing userInfoArr
+    const userInfo = doc.userInfoArr
+      ? {
+          _id: doc.userInfoArr._id?.toString() ?? '',
+          clerkUserId: doc.userInfoArr.clerkUserId ?? '',
+          firstName: doc.userInfoArr.firstName ?? '',
+          lastName: doc.userInfoArr.lastName ?? '',
+          email: doc.userInfoArr.email ?? '',
+          profilePicture: doc.userInfoArr.profilePicture ?? undefined,
+        }
+      : undefined;
+    return new PostWithUserInfo(
+      doc._id?.toString() ?? '',
+      doc.user?.toString() ?? '',
+      doc.content ?? '',
+      doc.likeCount ?? 0,
+      doc.commentCount ?? 0,
+      doc.userLiked ?? false,
+      doc.createdAt,
+      doc.updatedAt,
+      doc.image,
+      doc.mediaFiles ?? [],
+      userInfo,
+      doc.isOwner ?? false,
     );
   }
 }

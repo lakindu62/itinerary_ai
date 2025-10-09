@@ -10,6 +10,7 @@ import { CreatePostDto } from '@shared/types/social/create-post.dto';
 import {
   Post,
   PostWithLikeStatus,
+  PostWithUserInfo,
 } from 'src/social/domain/entities/post.entity';
 import { PostRepository } from 'src/social/domain/repositories/post.repository';
 import { CommentRepository } from 'src/social/domain/repositories/comment.repository';
@@ -77,20 +78,18 @@ export class PostService {
   }
 
   /**
-   * Retrieves all posts with like status for a specific user.
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
    * Delegates to repository layer for efficient data retrieval.
    *
-   * @param userId - Optional user ID to check like status
-   * @returns Promise resolving to an array of PostWithLikeStatus entities
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities
    * @throws Error if the retrieval operation fails
    */
-  async getAllWithLikeStatus(userId?: string): Promise<PostWithLikeStatus[]> {
+  async getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]> {
     this.logger.log(
-      `[PostService.getAllWithLikeStatus] Fetching posts with like status for user: ${userId || 'anonymous'}`,
+      `[PostService.getAllWithUserInfo] Fetching posts with user info for user: ${userId}`,
     );
-
-    // Delegate to repository layer - this keeps the complex logic in infrastructure
-    return await this.postRepository.getAllWithLikeStatus(userId);
+    return await this.postRepository.getAllWithUserInfo(userId);
   }
 
   /**

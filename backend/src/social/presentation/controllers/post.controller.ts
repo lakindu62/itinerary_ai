@@ -58,8 +58,8 @@ export class PostController {
     }
     const userId = req.user._id;
     this.logger.log(`GET /posts request`, { userId });
-    // Use new service method that returns PostWithLikeStatus entities
-    return await this.postService.getAllWithLikeStatus(userId);
+  // Use new service method that returns PostWithUserInfo entities
+  return await this.postService.getAllWithUserInfo(userId);
   }
 
   //Getting posts by user ID NOT IMPLEMENTED

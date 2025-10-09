@@ -28,3 +28,31 @@ export class PostWithLikeStatus {
     public mediaFiles?: string[], // New field for multiple files
   ) {}
 }
+
+
+// New: User info for post display
+export interface PostUserInfo {
+  _id: string;
+  clerkUserId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture?: string;
+}
+
+export class PostWithUserInfo {
+  constructor(
+    public id: string,
+    public user: string,
+    public content?: string,
+    public likeCount: number = 0,
+    public commentCount: number = 0,
+    public userLiked: boolean = false,
+    public createdAt?: string,
+    public updatedAt?: string,
+    public image?: string,
+    public mediaFiles?: string[],
+    public userInfo?: PostUserInfo,
+    public isOwner?: boolean,
+  ) {}
+}
