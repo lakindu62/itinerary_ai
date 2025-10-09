@@ -111,21 +111,16 @@ export const usePostEdit = (post: Post) => {
         updates: updatePayload,
       });
 
-      // Update local post object with new values
+      // Only update local state, do NOT mutate post directly
       if (updatedPost.data) {
-        post.content = updatedPost.data.content;
-        post.mediaFiles = updatedPost.data.mediaFiles;
-        post.updatedAt = updatedPost.data.updatedAt;
-
-        // Reset edit state
         setEditContent(updatedPost.data.content || "");
         setEditMediaFiles([]);
         setEditMediaToRemove([]);
         setEditMediaPreviewUrls([]);
         setIsEditing(false);
 
-        // Refresh media URLs to show updated media
-        window.location.reload();
+        // Optionally: trigger a refetch or rely on RTK Query cache update
+        window.location.reload(); // Not ideal, but works for now
       }
     } catch (error: any) {
       console.error("Error updating post:", error);
