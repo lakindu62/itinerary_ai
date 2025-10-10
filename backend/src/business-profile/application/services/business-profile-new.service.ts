@@ -447,6 +447,66 @@ export class BusinessProfileService {
     return menuItems;
   }
 
+  async toggleMenuItemLike(profileId: string, menuItemId: string, userId: string): Promise<any> {
+    console.log('🎯 Service: toggleMenuItemLike called with:', {
+      profileId,
+      menuItemId,
+      userId
+    });
+
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    const menuItems = profile.menuItems || [];
+    const menuItemIndex = menuItems.findIndex(item => 
+      item._id?.toString() === menuItemId || 
+      item.id === menuItemId
+    );
+    
+    if (menuItemIndex === -1) {
+      throw new NotFoundException('Menu item not found');
+    }
+
+    const menuItem = menuItems[menuItemIndex];
+    const likes = menuItem.likes || [];
+    const isLiked = likes.includes(userId);
+    
+    let updatedLikes: string[];
+    let likeCount: number;
+    
+    if (isLiked) {
+      // Remove like
+      updatedLikes = likes.filter(likeId => likeId !== userId);
+      likeCount = Math.max(0, (menuItem.likeCount || 0) - 1);
+      console.log(`👎 Removing like from user ${userId}`);
+    } else {
+      // Add like
+      updatedLikes = [...likes, userId];
+      likeCount = (menuItem.likeCount || 0) + 1;
+      console.log(`👍 Adding like from user ${userId}`);
+    }
+    
+    // Update the menu item
+    const updatedMenuItem = {
+      ...menuItem,
+      likes: updatedLikes,
+      likeCount: likeCount
+    };
+
+    console.log('🔄 Updated menu item:', updatedMenuItem);
+
+    // Update the menu item in the profile using the repository
+    const updatedProfile = await this.businessProfileRepository.updateMenuItem(profileId, menuItemId, updatedMenuItem);
+    
+    if (!updatedProfile) {
+      throw new NotFoundException('Failed to update menu item likes');
+    }
+    
+    return updatedMenuItem;
+  }
+
   async fixMenuItemIds(profileId: string): Promise<number> {
     console.log('🔧 Service: Fixing menu item IDs for profile:', profileId);
     const profile = await this.businessProfileRepository.findById(profileId);

@@ -12,6 +12,7 @@ import {
   HttpCode,
   UseGuards,
   Req,
+  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { BusinessProfileService } from '../../application/services/business-profile-new.service';
@@ -606,6 +607,26 @@ export class BusinessProfileController {
     }
     
     return await this.businessProfileService.updateMenuItem(profileId, menuItemId, updateData, user.clerk_id);
+  }
+
+  @Post(':id/menu-items/:menuItemId/like')
+  @HttpCode(HttpStatus.OK)
+  async toggleMenuItemLike(
+    @Param('id') profileId: string,
+    @Param('menuItemId') menuItemId: string,
+    @Body() body: { userId: string }
+  ) {
+    console.log('❤️ Controller: toggleMenuItemLike called with:', {
+      profileId,
+      menuItemId,
+      userId: body.userId
+    });
+    
+    if (!body.userId) {
+      throw new BadRequestException('userId is required');
+    }
+    
+    return await this.businessProfileService.toggleMenuItemLike(profileId, menuItemId, body.userId);
   }
 
   @Post(':id/migrate-reel-ids')

@@ -132,33 +132,30 @@ export default function BusinessProfilesPage() {
       return
     }
 
-    try {
-      // Get the correct owner ID for the business
-      console.log('🔍 Getting owner ID for business:', businessId)
-      const ownerId = await getOwnerIdForBusiness(businessId)
-      console.log('✅ Found owner ID:', ownerId)
-      
-      if (!ownerId) {
-        alert('Unable to like menu item: Business owner not found')
-        return
-      }
+    // Check if we have a valid MongoDB ObjectId
+    if (!menuItemId || menuItemId.startsWith('menu-')) {
+      console.error('❌ Invalid menu item ID:', menuItemId)
+      alert('This menu item cannot be liked at the moment')
+      return
+    }
 
-      // Use the existing file-based API since menu items are loaded from there
-      console.log('📤 Sending like request with data:', {
-        ownerId,
-        action: 'likeMenuItem',
+    try {
+      // Use the MongoDB business profile API for menu item likes
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api'
+      
+      console.log('📤 Sending like request to MongoDB business profile API:', {
+        businessId,
         menuItemId,
-        userId
+        userId,
+        apiUrl: `${apiUrl}/business-profiles/${businessId}/menu-items/${menuItemId}/like`
       })
       
-      const response = await fetch(`/api/business-profiles?ownerId=${ownerId}`, {
+      const response = await fetch(`${apiUrl}/business-profiles/${businessId}/menu-items/${menuItemId}/like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action: 'likeMenuItem',
-          menuItemId,
           userId
         })
       })
@@ -166,27 +163,22 @@ export default function BusinessProfilesPage() {
       console.log('📥 API response status:', response.status)
       
       if (response.ok) {
-        const responseData = await response.json()
-        console.log('✅ Like successful, response:', responseData)
+        const updatedMenuItem = await response.json()
+        console.log('✅ Like successful, updated menu item:', updatedMenuItem)
         
-        // Update local state
+        // Update local state with the returned data
         setBusinesses(prev => prev.map(business => {
           if (business.id === businessId) {
             return {
               ...business,
               menuItems: business.menuItems.map(item => {
-                if (item.id === menuItemId) {
-                  const isLiked = item.likes?.includes(userId)
+                if (item._id === menuItemId || item.id === menuItemId) {
                   const newItem = {
                     ...item,
-                    likes: isLiked 
-                      ? item.likes.filter(id => id !== userId)
-                      : [...(item.likes || []), userId],
-                    likeCount: isLiked 
-                      ? (item.likeCount || 0) - 1
-                      : (item.likeCount || 0) + 1
+                    likes: updatedMenuItem.likes || [],
+                    likeCount: updatedMenuItem.likeCount || 0
                   }
-                  console.log('🔄 Updated menu item:', newItem)
+                  console.log('🔄 Updated menu item in state:', newItem)
                   return newItem
                 }
                 return item
@@ -195,6 +187,9 @@ export default function BusinessProfilesPage() {
           }
           return business
         }))
+        
+        // Show success message
+        console.log('🎉 Menu item like updated successfully!')
       } else {
         const errorData = await response.text()
         console.error('❌ API error response:', errorData)
@@ -366,6 +361,7 @@ export default function BusinessProfilesPage() {
           })) || [],
           menuItems: profile.menuItems?.map((item: any, index: number) => ({
             id: item._id || item.id || `menu-${index}`,
+            _id: item._id, // Preserve the original MongoDB _id
             name: item.name || 'Unnamed Item',
             description: item.description || '',
             price: item.price || 0,
@@ -987,7 +983,7 @@ export default function BusinessProfilesPage() {
                             <Button
                               size="sm"
                               variant={item.likes?.includes(userId || '') ? "default" : "outline"}
-                              onClick={() => handleMenuItemLike(currentBusiness.id, item.id)}
+                              onClick={() => handleMenuItemLike(currentBusiness.id, item._id || item.id)}
                               className="h-8 px-3"
                             >
                               <Heart 
