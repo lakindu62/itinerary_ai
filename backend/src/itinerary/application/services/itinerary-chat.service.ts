@@ -1,5 +1,3 @@
-// No longer disabling TypeScript checks; all code should be type-safe.
-
 import { Injectable, Logger } from '@nestjs/common';
 import { TravelPlanningSession } from 'src/itinerary/domain/aggregates/travel-planning-session.aggregate';
 import {
@@ -13,7 +11,6 @@ import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary
 
 @Injectable()
 export class ItineraryChatService {
-  private sessions = new Map<string, TravelPlanningSession>();
   private readonly logger = new Logger(ItineraryChatService.name);
   constructor(
     private readonly updateContextUseCase: UpdateContextUseCase,
@@ -23,19 +20,37 @@ export class ItineraryChatService {
     private readonly itineraryRepository: ItineraryRepository,
   ) {}
 
+  async getChatItinerary(
+    sessionId: string,
+  ): Promise<ChatItineraryResponseDto | null> {
+    const session =
+      await this.itineraryRepository.getTravelPlanningSession(sessionId);
+    if (!session) {
+      return null;
+    }
+    return {
+      response:
+        session.getConversation().messages[
+          session.getConversation().messages.length - 1
+        ].content,
+      conversation: session.getConversation(),
+      currentItinerary: session.getCurrentItinerary(),
+    };
+  }
+
   async chatItinerary(
+    userId: string,
     message: string,
     sessionId: string,
   ): Promise<ChatItineraryResponseDto> {
     this.logger.log(`Received message: ${message}, sessionId: ${sessionId}`);
-    let session = this.sessions.get(sessionId);
+    let session =
+      await this.itineraryRepository.getTravelPlanningSession(sessionId);
     if (!session) {
       session = new TravelPlanningSession(sessionId);
     }
-
     session.addUserMessage(message);
     // console.log(message);
-
     await this.updateContextUseCase.execute(message, session);
     // console.log(session.getContext());
 
@@ -45,17 +60,24 @@ export class ItineraryChatService {
     if (session.needsClarification()) {
       response = this.handleClarification(message, session);
     } else if (session.isReadyForItineraryCreation()) {
-      response = await this.createItinerary(session);
+      response = await this.createItinerary(userId, session);
     } else if (session.canModifyItinerary()) {
       response = await this.modifyItinerary(message, session);
     }
 
     session.addAssistantMessage(response);
-    // console.log(
-    //   '🚀 ~ ItineraryChatService ~ chatItinerary ~ session.getContext():',
-    //   session.getContext(),
-    // );
-    this.sessions.set(sessionId, session);
+    await this.itineraryRepository.updateTravelPlanningSession(
+      sessionId,
+      session,
+    );
+
+    this.logger.log(
+      `Sending response: ${JSON.stringify({
+        response,
+        conversation: session.getConversation(),
+        currentItinerary: session.getCurrentItinerary(),
+      })}`,
+    );
 
     return {
       response,
@@ -78,13 +100,12 @@ export class ItineraryChatService {
   }
 
   private async createItinerary(
+    userId: string,
     session: TravelPlanningSession,
   ): Promise<string> {
     const createResult = await this.createItineraryUseCase.execute(
       session.getContext(),
     );
-
-    // console.log(createResult);
 
     // Use aggregate method instead of manual context updates
     session.createItinerary(
@@ -95,11 +116,10 @@ export class ItineraryChatService {
       createResult.itinerary.tips,
     );
 
-    // console.log(
-    //   '🚀 ~ ItineraryChatService ~ createItinerary ~ session:',
-    //   session.getCurrentItinerary(),
-    // );
-    await this.itineraryRepository.create(session.getCurrentItinerary()!);
+    await this.itineraryRepository.create(
+      userId,
+      session.getItineraryWithConversation(),
+    );
     return createResult.response;
   }
 

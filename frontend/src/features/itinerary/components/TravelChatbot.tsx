@@ -1,3 +1,4 @@
+'use client'
 import React, { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@frontend/components/ui/resizable';
 import ChatInterface from './ChatInterface';
@@ -5,6 +6,7 @@ import MapComponent from './MapComponent';
 import ItineraryDisplay from './ItineraryDisplay';
 
 import { ActivityDto, ConversationContextDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto'
+import { useGetChatItineraryQuery } from '../api/itinerary.api';
 
 
 
@@ -22,10 +24,11 @@ export interface Place {
   duration?: number;
 }
 
-const TravelChatbot = () => {
+const TravelChatbot = ({ id }: { id?: string }) => {
   const [currentItinerary, setCurrentItinerary] = useState<ItineraryDto | null>(null);
   const [context, setContext] = useState<ConversationContextDto>({ stage: 'initial' });
   const [selectedPlace, setSelectedPlace] = useState<ActivityDto | null>(null);
+  const { data: itinerary } = useGetChatItineraryQuery(id || '');
 
   const handleItineraryUpdate = (itinerary: ItineraryDto | null, newContext: ConversationContextDto) => {
     setCurrentItinerary(itinerary);
@@ -43,17 +46,18 @@ const TravelChatbot = () => {
               <ChatInterface
                 onItineraryGenerated={handleItineraryUpdate}
                 context={context}
+                id={id}
               />
 
             </div>
           </ResizablePanel>
-          {currentItinerary && (
+          {itinerary && (
             <>
               <ResizableHandle />
               <ResizablePanel defaultSize={33} minSize={25}>
                 <div className="flex-1 border-t h-full" style={{ minHeight: '300px' }}>
                   <ItineraryDisplay
-                    itinerary={currentItinerary}
+                    itinerary={itinerary}
                     context={context}
                     onPlaceSelect={setSelectedPlace}
                     selectedPlace={selectedPlace}
@@ -67,7 +71,7 @@ const TravelChatbot = () => {
 
           <ResizablePanel defaultSize={currentItinerary ? 34 : 50} minSize={25}>
             <MapComponent
-              itinerary={currentItinerary}
+              itinerary={itinerary}
               selectedPlace={selectedPlace}
               onPlaceSelect={setSelectedPlace}
             />

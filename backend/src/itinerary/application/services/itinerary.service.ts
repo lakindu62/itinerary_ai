@@ -40,6 +40,6 @@ export class ItineraryService {
       createDto.tips,
     );
 
-    await this.itineraryRepository.create(itinerary);
+    // await this.itineraryRepository.create(itinerary);
   }
 }

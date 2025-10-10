@@ -71,7 +71,7 @@ export class GoogleMapsService {
       this.logger.log(
         `Found ${places.length} places for destination: ${destination}`,
       );
-      this.logger.log(places);
+      // this.logger.log(places);
       return places;
     } catch (error) {
       this.logger.error('Google Places API error:', error);

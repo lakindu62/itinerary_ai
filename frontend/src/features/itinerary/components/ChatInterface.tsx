@@ -6,14 +6,16 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Loader2, Send, MapPin, Clock, Users, DollarSign } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
+import { ObjectId } from 'bson';
 import { ChatItineraryResponseDto, ConversationContextDto, ConversationMessageDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 
 interface ChatInterfaceProps {
   onItineraryGenerated: (itinerary: ItineraryDto | null, context: ConversationContextDto) => void;
   context: ConversationContextDto;
+  id?: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, context }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, context, id }) => {
   const { getToken } = useAuth();
   const [messages, setMessages] = useState<ConversationMessageDto[]>([
     {
@@ -24,7 +26,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState(() => Math.random());
+  const [conversationId] = useState(() => id || new ObjectId().toString());
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -71,8 +73,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
       console.log("🚀 ~ handleSendMessage ~ data:", data)
 
       // Update messages and context from backend response
-      setMessages(data.conversation);
-      onItineraryGenerated(data.currentItinerary || null, data.context);
+      setMessages(data.conversation.messages);
+      onItineraryGenerated(data.currentItinerary || null, data.conversation.context);
 
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -106,17 +108,17 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
   const suggestions = [
     {
       icon: MapPin,
-      text: "3-day Paris adventure for 2 people in July (adventure)",
+      text: "3-day Kandy adventure for 2 people in July (adventure)",
       color: "text-primary"
     },
     {
       icon: Clock,
-      text: "Weekend in Tokyo for 1 traveler in September (food & culture)",
+      text: "Weekend in Kandy for 1 traveler in September (food & culture)",
       color: "text-travel-green"
     },
     {
       icon: Users,
-      text: "Family trip to London for 4 in December (sightseeing)",
+      text: "Family trip to Kandy for 4 in December (sightseeing)",
       color: "text-accent"
     }
   ];

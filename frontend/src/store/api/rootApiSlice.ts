@@ -8,6 +8,7 @@ export const setClerkGetTokenFunc = (getToken: () => Promise<string | null>) => 
 };
 
 const baseQuery = fetchBaseQuery({
+  //TODO make backend url only to the url without api like https://localhost:3000 and add 'api' to the url
   baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api",
   credentials: "include",
   prepareHeaders: async (headers) => {
@@ -28,5 +29,6 @@ const baseQuery = fetchBaseQuery({
 export const rootApiSlice = createApi({
   reducerPath: reducerBasePath,
   baseQuery,
+  tagTypes: ["Itinerary"],
   endpoints: () => ({}),
 });
