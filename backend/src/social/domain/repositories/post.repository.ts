@@ -1,6 +1,8 @@
 import { ClientSession } from 'mongoose';
 import { Post, PostWithLikeStatus } from '../entities/post.entity';
 
+import type { PostWithUserInfo } from '../entities/post.entity';
+
 export abstract class PostRepository {
   /**
    * Creates a new post record in the MongoDB collection.
@@ -33,6 +35,13 @@ export abstract class PostRepository {
    * @returns Promise resolving to an array of PostWithLikeStatus entities
    */
   abstract getAllWithLikeStatus(userId?: string): Promise<PostWithLikeStatus[]>;
+
+  /**
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities
+   */
+  abstract getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]>;
 
   /**
    * Adds a like to a post by incrementing the like count and adding the like ID to the likes array.

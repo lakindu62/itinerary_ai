@@ -1,10 +1,28 @@
 // Types for social media components
+export type CommentUserInfo = {
+  id: string;
+  name: string;
+  profilePicture?: string;
+};
+
 export type Comment = {
   id: string;
   user: string;
+  post?: string;
   content: string;
   createdAt: string;
   updatedAt: string;
+  userInfo?: CommentUserInfo;
+  isOwner?: boolean;
+};
+
+export type PostUserInfo = {
+  _id: string;
+  clerkUserId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture?: string;
 };
 
 export type Post = {
@@ -18,6 +36,8 @@ export type Post = {
   updatedAt?: string;
   image?: string; // Kept for backward compatibility
   mediaFiles?: string[];
+  userInfo?: PostUserInfo; // User details from backend
+  isOwner?: boolean; // Whether current user owns this post
 };
 
 export interface PostCardProps {
@@ -33,7 +53,7 @@ export interface MediaDisplayProps {
 
 export interface PostHeaderProps {
   post: Post;
-  currentUserId: string;
+  currentUserId?: string; // Optional since we use post.isOwner now
   onEdit: () => void;
   onDelete: () => void;
   isDeleting: boolean;
@@ -56,13 +76,16 @@ export interface PostActionsProps {
 export interface CommentItemProps {
   comment: Comment;
   onDelete?: (commentId: string) => void;
+  onEdit?: (commentId: string, content: string) => Promise<void>;
   canDelete?: boolean;
+  canEdit?: boolean;
 }
 
 export interface CommentsListProps {
   comments: Comment[];
   loading: boolean;
   onDeleteComment?: (commentId: string) => void;
+  onEditComment?: (commentId: string, content: string) => Promise<void>;
   currentUserId?: string;
 }
 

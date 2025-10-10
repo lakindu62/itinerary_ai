@@ -7,6 +7,7 @@ import {
   Get,
   Logger,
   Param,
+  Patch,
   Post,
   UnauthorizedException,
   UseGuards,
@@ -27,12 +28,19 @@ export class CommentController {
   constructor(private readonly commentService: CommentService) {}
 
   @Get()
-  async getCommentsForPost(@Param('postId') postId: string) {
+  async getCommentsForPost(
+    @Param('postId') postId: string,
+    @Req() req: Request,
+  ) {
+    if (!req.user?._id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const userId = req.user._id;
     this.logger.log(
       `[CommentController.getCommentsForPost] GET /posts/:postId/comments request`,
-      { postId },
+      { postId, userId },
     );
-    return await this.commentService.getCommentsForPost(postId);
+    return await this.commentService.getCommentsWithUserInfo(postId, userId);
   }
 
   @Post()
@@ -75,5 +83,31 @@ export class CommentController {
     });
     await this.commentService.deleteComment(commentId, userId, postId);
     return { success: true, message: 'Comment deleted successfully' };
+  }
+
+  @Patch(':commentId')
+  async updateComment(
+    @Param('postId') postId: string,
+    @Param('commentId') commentId: string,
+    @Body() body: { content: string },
+    @Req() req: Request,
+  ) {
+    if (!req.user?._id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const userId = req.user._id;
+    this.logger.log(`PATCH /posts/:postId/comments/:commentId request`, {
+      userId,
+      postId,
+      commentId,
+    });
+
+    const updated = await this.commentService.updateComment(
+      commentId,
+      userId,
+      body.content,
+    );
+
+    return updated;
   }
 }

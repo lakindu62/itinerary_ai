@@ -13,9 +13,27 @@ export class CommentService {
     private readonly postRepository: PostRepository,
   ) {}
 
-  async getCommentsForPost(postId: string): Promise<Comment[]> {
-    this.logger.log(`Attempting to fetch comments of post ${postId}`);
-    return await this.commentRepository.findCommentsByPostId(postId);
+  /**
+   * Fetch comments for a post, including user info and isOwner flag
+   * @param postId - The post to fetch comments for
+   * @param currentUserId - The current user's MongoDB ID
+   */
+  async getCommentsWithUserInfo(
+    postId: string,
+    currentUserId: string,
+  ): Promise<
+    import('src/social/domain/entities/comment.entity').CommentWithUserInfo[]
+  > {
+    this.logger.log(
+      `Fetching comments with user info for post ${postId} and user ${currentUserId}`,
+    );
+    const aggResults = await this.commentRepository.findCommentsWithUserInfo(
+      postId,
+      currentUserId,
+    );
+    return aggResults.map((doc) =>
+      (this.commentRepository as any).toCommentWithUserInfoDomainEntity(doc),
+    );
   }
 
   /**
@@ -98,6 +116,48 @@ export class CommentService {
     } catch (error) {
       this.logger.error(
         `[CommentService.deleteComment] Failed to delete comment - CommentID: ${commentId}, PostID: ${postId}, UserID: ${userId}`,
+        { error: error.message, code: error.code },
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Updates a comment's content.
+   * Only the owner can update their comment.
+   */
+  async updateComment(
+    commentId: string,
+    userId: string,
+    content: string,
+  ): Promise<Comment> {
+    this.logger.log(
+      `Attempting to update comment ${commentId} by user ${userId}`,
+    );
+
+    if (!commentId || !userId || !content?.trim()) {
+      this.logger.error('Invalid updateComment inputs', {
+        commentId,
+        userId,
+        hasContent: !!content,
+      });
+      throw new Error('Comment ID, User ID and content are required');
+    }
+
+    try {
+      const updated = await this.commentRepository.update(
+        commentId,
+        userId,
+        content.trim(),
+      );
+
+      this.logger.log(
+        `Successfully updated comment ${commentId} by user ${userId}`,
+      );
+      return updated;
+    } catch (error) {
+      this.logger.error(
+        `[CommentService.updateComment] Failed to update comment - CommentID: ${commentId}, UserID: ${userId}`,
         { error: error.message, code: error.code },
       );
       throw error;

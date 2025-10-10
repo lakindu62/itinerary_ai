@@ -19,6 +19,18 @@ export const socialApi = rootApiSlice.injectEndpoints({
         try {
           const { data } = await queryFulfilled;
           console.log("[RTK] getPosts response:", data);
+          // Debug: Log isOwner values for first 3 posts
+          console.log(
+            "[RTK] isOwner values:",
+            data.slice(0, 3).map((p) => ({
+              id: p.id,
+              user: p.user,
+              isOwner: p.isOwner,
+              userInfo: p.userInfo
+                ? `${p.userInfo.firstName} ${p.userInfo.lastName}`
+                : "none",
+            }))
+          );
         } catch (error) {
           console.error("[RTK] getPosts error:", error);
         }
@@ -97,6 +109,26 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}/comments`,
         method: "GET",
       }),
+      transformResponse: (response: any[]): Comment[] => {
+        // Ensure fallback for display name/profile pic
+        return response.map((comment) => {
+          const displayName = comment.userInfo?.name?.trim()
+            ? comment.userInfo.name
+            : comment.userInfo?.id?.slice(0, 8) ||
+              comment.user?.slice(0, 8) ||
+              "Unknown";
+          const displayProfilePic =
+            comment.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
+          return {
+            ...comment,
+            userInfo: {
+              ...comment.userInfo,
+              name: displayName,
+              profilePicture: displayProfilePic,
+            },
+          };
+        });
+      },
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] getComments called with:", arg);
         try {
@@ -142,6 +174,27 @@ export const socialApi = rootApiSlice.injectEndpoints({
           console.log("[RTK] deleteComment response:", data);
         } catch (error) {
           console.error("[RTK] deleteComment error:", error);
+        }
+      },
+    }),
+
+    // Update a comment
+    updateComment: builder.mutation<
+      Comment,
+      { postId: string; commentId: string; content: string }
+    >({
+      query: ({ postId, commentId, content }) => ({
+        url: `/social/posts/${postId}/comments/${commentId}`,
+        method: "PATCH",
+        body: { content },
+      }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] updateComment called with:", arg);
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] updateComment response:", data);
+        } catch (error) {
+          console.error("[RTK] updateComment error:", error);
         }
       },
     }),
@@ -192,6 +245,7 @@ export const {
   useGetCommentsQuery,
   useAddCommentMutation,
   useDeleteCommentMutation,
+  useUpdateCommentMutation,
   useLikePostMutation,
   useUnlikePostMutation,
 } = socialApi;
