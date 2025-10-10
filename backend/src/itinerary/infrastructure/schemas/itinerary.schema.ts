@@ -45,6 +45,9 @@ export class Day {
   strict: 'throw',
 })
 export class Itinerary {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  user: Types.ObjectId;
+
   @Prop({ required: true })
   title: string;
 
@@ -59,6 +62,9 @@ export class Itinerary {
 
   @Prop({ required: true, type: [String] })
   tips: string[];
+
+  @Prop({ required: true, type: Types.ObjectId, ref: 'Conversation' })
+  conversation: Types.ObjectId;
 }
 
 export const ActivitySchema = SchemaFactory.createForClass(Activity);

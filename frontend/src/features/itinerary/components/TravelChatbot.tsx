@@ -38,7 +38,7 @@ const TravelChatbot = () => {
 
       <div className="h-[calc(100vh-80px)] border">
         <ResizablePanelGroup className='border' direction="horizontal">
-          <ResizablePanel defaultSize={35} minSize={30}>
+          <ResizablePanel defaultSize={currentItinerary ? 33 : 50} minSize={25}>
             <div className="h-full flex flex-col">
               <ChatInterface
                 onItineraryGenerated={handleItineraryUpdate}
@@ -47,24 +47,25 @@ const TravelChatbot = () => {
 
             </div>
           </ResizablePanel>
-          {currentItinerary &&
-            <ResizablePanel defaultSize={35} minSize={30}>
-
-              <div className="flex-1 border-t h-full" style={{ minHeight: '300px' }}>
-                <ItineraryDisplay
-                  itinerary={currentItinerary}
-                  context={context}
-                  onPlaceSelect={setSelectedPlace}
-                  selectedPlace={selectedPlace}
-                />
-              </div>
-
-            </ResizablePanel>
-          }
+          {currentItinerary && (
+            <>
+              <ResizableHandle />
+              <ResizablePanel defaultSize={33} minSize={25}>
+                <div className="flex-1 border-t h-full" style={{ minHeight: '300px' }}>
+                  <ItineraryDisplay
+                    itinerary={currentItinerary}
+                    context={context}
+                    onPlaceSelect={setSelectedPlace}
+                    selectedPlace={selectedPlace}
+                  />
+                </div>
+              </ResizablePanel>
+            </>
+          )}
 
           <ResizableHandle />
 
-          <ResizablePanel defaultSize={30} minSize={40}>
+          <ResizablePanel defaultSize={currentItinerary ? 34 : 50} minSize={25}>
             <MapComponent
               itinerary={currentItinerary}
               selectedPlace={selectedPlace}

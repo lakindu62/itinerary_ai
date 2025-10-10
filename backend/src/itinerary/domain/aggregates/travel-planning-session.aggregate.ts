@@ -4,8 +4,8 @@ import { ConversationContext } from '../value-objects/conversation';
 import { Day } from '../value-objects/itinerary';
 
 export class TravelPlanningSession {
-  private conversation: Conversation;
-  private currentItinerary?: Itinerary;
+  public conversation: Conversation;
+  public currentItinerary?: Itinerary;
 
   constructor(
     public readonly id: string,
@@ -17,6 +17,10 @@ export class TravelPlanningSession {
   // Conversation operations
   addUserMessage(message: string): void {
     this.conversation.addMessage('user', message);
+  }
+
+  getConversation(): Conversation {
+    return this.conversation;
   }
 
   getConversationMessages() {

@@ -18,6 +18,7 @@ import CommentForm from "../comments/CommentForm";
 import { usePostInteractions } from "../../hooks/usePostInteractions";
 import { usePostEdit } from "../../hooks/usePostEdit";
 import { useMediaManager } from "../../hooks/useMediaManager";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
 
 const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
   // Custom hooks for different concerns
@@ -34,7 +35,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
     handleDeletePost,
     handleShowComments,
     handleDeleteComment,
-    currentUserId,
+    handleEditComment,
   } = usePostInteractions(post, onDelete);
 
   const {
@@ -57,11 +58,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
 
   return (
     <Card className="mb-4">
+      {/* <AuthSetup /> */}
       <CardContent className="p-4">
         {/* Post Header with user info and action buttons */}
         <PostHeader
           post={post}
-          currentUserId={currentUserId}
           onEdit={handleEditToggle}
           onDelete={handleDeletePost}
           isDeleting={isDeleting}
@@ -118,7 +119,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
               comments={comments}
               loading={loadingComments}
               onDeleteComment={handleDeleteComment}
-              currentUserId={currentUserId}
+              onEditComment={handleEditComment}
+              currentUserId="" // TODO: Handle comment ownership separately
             />
 
             <CommentForm

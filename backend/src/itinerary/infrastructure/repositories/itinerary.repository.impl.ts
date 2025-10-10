@@ -15,8 +15,6 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
   }
 
   async create(itinerary: Itinerary): Promise<void> {
-    console.log(JSON.stringify(itinerary, null, 2));
-
     const doc = new this.itineraryModel(itinerary);
     await doc.save();
     // return this.toDomainEntity(saved);

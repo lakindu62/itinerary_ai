@@ -30,6 +30,8 @@ import { HasFriendshipSchema } from './infrastructure/schemas/friendships.schema
 //Media
 import { PostMediaController } from './presentation/controllers/post-media.controller';
 import { StorageModule } from 'src/shared/kernel/storage/storage.module';
+import { SharedModule } from 'src/shared/shared.module';
+import { UserManagementModule } from 'src/user-management/user-management.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { StorageModule } from 'src/shared/kernel/storage/storage.module';
       { name: 'HasFriendship', schema: HasFriendshipSchema },
     ]),
     StorageModule,
+    SharedModule,
+    UserManagementModule,
   ],
   controllers: [
     PostController,

@@ -5,6 +5,7 @@ import { Button } from "@frontend/components/ui/button";
 import { PencilIcon, XIcon, TrashIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PostHeaderProps } from "../../types/social.types";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
 
 const PostHeader: React.FC<PostHeaderProps> = ({
   post,
@@ -14,18 +15,35 @@ const PostHeader: React.FC<PostHeaderProps> = ({
   isDeleting,
   isEditing,
 }) => {
+  // Debug logging
+  console.log("[PostHeader] Post data:", {
+    postId: post.id,
+    isOwner: post.isOwner,
+    userInfo: post.userInfo,
+    user: post.user,
+  });
+
+  // Get user display info
+  const displayName = post.userInfo
+    ? `${post.userInfo.firstName} ${post.userInfo.lastName}`
+    : `User ${post.user}`;
+
+  const profilePictureUrl =
+    post.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
+
   return (
     <div className="flex space-x-3 mb-2">
+      {/* <AuthSetup /> */}
       <Avatar>
-        <AvatarImage src="/alien-profile-pic-1.jpg" />
+        <AvatarImage src={profilePictureUrl} alt={displayName} />
       </Avatar>
       <div className="flex-grow">
-        <div className="font-semibold">User: {post.user}</div>
+        <div className="font-semibold">{displayName}</div>
         <div className="text-xs text-gray-500">
           {post.createdAt && formatDistanceToNow(new Date(post.createdAt))} ago
         </div>
       </div>
-      {post.user === currentUserId && (
+      {post.isOwner && (
         <div className="flex gap-2">
           <Button
             variant="ghost"
