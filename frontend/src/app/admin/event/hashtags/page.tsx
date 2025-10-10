@@ -29,7 +29,7 @@ const HashtagsPage = () => {
           <DialogTrigger asChild>
             <Button>Add Hashtag</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-screen-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add a new Hashtag</DialogTitle>
             </DialogHeader>

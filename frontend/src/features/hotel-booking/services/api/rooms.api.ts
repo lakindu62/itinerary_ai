@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import { uploadToResourceBucket } from '@/lib/media-wrapper.api';
+import { uploadToResourceBucket } from '@frontend/features/hotel-booking/lib/media-wrapper.api';
 import { Room, CreateRoomRequest, UpdateRoomRequest } from '../../types/room.types';
 
 export const roomsApi = {

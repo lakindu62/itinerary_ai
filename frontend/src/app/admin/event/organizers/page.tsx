@@ -29,7 +29,7 @@ const OrganizersPage = () => {
           <DialogTrigger asChild>
             <Button>Add Organizer</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-screen-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add a new Organizer</DialogTitle>
             </DialogHeader>

@@ -15,57 +15,61 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { createPost, STATIC_USER_ID } from "../lib";
+import { useCreatePostMutation } from "../../lib/social.api";
 import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
+import { useAuth } from "@clerk/nextjs";
 
 const CreatePost = () => {
-  const user = `${STATIC_USER_ID}`;
   const [content, setContent] = useState("");
-  // const [imageUrl, setImageUrl] = useState("");
-  const [isPosting, setIsPosting] = useState(false);
-  // const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  // const [showImageUpload, setShowImageUpload] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
+  const [createPost, { isLoading }] = useCreatePostMutation();
+  const { sessionClaims, isLoaded } = useAuth();
+  const mongoUserId = sessionClaims?.metadata?._id;
+
+  // Don't render until auth is loaded
+  if (!isLoaded) {
+    return null;
+  }
 
   const handleSubmit = async () => {
-    setIsPosting(true);
-    let uploadedImageUrl = "";
+    // Validate at submit time instead of render time
+    if (
+      !mongoUserId ||
+      typeof mongoUserId !== "string" ||
+      mongoUserId.length !== 24
+    ) {
+      const errorMsg = `[CreatePost] MongoDB user ID (_id) missing or invalid in Clerk sessionClaims: ${JSON.stringify(
+        sessionClaims?.metadata
+      )}`;
+      console.error(errorMsg);
+      alert("Authentication error. Please refresh the page and try again.");
+      return;
+    }
     let uploadedMediaUrls: string[] = [];
-    let fileKeyStored = "";
-
     try {
-      //If files selected, get signed URL for each and upload
       if (selectedFiles.length > 0) {
         const bucket = "social-media";
-
-        // Upload all files concurrently
         const uploadPromises = selectedFiles.map(async (file) => {
-          const filePath = `posts/${user}/${Date.now()}_${file.name}`;
+          const timestamp = Date.now();
+          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_"); // Sanitize filename
+          // Use MongoDB user ID in file path
+          const filePath = mongoUserId
+            ? `posts/${mongoUserId}/${timestamp}_${safeName}`
+            : `posts/${timestamp}_${safeName}`;
           const fileKeyStored = `${bucket}/${filePath}`;
           const signedUrl = await getSignedUploadUrl(filePath, bucket);
           await uploadFileToSignedUrl(file, signedUrl);
           return fileKeyStored;
         });
-
         uploadedMediaUrls = await Promise.all(uploadPromises);
-        console.log("Uploaded file keys:", uploadedMediaUrls);
       }
-
-      await createPost(content, uploadedMediaUrls);
-      //Create the post with image reference
-      // await createPost(content, fileKeyStored);
-
+      await createPost({ content, mediaFiles: uploadedMediaUrls });
       setContent("");
       setSelectedFiles([]);
       setShowMediaUpload(false);
-      // setSelectedImage(null);
-      // setImageUrl("");
-      // setShowImageUpload(false);
     } catch (error: any) {
       alert("Error posting: " + error.message);
-    } finally {
-      setIsPosting(false);
     }
   };
 
@@ -100,7 +104,7 @@ const CreatePost = () => {
               className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-0 text-base"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              disabled={isPosting}
+              disabled={isLoading}
             />
           </div>
 
@@ -113,7 +117,7 @@ const CreatePost = () => {
                   const file = e.target.files?.[0];
                   setSelectedImage(file || null);
                 }}
-                disabled={isPosting}
+                disabled={isLoading}
               />
               
               {selectedImage && (
@@ -134,7 +138,7 @@ const CreatePost = () => {
                 accept="image/*,video/*"
                 multiple
                 onChange={handleFileSelection}
-                disabled={isPosting}
+                disabled={isLoading}
                 className="mb-4"
               />
 
@@ -175,7 +179,7 @@ const CreatePost = () => {
                         size="sm"
                         className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => removeFile(index)}
-                        disabled={isPosting}
+                        disabled={isLoading}
                       >
                         <XIcon className="h-3 w-3" />
                       </Button>
@@ -194,7 +198,7 @@ const CreatePost = () => {
                 size="sm"
                 className="text-muted-foreground hover:text-primary"
                 onClick={() => setShowMediaUpload(!showMediaUpload)}
-                disabled={isPosting}
+                disabled={isLoading}
               >
                 <ImageIcon className="size-4 mr-2" />
                 Photo
@@ -204,10 +208,10 @@ const CreatePost = () => {
               className="flex items-center"
               onClick={handleSubmit}
               disabled={
-                (!content.trim() && selectedFiles.length === 0) || isPosting
+                (!content.trim() && selectedFiles.length === 0) || isLoading
               }
             >
-              {isPosting ? (
+              {isLoading ? (
                 <>
                   <Loader2Icon className="size-4 mr-2 animate-spin" />
                   Posting...

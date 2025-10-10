@@ -10,11 +10,13 @@ const Navbar = () => {
 
   const navLinks = [
     { href: '/', label: 'Home' },
+    { href: '/admin/event/allevents', label: 'All Events' },
     { href: '/admin/event/venues', label: 'Venues' },
     { href: '/admin/event/organizers', label: 'Organizers' },
     { href: '/admin/event/categories', label: 'Categories' },
     { href: '/admin/event/hashtags', label: 'Hashtags' },
     { href: '/admin/event/create', label: 'Create Event' },
+    { href: '/admin/event/rsvps', label: 'RSVPs' },
   ];
 
   return (

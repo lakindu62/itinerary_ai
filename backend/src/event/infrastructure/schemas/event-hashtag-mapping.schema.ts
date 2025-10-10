@@ -8,7 +8,7 @@ export type EventHashtagMappingDocument = EventHashtagMapping & Document;
 @Schema({
   timestamps: true,
   strict: 'throw',
-  _id: false,
+  // _id: false,
 })
 export class EventHashtagMapping {
   @Prop({ type: Types.ObjectId, ref: 'Event', required: true })

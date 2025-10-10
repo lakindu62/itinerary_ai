@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { getSignedGetUrl } from '@/lib/media-wrapper.api';
+import { getSignedGetUrl } from '@frontend/features/hotel-booking/lib/media-wrapper.api';
 import { Loader2, ImageIcon } from 'lucide-react';
 
 interface HotelImageProps {

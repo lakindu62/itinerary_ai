@@ -29,7 +29,7 @@ const CategoriesPage = () => {
           <DialogTrigger asChild>
             <Button>Add Category</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-screen-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add a new Category</DialogTitle>
             </DialogHeader>
