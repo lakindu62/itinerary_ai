@@ -15,11 +15,26 @@ import {
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { useCreatePostMutation } from "../../lib/social.api";
+import {
+  useCreatePostMutation,
+  useGetCurrentUserProfileQuery,
+} from "../../lib/social.api";
 import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
 import { useAuth } from "@clerk/nextjs";
+import { error } from "console";
 
 const CreatePost = () => {
+  const { data: user, error } = useGetCurrentUserProfileQuery();
+
+  const fallbackProfilePic = "/alien-profile-pic-1.jpg";
+  const fallbackFirstName = "Jim";
+  const fallbackUsername = "@username";
+
+  // Extract profile data
+  const profilePic = user?.travelProfile?.profilePicture || fallbackProfilePic;
+  const firstName = user ? `${user.firstName}` : fallbackFirstName;
+  const username = fallbackUsername;
+
   const [content, setContent] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
@@ -97,11 +112,11 @@ const CreatePost = () => {
         <div className="space-y-4">
           <div className="flex space-x-4">
             <Avatar className="w-10 h-10">
-              <AvatarImage src="/alien-profile-pic-1.jpg" />
+              <AvatarImage src={profilePic} />
             </Avatar>
             <Textarea
-              placeholder="What's on your mind?"
-              className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-0 text-base"
+              placeholder={`Hey ${firstName}, What's on your mind?`}
+              className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-2 text-base"
               value={content}
               onChange={(e) => setContent(e.target.value)}
               disabled={isLoading}
@@ -201,7 +216,7 @@ const CreatePost = () => {
                 disabled={isLoading}
               >
                 <ImageIcon className="size-4 mr-2" />
-                Photo
+                Media
               </Button>
             </div>
             <Button

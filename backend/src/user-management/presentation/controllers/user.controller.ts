@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Get, Req, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Req,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateUserDto } from 'src/user-management/application/dtos/user/create-user.dto';
 import { UserService } from 'src/user-management/application/services/user.service';
 import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';

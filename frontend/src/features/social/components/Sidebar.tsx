@@ -6,41 +6,71 @@ import Link from "next/link";
 import { Card, CardContent } from "@frontend/components/ui/card";
 import { Avatar, AvatarImage } from "@frontend/components/ui/avatar";
 import { Separator } from "@frontend/components/ui/separator";
-import { MapPinIcon, LinkIcon } from "lucide-react";
+import { MapPinIcon, LinkIcon, User as UserIcon } from "lucide-react";
+import { Skeleton } from "@frontend/components/ui/skeleton";
+import { useGetCurrentUserProfileQuery } from "@frontend/features/social/lib/social.api";
 
 export default function Sidebar() {
+  const { data: user, isLoading, error } = useGetCurrentUserProfileQuery();
+  // Fallbacks
+  const fallbackProfilePic = "/alien-profile-pic-1.jpg";
+  const fallbackName = "Amzal Foumi";
+  const fallbackUsername = "@username";
+  const fallbackBio = "User Bio";
+
+  // Extract profile data
+  const profilePic = user?.travelProfile?.profilePicture || fallbackProfilePic;
+  const name = user ? `${user.firstName} ${user.lastName}` : fallbackName;
+  const bio = user?.travelProfile?.bio || fallbackBio;
+  const username = fallbackUsername;
+
   return (
     <div className="sticky top-20">
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center text-center">
-            <Link
-              href="/profile/your-username"
-              className="flex flex-col items-center justify-center"
-            >
+            {isLoading ? (
+              <Skeleton className="w-20 h-20 rounded-full mb-4" />
+            ) : (
               <Avatar className="w-20 h-20 border-2">
-                <AvatarImage src="/alien-profile-pic-1.jpg" />
+                {profilePic ? (
+                  <AvatarImage src={profilePic} />
+                ) : (
+                  <UserIcon className="w-20 h-20 text-muted-foreground" />
+                )}
               </Avatar>
+            )}
 
-              <div className="mt-4 space-y-1">
-                <h3 className="font-semibold">Amzal Foumi</h3>
-                <p className="text-sm text-muted-foreground">@username</p>
-              </div>
-            </Link>
+            <div className="mt-4 space-y-1">
+              {isLoading ? (
+                <Skeleton className="h-6 w-32 mx-auto" />
+              ) : (
+                <h3 className="font-semibold">{name}</h3>
+              )}
+              {/* Username placeholder, update if you have username */}
+              <p className="text-sm text-muted-foreground">{username}</p>
+            </div>
 
-            <p className="mt-3 text-sm text-muted-foreground">User Bio</p>
+            <div className="mt-3">
+              {isLoading ? (
+                <Skeleton className="h-4 w-40 mx-auto" />
+              ) : (
+                <p className="text-sm text-muted-foreground">{bio}</p>
+              )}
+            </div>
 
+            {/* Other details (Friends, Posts, Location, Website) remain static for now */}
             <div className="w-full">
               <Separator className="my-4" />
-              <div className="flex justify-between">
+              <div className="flex justify-around">
                 <div>
-                  <p className="font-medium">123</p>
-                  <p className="text-xs text-muted-foreground">Following</p>
+                  <p className="font-medium">0</p>
+                  <p className="text-xs text-muted-foreground">Friends</p>
                 </div>
                 <Separator orientation="vertical" />
                 <div>
-                  <p className="font-medium">456</p>
-                  <p className="text-xs text-muted-foreground">Followers</p>
+                  <p className="font-medium">0</p>
+                  <p className="text-xs text-muted-foreground">Posts</p>
                 </div>
               </div>
               <Separator className="my-4" />
