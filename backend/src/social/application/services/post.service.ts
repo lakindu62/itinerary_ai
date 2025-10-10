@@ -10,13 +10,17 @@ import { CreatePostDto } from '@shared/types/social/create-post.dto';
 import {
   Post,
   PostWithLikeStatus,
+  PostWithUserInfo,
 } from 'src/social/domain/entities/post.entity';
 import { PostRepository } from 'src/social/domain/repositories/post.repository';
 import { CommentRepository } from 'src/social/domain/repositories/comment.repository';
 import { LikeRepository } from 'src/social/domain/repositories/like.repository';
+import { UserRepository } from 'src/user-management/domain/repositories/user.repository';
+import { User } from 'src/user-management/domain/user/user.entity';
 import { StorageApplicationService } from 'src/shared/kernel/storage/application/services/storage.service';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
+import { UpdatePostDto } from '../dtos/update-post.dto';
 
 /**
  * Service class for managing post operations.
@@ -30,6 +34,7 @@ export class PostService {
     private readonly postRepository: PostRepository,
     private readonly commentRepository: CommentRepository,
     private readonly likeRepository: LikeRepository,
+    private readonly userRepository: UserRepository,
     private readonly storageService: StorageApplicationService,
     @InjectConnection() private readonly connection: Connection,
   ) {}
@@ -76,20 +81,101 @@ export class PostService {
   }
 
   /**
-   * Retrieves all posts with like status for a specific user.
-   * Delegates to repository layer for efficient data retrieval.
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
+   * Uses separate queries following DDD principles: PostRepository handles Post aggregate,
+   * UserRepository handles User aggregate, and this service orchestrates them.
    *
-   * @param userId - Optional user ID to check like status
-   * @returns Promise resolving to an array of PostWithLikeStatus entities
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities
    * @throws Error if the retrieval operation fails
    */
-  async getAllWithLikeStatus(userId?: string): Promise<PostWithLikeStatus[]> {
+  async getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]> {
     this.logger.log(
-      `[PostService.getAllWithLikeStatus] Fetching posts with like status for user: ${userId || 'anonymous'}`,
+      `[PostService.getAllWithUserInfo] Fetching posts with user info for user: ${userId}`,
     );
 
-    // Delegate to repository layer - this keeps the complex logic in infrastructure
-    return await this.postRepository.getAllWithLikeStatus(userId);
+    // Step 1: Get posts with like status and ownership (Post aggregate only)
+    const postsWithLikeStatus =
+      await this.postRepository.getAllWithLikeStatus(userId);
+
+    // Debug logging
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Posts with like status:`,
+      postsWithLikeStatus.map((p) => ({
+        id: p.id,
+        user: p.user,
+        isOwner: p.isOwner,
+        userLiked: p.userLiked,
+      })),
+    );
+
+    if (postsWithLikeStatus.length === 0) {
+      this.logger.debug('[PostService.getAllWithUserInfo] No posts found');
+      return [];
+    }
+
+    // Step 2: Extract unique user IDs from posts
+    const userIds = [...new Set(postsWithLikeStatus.map((post) => post.user))];
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Found ${userIds.length} unique users to fetch`,
+    );
+
+    // Step 3: Batch fetch users (single query for all users)
+    const users = await this.userRepository.findByIds(userIds);
+
+    // Step 4: Create user lookup map for O(1) access
+    const userMap = new Map<string, User>(
+      users.map((user) => [user.id!, user]),
+    );
+
+    // Step 5: Combine posts with user info in application layer
+    const result = postsWithLikeStatus.map((post) => {
+      const user = userMap.get(post.user);
+      const userInfo = user
+        ? {
+            _id: user.id!,
+            clerkUserId: user.clerkUserId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            profilePicture: user.travelProfile?.profilePicture, // Extract from travelProfile
+          }
+        : undefined;
+
+      return new PostWithUserInfo(
+        post.id,
+        post.user,
+        post.content,
+        post.likeCount,
+        post.commentCount,
+        post.userLiked,
+        post.createdAt,
+        post.updatedAt,
+        post.image,
+        post.mediaFiles,
+        userInfo,
+        post.isOwner,
+      );
+    });
+
+    this.logger.log(
+      `[PostService.getAllWithUserInfo] Successfully combined ${result.length} posts with user info`,
+    );
+
+    // Debug final result
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Final result:`,
+      result.map((p) => ({
+        id: p.id,
+        user: p.user,
+        isOwner: p.isOwner,
+        userInfo: p.userInfo
+          ? `${p.userInfo.firstName} ${p.userInfo.lastName}`
+          : 'No user info',
+      })),
+    );
+
+    return result;
   }
 
   /**
@@ -210,59 +296,216 @@ export class PostService {
   }
 
   /**
-   * Deletes media files from storage.
-   * This is done after the database transaction to avoid rollback issues.
+   * Helper method to delete media files from storage.
+   * Called after successful database transactions to clean up orphaned files.
+   * @param mediaFiles - Array of media file paths/keys to delete
    */
   private async deleteMediaFiles(mediaUrls: string[]): Promise<void> {
     this.logger.log(
       `[PostService.deleteMediaFiles] Deleting ${mediaUrls.length} media files`,
     );
 
-    for (const mediaUrl of mediaUrls) {
+    // Use Promise.allSettled to handle all deletions in parallel
+    const deletePromises = mediaUrls.map(async (mediaUrl) => {
       try {
         if (mediaUrl && mediaUrl.trim()) {
           await this.storageService.deleteFile(mediaUrl);
           this.logger.debug(
-            `[PostService.deleteMediaFiles] Deleted media file: ${mediaUrl}`,
+            `[PostService.deleteMediaFiles] Successfully deleted: ${mediaUrl}`,
           );
         }
       } catch (error) {
-        // Log error but don't fail the entire operation
-        // Media cleanup is less critical than data consistency
-        this.logger.error(
+        // Log error but don't throw - we don't want media deletion to fail the main operation
+        this.logger.warn(
           `[PostService.deleteMediaFiles] Failed to delete media file: ${mediaUrl}`,
-          error.stack,
-        );
-      }
-    }
-  }
-
-  /**
-   * Enhanced method for handling multiple media files per post
-   */
-  private async deleteMultipleMediaFiles(mediaKeys: string[]): Promise<void> {
-    this.logger.log(
-      `[PostService.deleteMultipleMediaFiles] Deleting ${mediaKeys.length} media files`,
-    );
-
-    const deletePromises = mediaKeys.map(async (mediaKey) => {
-      try {
-        if (mediaKey && mediaKey.trim()) {
-          await this.storageService.deleteFile(mediaKey);
-          this.logger.debug(
-            `[PostService.deleteMultipleMediaFiles] Deleted media file: ${mediaKey}`,
-          );
-        }
-      } catch (error) {
-        this.logger.error(
-          `[PostService.deleteMultipleMediaFiles] Failed to delete media file: ${mediaKey}`,
-          error.stack,
+          error.message,
         );
       }
     });
 
-    // Execute all deletions in parallel but don't fail if some fail
     await Promise.allSettled(deletePromises);
+    this.logger.debug(
+      `[PostService.deleteMediaFiles] Completed cleanup of ${mediaUrls.length} media files`,
+    );
+    // for (const mediaUrl of mediaUrls) {
+    //   try {
+    //     if (mediaUrl && mediaUrl.trim()) {
+    //       await this.storageService.deleteFile(mediaUrl);
+    //       this.logger.debug(
+    //         `[PostService.deleteMediaFiles] Deleted media file: ${mediaUrl}`,
+    //       );
+    //     }
+    //   } catch (error) {
+    //     // Log error but don't fail the entire operation
+    //     // Media cleanup is less critical than data consistency
+    //     this.logger.warn(
+    //       `[PostService.deleteMediaFiles] Failed to delete media file: ${mediaUrl}`,
+    //       error.stack,
+    //     );
+    //   }
+    // }
+  }
+
+  // /**
+  //  * Enhanced method for handling multiple media files per post
+  //  */
+  // private async deleteMultipleMediaFiles(mediaKeys: string[]): Promise<void> {
+  //   this.logger.log(
+  //     `[PostService.deleteMultipleMediaFiles] Deleting ${mediaKeys.length} media files`,
+  //   );
+
+  //   const deletePromises = mediaKeys.map(async (mediaKey) => {
+  //     try {
+  //       if (mediaKey && mediaKey.trim()) {
+  //         await this.storageService.deleteFile(mediaKey);
+  //         this.logger.debug(
+  //           `[PostService.deleteMultipleMediaFiles] Deleted media file: ${mediaKey}`,
+  //         );
+  //       }
+  //     } catch (error) {
+  //       this.logger.error(
+  //         `[PostService.deleteMultipleMediaFiles] Failed to delete media file: ${mediaKey}`,
+  //         error.stack,
+  //       );
+  //     }
+  //   });
+
+  //   // Execute all deletions in parallel but don't fail if some fail
+  //   await Promise.allSettled(deletePromises);
+  // }
+
+  /**
+   * Updates an existing post with ownership verification and media management.
+   * Handles content updates, media file additions, and media file removals.
+   * Uses database transactions to ensure data consistency.
+   * @param postId - The ID of the post to update
+   * @param updateData - The update data including content and media changes
+   * @param userId - The ID of the user attempting the update (for ownership verification)
+   * @returns Promise resolving to the updated post entity
+   * @throws NotFoundException if the post doesn't exist
+   * @throws ForbiddenException if the user doesn't own the post
+   * @throws Error for other update failures
+   */
+  async update(
+    postId: string,
+    updateData: UpdatePostDto,
+    userId: string,
+  ): Promise<Post> {
+    this.logger.log(
+      `[PostService.update] Updating post ${postId} by user ${userId}`,
+      {
+        hasContent: !!updateData.content,
+        mediaToAdd: updateData.mediaFilesToAdd?.length || 0,
+        mediaToRemove: updateData.mediaFilesToRemove?.length || 0,
+      },
+    );
+
+    // Validate input parameters
+    if (!postId || !userId) {
+      throw new Error('Post ID and User ID are required');
+    }
+
+    const session = await this.connection.startSession();
+    let mediaToDelete: string[] = [];
+
+    try {
+      return await session.withTransaction(async () => {
+        // 1. Get existing post to verify ownership and current state
+        const existingPost = await this.postRepository.findById(
+          postId,
+          session,
+        );
+
+        if (!existingPost) {
+          throw new NotFoundException(`Post with ID ${postId} not found`);
+        }
+
+        // 2. Verify ownership - users can only edit their own posts
+        if (existingPost.user !== userId) {
+          throw new ForbiddenException('You can only edit your own posts');
+        }
+
+        // 3. Handle media files management
+        let updatedMediaFiles = [...(existingPost.mediaFiles || [])];
+
+        // FIXED: Remove files that should be deleted with proper null checking
+        if (
+          updateData.mediaFilesToRemove &&
+          updateData.mediaFilesToRemove.length > 0
+        ) {
+          // Store files to be deleted for cleanup after successful transaction
+          mediaToDelete = [...updateData.mediaFilesToRemove];
+          // Filter out the files marked for removal
+          updatedMediaFiles = updatedMediaFiles.filter(
+            (file) => !updateData.mediaFilesToRemove!.includes(file),
+            //  (non-null assertion) because we already checked above
+            // Alternatively, could use: updateData.mediaFilesToRemove?.includes(file) !== true
+          );
+          this.logger.debug(
+            `[PostService.update] Removing ${mediaToDelete.length} media files from post ${postId}`,
+          );
+        }
+
+        // Add new files to the end of the array (preserves order)
+        if (
+          updateData.mediaFilesToAdd &&
+          updateData.mediaFilesToAdd.length > 0
+        ) {
+          updatedMediaFiles = [
+            ...updatedMediaFiles,
+            ...updateData.mediaFilesToAdd,
+          ];
+          this.logger.debug(
+            `[PostService.update] Adding ${updateData.mediaFilesToAdd.length} media files to post ${postId}`,
+          );
+        }
+
+        // 4. Prepare update data for repository
+        const postUpdateData: Partial<Post> = {};
+
+        // Update content if provided (even if empty string - allows clearing content)
+        if (updateData.content !== undefined) {
+          postUpdateData.content = updateData.content;
+        }
+
+        // Always update media files array (even if no changes to ensure consistency)
+        postUpdateData.mediaFiles = updatedMediaFiles;
+
+        // 5. Perform the database update within the transaction
+        const updatedPost = await this.postRepository.update(
+          postId,
+          postUpdateData,
+          session,
+        );
+
+        this.logger.log(
+          `[PostService.update] Successfully updated post ${postId}`,
+          {
+            finalMediaCount: updatedPost.mediaFiles?.length || 0,
+            contentLength: updatedPost.content?.length || 0,
+          },
+        );
+
+        return updatedPost;
+      });
+    } catch (error) {
+      this.logger.error(
+        `[PostService.update] Transaction failed for post ${postId}`,
+        error.stack,
+      );
+      throw error;
+    } finally {
+      await session.endSession();
+
+      // Clean up media files after successful transaction
+      // This is done outside the transaction to avoid blocking the DB operation
+      if (mediaToDelete.length > 0) {
+        this.logger.debug(
+          `[PostService.update] Starting cleanup of ${mediaToDelete.length} media files`,
+        );
+        await this.deleteMediaFiles(mediaToDelete);
+      }
+    }
   }
 
   /**

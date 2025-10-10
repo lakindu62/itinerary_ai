@@ -70,7 +70,21 @@ export class EventService {
       category,
     );
 
-    return await this.eventRepository.create(event);
+    const savedEvent = await this.eventRepository.create(event);
+
+    // ✅ START: Add hashtag mapping logic
+    if (createDto.hashtagIds && createDto.hashtagIds.length > 0) {
+      for (const hashtagId of createDto.hashtagIds) {
+        const hashtag = await this.eventHashtagRepository.findById(hashtagId);
+        if (hashtag) {
+          const mapping = new EventHashtagMapping(savedEvent, hashtag);
+          await this.eventHashtagMappingRepository.create(mapping);
+        }
+      }
+    }
+    // ✅ END: Add hashtag mapping logic
+
+    return savedEvent;
   }
 
   async getVenues(): Promise<EventVenue[]> {
@@ -91,6 +105,10 @@ export class EventService {
 
   async getRsvps(): Promise<EventRsvp[]> {
     return await this.eventRsvpRepository.findAll();
+  }
+
+  async getAllEvents(): Promise<Event[]> {
+    return await this.eventRepository.findAll();
   }
 
 
@@ -236,11 +254,66 @@ export class EventService {
     if (!existingEvent) {
       throw new NotFoundException(`Event with ID ${id} not found`);
     }
+        // Manually map the DTO properties to the domain entity
+    // This prevents adding properties like 'venueId' that aren't in the schema
+    existingEvent.eventName = updateDto.eventName ?? existingEvent.eventName;
+    existingEvent.description = updateDto.description ?? existingEvent.description;
+    existingEvent.startDate = updateDto.startDate ?? existingEvent.startDate;
+    existingEvent.endDate = updateDto.endDate ?? existingEvent.endDate;
+    existingEvent.startTime = updateDto.startTime ?? existingEvent.startTime;
+    existingEvent.endTime = updateDto.endTime ?? existingEvent.endTime;
+    existingEvent.maxAttendees = updateDto.maxAttendees ?? existingEvent.maxAttendees;
+    existingEvent.ticketPrice = updateDto.ticketPrice ?? existingEvent.ticketPrice;
+    existingEvent.eventStatus = updateDto.eventStatus ?? existingEvent.eventStatus;
+    existingEvent.imagesUrl = updateDto.imagesUrl ?? existingEvent.imagesUrl;
 
     // Apply updates from DTO to the existing domain entity
-    Object.assign(existingEvent, updateDto);
+    // Object.assign(existingEvent, updateDto);
 
-    return await this.eventRepository.update (existingEvent);
+
+    // If a new venueId is provided, fetch the new venue and update the entity
+    if (updateDto.venueId) {
+      const venue = await this.eventVenueRepository.findById(updateDto.venueId);
+      if (!venue) throw new NotFoundException(`Venue with ID ${updateDto.venueId} not found`);
+      existingEvent.venue = venue;
+    }
+
+    // If a new organizerId is provided, fetch and update
+    if (updateDto.organizerId) {
+      const organizer = await this.eventOrganizerRepository.findById(updateDto.organizerId);
+      if (!organizer) throw new NotFoundException(`Organizer with ID ${updateDto.organizerId} not found`);
+      existingEvent.organizer = organizer;
+    }
+
+    // If a new categoryId is provided, fetch and update
+    if (updateDto.categoryId) {
+      const category = await this.eventCategoryRepository.findById(updateDto.categoryId);
+      if (!category) throw new NotFoundException(`Category with ID ${updateDto.categoryId} not found`);
+      existingEvent.category = category;
+    }
+
+    // Now, save the correctly structured domain entity
+    // return await this.eventRepository.update (existingEvent);
+    
+        const updatedEvent = await this.eventRepository.update(existingEvent);
+
+    // ✅ START: Add hashtag update logic
+    if (updateDto.hashtagIds) {
+      // 1. Delete all old mappings for this event
+      await this.eventHashtagMappingRepository.deleteByEventId(id);
+
+      // 2. Create new mappings from the provided list
+      for (const hashtagId of updateDto.hashtagIds) {
+        const hashtag = await this.eventHashtagRepository.findById(hashtagId);
+        if (hashtag) {
+          const mapping = new EventHashtagMapping(updatedEvent, hashtag);
+          await this.eventHashtagMappingRepository.create(mapping);
+        }
+      }
+    }
+    // ✅ END: Add hashtag update logic
+
+    return updatedEvent;
   }
 
   //update venue by id
@@ -368,5 +441,16 @@ export class EventService {
     }
     await this.eventRsvpRepository.delete(id);
   }
+
+
+  
+
+  //event hashtag mapping methods
+
+  // Get all hashtag mappings for a specific event
+async getEventHashtagMappings(eventId: string): Promise<EventHashtagMapping[]> {
+  return await this.eventHashtagMappingRepository.findByEventId(eventId);
+}
+
 
 }

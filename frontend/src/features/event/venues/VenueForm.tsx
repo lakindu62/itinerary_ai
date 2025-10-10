@@ -30,7 +30,7 @@ const formSchema = z.object({
   province: z.string().min(2, { message: 'Province must be at least 2 characters.' }),
   postalCode: z.string().min(2, { message: 'Postal code must be at least 2 characters.' }),
   country: z.string().min(2, { message: 'Country must be at least 2 characters.' }),
-  capacity: z.number().min(1, { message: 'Capacity must be at least 1.' }),
+  capacity: z.coerce.number().min(1, { message: 'Capacity must be at least 1.' }),
   facilities: z.string().array().optional(),
 });
 
@@ -49,7 +49,7 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
       province: venue?.province || '',
       postalCode: venue?.postalCode || '',
       country: venue?.country || '',
-      capacity: venue?.capacity || 0,
+      capacity: venue?.capacity || '',
       facilities: venue?.facilities || [],
     },
   });
@@ -104,7 +104,7 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
             <FormItem>
               <FormLabel>City</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., New York" {...field} />
+                <Input placeholder="e.g., Colombo" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,7 +118,7 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
             <FormItem>
               <FormLabel>Province/State</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., NY" {...field} />
+                <Input placeholder="e.g., NW" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -132,7 +132,7 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
             <FormItem>
               <FormLabel>Postal Code</FormLabel>
               <FormControl>
-                <Input placeholder ="e.g., 10001" {...field} />
+                <Input placeholder ="e.g., 60200" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -146,7 +146,7 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
             <FormItem>
               <FormLabel>Country</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., USA" {...field} />
+                <Input placeholder="e.g., Sri Lanka" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -163,8 +163,10 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
                 <Input
                   type="number"
                   placeholder="e.g., 100"
+                  min={1}
                   {...field}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  
+                  // onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormMessage />

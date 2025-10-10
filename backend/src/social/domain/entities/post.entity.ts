@@ -26,5 +26,32 @@ export class PostWithLikeStatus {
     public updatedAt?: string,
     public image?: string, // Keep for backward compatibility
     public mediaFiles?: string[], // New field for multiple files
+    public isOwner: boolean = false, // Add ownership flag
+  ) {}
+}
+
+export interface PostUserInfo {
+  _id: string;
+  clerkUserId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePicture?: string;
+}
+
+export class PostWithUserInfo {
+  constructor(
+    public id: string,
+    public user: string,
+    public content?: string,
+    public likeCount: number = 0,
+    public commentCount: number = 0,
+    public userLiked: boolean = false,
+    public createdAt?: string,
+    public updatedAt?: string,
+    public image?: string,
+    public mediaFiles?: string[],
+    public userInfo?: PostUserInfo,
+    public isOwner?: boolean,
   ) {}
 }

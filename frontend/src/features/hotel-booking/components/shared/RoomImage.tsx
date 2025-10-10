@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { getSignedGetUrl } from '@/lib/media-wrapper.api';
+import { getSignedGetUrl } from '@frontend/features/hotel-booking/lib/media-wrapper.api';
 import { Loader2 } from 'lucide-react';
 
 interface RoomImageProps {

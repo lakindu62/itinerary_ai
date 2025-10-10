@@ -5,56 +5,56 @@ const API_BASE_URL = 'http://localhost:3000/api/events';
 
 // Venue API
 export const getVenues = async (): Promise<any[]> => {
-  const response = await fetch(`${API_BASE_URL}/venue`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch venue');
-  }
-  return response.json();
+    const response = await fetch(`${API_BASE_URL}/venue`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch venue');
+    }
+    return response.json();
 };
 
 export const getVenueById = async (id: string): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/venue/${id}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch venue with ID: ${id}`);
-  }
-  return response.json();
+    const response = await fetch(`${API_BASE_URL}/venue/${id}`);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch venue with ID: ${id}`);
+    }
+    return response.json();
 };
 
 export const createVenue = async (venueData: Omit<any, 'id'>): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/venue`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(venueData),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to create venue');
-  }
-  return response.json();
+    const response = await fetch(`${API_BASE_URL}/venue`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(venueData),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create venue');
+    }
+    return response.json();
 };
 
 export const updateVenue = async (id: string, venueData: Partial<Omit<any, 'id'>>): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}/venue/${id}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(venueData),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to update venue');
-  }
-  return response.json();
+    const response = await fetch(`${API_BASE_URL}/venue/${id}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(venueData),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update venue');
+    }
+    return response.json();
 };
 
 export const deleteVenue = async (id: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/venue/${id}`, {
-    method: 'DELETE',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to delete venue');
-  }
+    const response = await fetch(`${API_BASE_URL}/venue/${id}`, {
+        method: 'DELETE',
+    });
+    if (!response.ok) {
+        throw new Error('Failed to delete venue');
+    }
 };
 
 
@@ -269,4 +269,65 @@ export const createEvent = async (eventData: any): Promise<any> => {
         throw new Error('Failed to create event');
     }
     return response.json();
+};
+
+export const getEvents = async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/allEvents`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch events');
+    }
+    return response.json();
+};
+
+export const deleteEvent = async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/${id}`, { method: 'DELETE' });
+    if (!response.ok) {
+        throw new Error('Failed to delete event');
+    }
+};
+
+export const getEventById = async (id: string): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/${id}`);
+    if (!response.ok) {
+        throw new Error('Failed to fetch event');
+    }
+    return response.json();
+};
+
+export const updateEvent = async (id: string, data: any): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PATCH',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update event');
+    }
+    return response.json();
+};
+
+// GET hashtag mappings for a specific event
+export const getEventHashtagMappings = async (eventId: string): Promise<any[]> => {
+  const response = await fetch(`${API_BASE_URL}/hashtag-mapping?eventId=${eventId}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch hashtag mappings for event ${eventId}`);
+  }
+  return response.json();
+};
+
+// SET (replace all) hashtag mappings for an event
+export const setEventHashtagMappings = async (eventId: string, hashtagIds: string[]): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/hashtag-mapping/batch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ eventId, hashtagIds }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update hashtag mappings for event ${eventId}`);
+  }
+  return response.json();
 };

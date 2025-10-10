@@ -1,6 +1,8 @@
 import { ClientSession } from 'mongoose';
 import { Post, PostWithLikeStatus } from '../entities/post.entity';
 
+import type { PostWithUserInfo } from '../entities/post.entity';
+
 export abstract class PostRepository {
   /**
    * Creates a new post record in the MongoDB collection.
@@ -33,6 +35,13 @@ export abstract class PostRepository {
    * @returns Promise resolving to an array of PostWithLikeStatus entities
    */
   abstract getAllWithLikeStatus(userId?: string): Promise<PostWithLikeStatus[]>;
+
+  /**
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities
+   */
+  abstract getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]>;
 
   /**
    * Adds a like to a post by incrementing the like count and adding the like ID to the likes array.
@@ -92,6 +101,25 @@ export abstract class PostRepository {
 
   /**
    * Deletes a post by its ID.
+   * @param postId - The ID of the post to delete
+   * @param session - Optional MongoDB session for transaction support
+   * @returns Promise resolving to the deleted post entity
+   * @throws Error if the post is not found or deletion fails
    */
   abstract delete(postId: string, session?: ClientSession): Promise<void>;
+
+  /**
+   * Updates an existing post with partial data.
+   * Supports updating content, media files, and other post properties.
+   * @param postId - The ID of the post to update
+   * @param updateData - Partial post data containing fields to update
+   * @param session - Optional MongoDB session for transaction support
+   * @returns Promise resolving to the updated post entity
+   * @throws Error if the post is not found or update fails
+   */
+  abstract update(
+    postId: string,
+    updateData: Partial<Post>,
+    session?: ClientSession,
+  ): Promise<Post>;
 }

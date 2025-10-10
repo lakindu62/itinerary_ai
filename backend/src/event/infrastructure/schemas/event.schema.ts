@@ -38,7 +38,7 @@ export class Event {
   @Prop({ required: true })
   eventStatus: string;
 
-  @Prop({ type: [String], required: true })
+  @Prop({ type: [String] })
   imagesUrl: string[];
 
   @Prop({ type: Types.ObjectId, ref: 'EventVenue', required: true })
