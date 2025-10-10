@@ -1,7 +1,7 @@
 // frontend/src/features/social/api/social.api.ts
 
 import { rootApiSlice } from "@frontend/store/api/rootApiSlice";
-import type { Post, Comment } from "../types/social.types";
+import type { Post, Comment, UserProfile } from "../types/social.types";
 
 // RTK Query slice for social features (posts, comments, likes)
 export const socialApi = rootApiSlice.injectEndpoints({
@@ -232,12 +232,28 @@ export const socialApi = rootApiSlice.injectEndpoints({
         }
       },
     }),
+    // Get current user profile
+    getCurrentUserProfile: builder.query<UserProfile, void>({
+      query: () => ({
+        url: "/users/me",
+        method: "GET",
+      }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] getCurrentUserProfile called");
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          console.error("[RTK] getCurrentUserProfile error:", error);
+        }
+      },
+    }),
   }),
   overrideExisting: true,
 });
 
 // Export hooks for use in components
 export const {
+  useGetCurrentUserProfileQuery,
   useGetPostsQuery,
   useCreatePostMutation,
   useDeletePostMutation,
