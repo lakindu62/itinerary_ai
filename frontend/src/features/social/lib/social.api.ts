@@ -14,6 +14,16 @@ export const socialApi = rootApiSlice.injectEndpoints({
           : "/social/posts";
         return { url, method: "GET" };
       },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((post) => ({
+                type: "Posts" as const,
+                id: post.id,
+              })),
+              { type: "Posts", id: "LIST" },
+            ]
+          : [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] getPosts called with:", arg);
         try {
@@ -47,6 +57,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
+      invalidatesTags: [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] createPost called with:", arg);
         try {
@@ -64,6 +75,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}`,
         method: "DELETE",
       }),
+      invalidatesTags: [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] deletePost called with:", arg);
         try {
@@ -92,6 +104,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "PATCH",
         body: updates,
       }),
+      invalidatesTags: [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] updatePost called with:", arg);
         try {

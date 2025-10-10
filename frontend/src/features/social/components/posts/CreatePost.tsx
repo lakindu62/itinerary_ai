@@ -22,6 +22,7 @@ import {
 import { getSignedUploadUrl, uploadFileToSignedUrl } from "src/lib/media.api";
 import { useAuth } from "@clerk/nextjs";
 import { error } from "console";
+import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 
 const CreatePost = () => {
   const { data: user, error } = useGetCurrentUserProfileQuery();
@@ -38,9 +39,15 @@ const CreatePost = () => {
   const [content, setContent] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
-  const [createPost, { isLoading }] = useCreatePostMutation();
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [createPost, { isLoading: isMutationLoading }] =
+    useCreatePostMutation();
   const { sessionClaims, isLoaded } = useAuth();
-  const mongoUserId = sessionClaims?.metadata?._id;
+
+  const mongoUserId = (sessionClaims?.metadata as { _id?: string })?._id;
+
+  // Combined loading state: uploading files OR creating post
+  const isLoading = isUploadingMedia || isMutationLoading;
 
   // Don't render until auth is loaded
   if (!isLoaded) {
@@ -64,6 +71,7 @@ const CreatePost = () => {
     let uploadedMediaUrls: string[] = [];
     try {
       if (selectedFiles.length > 0) {
+        setIsUploadingMedia(true); // ← Start loading state for uploads
         const bucket = "social-media";
         const uploadPromises = selectedFiles.map(async (file) => {
           const timestamp = Date.now();
@@ -78,6 +86,7 @@ const CreatePost = () => {
           return fileKeyStored;
         });
         uploadedMediaUrls = await Promise.all(uploadPromises);
+        setIsUploadingMedia(false); // ← End loading state for uploads
       }
       await createPost({ content, mediaFiles: uploadedMediaUrls });
       setContent("");
@@ -85,6 +94,7 @@ const CreatePost = () => {
       setShowMediaUpload(false);
     } catch (error: any) {
       alert("Error posting: " + error.message);
+      setIsUploadingMedia(false); // ← Reset loading state on error
     }
   };
 
@@ -107,23 +117,24 @@ const CreatePost = () => {
   };
 
   return (
-    <Card className="mb-6">
-      <CardContent className="pt-6">
-        <div className="space-y-4">
-          <div className="flex space-x-4">
-            <Avatar className="w-10 h-10">
-              <AvatarImage src={profilePic} />
-            </Avatar>
-            <Textarea
-              placeholder={`Hey ${firstName}, What's on your mind?`}
-              className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-2 text-base"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
+    <SpotlightWrapper enableVerticalFade={false} className="mb-6  rounded-xl">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex space-x-4">
+              <Avatar className="w-10 h-10">
+                <AvatarImage src={profilePic} />
+              </Avatar>
+              <Textarea
+                placeholder={`Hey ${firstName}, What's on your mind?`}
+                className="min-h-[100px] resize-none border-none focus-visible:ring-0 p-2 text-base"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
 
-          {/* {(showImageUpload || imageUrl) && (
+            {/* {(showImageUpload || imageUrl) && (
             <div className="border rounded-lg p-4">
               <input
                 type="file"
@@ -145,103 +156,104 @@ const CreatePost = () => {
             </div>
           )} */}
 
-          {/* **UPDATED: Multiple media files upload section** */}
-          {(showMediaUpload || selectedFiles.length > 0) && (
-            <div className="border rounded-lg p-4">
-              <input
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={handleFileSelection}
-                disabled={isLoading}
-                className="mb-4"
-              />
+            {/* **UPDATED: Multiple media files upload section** */}
+            {(showMediaUpload || selectedFiles.length > 0) && (
+              <div className="border rounded-lg p-4">
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleFileSelection}
+                  disabled={isLoading}
+                  className="mb-4"
+                />
 
-              {/* ** Preview selected files** */}
-              {selectedFiles.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-                  {selectedFiles.map((file, index) => (
-                    <div key={index} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                        {getFileType(file) === "image" ? (
-                          <img
-                            src={URL.createObjectURL(file)}
-                            alt={`Preview ${index}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : getFileType(file) === "video" ? (
-                          <div className="relative w-full h-full">
-                            <video
+                {/* ** Preview selected files** */}
+                {selectedFiles.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="relative group">
+                        <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                          {getFileType(file) === "image" ? (
+                            <img
                               src={URL.createObjectURL(file)}
+                              alt={`Preview ${index}`}
                               className="w-full h-full object-cover"
-                              muted
                             />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <PlayIcon className="w-8 h-8 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                          ) : getFileType(file) === "video" ? (
+                            <div className="relative w-full h-full">
+                              <video
+                                src={URL.createObjectURL(file)}
+                                className="w-full h-full object-cover"
+                                muted
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <PlayIcon className="w-8 h-8 text-white bg-black bg-opacity-50 rounded-full p-1" />
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="text-sm text-gray-500 text-center p-2">
-                            {file.name}
-                          </div>
-                        )}
+                          ) : (
+                            <div className="text-sm text-gray-500 text-center p-2">
+                              {file.name}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* **ADDED: Remove file button** */}
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => removeFile(index)}
+                          disabled={isLoading}
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </Button>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-                      {/* **ADDED: Remove file button** */}
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeFile(index)}
-                        disabled={isLoading}
-                      >
-                        <XIcon className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between border-t pt-4">
-            <div className="flex space-x-2">
+            <div className="flex items-center justify-between border-t pt-4">
+              <div className="flex space-x-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-primary"
+                  onClick={() => setShowMediaUpload(!showMediaUpload)}
+                  disabled={isLoading}
+                >
+                  <ImageIcon className="size-4 mr-2" />
+                  Media
+                </Button>
+              </div>
               <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-primary"
-                onClick={() => setShowMediaUpload(!showMediaUpload)}
-                disabled={isLoading}
+                className="flex items-center"
+                onClick={handleSubmit}
+                disabled={
+                  (!content.trim() && selectedFiles.length === 0) || isLoading
+                }
               >
-                <ImageIcon className="size-4 mr-2" />
-                Media
+                {isLoading ? (
+                  <>
+                    <Loader2Icon className="size-4 mr-2 animate-spin" />
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <SendIcon className="size-4 mr-2" />
+                    Post
+                  </>
+                )}
               </Button>
             </div>
-            <Button
-              className="flex items-center"
-              onClick={handleSubmit}
-              disabled={
-                (!content.trim() && selectedFiles.length === 0) || isLoading
-              }
-            >
-              {isLoading ? (
-                <>
-                  <Loader2Icon className="size-4 mr-2 animate-spin" />
-                  Posting...
-                </>
-              ) : (
-                <>
-                  <SendIcon className="size-4 mr-2" />
-                  Post
-                </>
-              )}
-            </Button>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </SpotlightWrapper>
   );
 };
 

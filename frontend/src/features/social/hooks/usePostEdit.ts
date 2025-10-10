@@ -9,19 +9,22 @@ import { useAuth } from "@clerk/nextjs";
 
 export const usePostEdit = (post: Post) => {
   const { sessionClaims, isLoaded } = useAuth();
-  const mongoUserId = sessionClaims?.metadata?._id;
+  const mongoUserId = (sessionClaims?.metadata as { _id?: string })?._id;
 
-  const [updatePostMutation, { isLoading: isUpdating }] =
+  const [updatePostMutation, { isLoading: isMutationLoading }] =
     useUpdatePostMutation();
 
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content || "");
   const [editMediaFiles, setEditMediaFiles] = useState<File[]>([]);
   const [editMediaToRemove, setEditMediaToRemove] = useState<string[]>([]);
-  // const [isUpdating, setIsUpdating] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [editMediaPreviewUrls, setEditMediaPreviewUrls] = useState<string[]>(
     []
   );
+
+  // Combined loading state: uploading files OR sending mutation
+  const isUpdating = isUploadingMedia || isMutationLoading;
 
   // Toggle edit mode and reset state when cancelling
   const handleEditToggle = () => {
@@ -62,6 +65,7 @@ export const usePostEdit = (post: Post) => {
 
       // Upload new media files if any were selected
       if (editMediaFiles.length > 0) {
+        setIsUploadingMedia(true); //  Start loading state for uploads
         const bucket = "social-media";
 
         const uploadPromises = editMediaFiles.map(async (file) => {
@@ -81,6 +85,7 @@ export const usePostEdit = (post: Post) => {
         });
 
         mediaFilesToAdd = await Promise.all(uploadPromises);
+        setIsUploadingMedia(false); //  End loading state for uploads
       }
 
       // Prepare update payload with only the fields that need updating
@@ -106,25 +111,25 @@ export const usePostEdit = (post: Post) => {
       }
 
       // Send update request to backend
+      // Using .unwrap() ensures RTK Query properly tracks loading state
       const updatedPost = await updatePostMutation({
         postId: post.id,
         updates: updatePayload,
-      });
+      }).unwrap();
 
-      // Only update local state, do NOT mutate post directly
-      if (updatedPost.data) {
-        setEditContent(updatedPost.data.content || "");
-        setEditMediaFiles([]);
-        setEditMediaToRemove([]);
-        setEditMediaPreviewUrls([]);
-        setIsEditing(false);
+      // Reset edit state after successful update
+      setEditContent(updatedPost.content || "");
+      setEditMediaFiles([]);
+      setEditMediaToRemove([]);
+      setEditMediaPreviewUrls([]);
+      setIsEditing(false);
 
-        // Optionally: trigger a refetch or rely on RTK Query cache update
-        window.location.reload(); // Not ideal, but works for now
-      }
+      // RTK Query will automatically refetch posts via cache invalidation
+      // No need for window.location.reload()!
     } catch (error: any) {
       console.error("Error updating post:", error);
       alert("Error updating post: " + error.message);
+      setIsUploadingMedia(false); //  Reset loading state on error
     }
   };
 

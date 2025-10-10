@@ -35,5 +35,6 @@ const baseQuery = fetchBaseQuery({
 export const rootApiSlice = createApi({
   reducerPath: reducerBasePath,
   baseQuery,
+  tagTypes: ["Posts"], // Enable cache tags for automatic invalidation
   endpoints: () => ({}),
 });
