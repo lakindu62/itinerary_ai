@@ -29,6 +29,39 @@
         "updatedAt": "2025-10-06T17:04:07.878Z"
       }
     ],
-    "updatedAt": "2025-10-06T18:16:24.757Z"
+    "updatedAt": "2025-10-06T18:16:24.757Z",
+    "type": "menu",
+    "isAvailable": false
+  },
+  {
+    "id": "business-1760125611356",
+    "businessName": "Business 2",
+    "ownerId": "user_123",
+    "description": "",
+    "category": "Overall Experience",
+    "location": "",
+    "coverImage": "",
+    "sliderImages": [],
+    "menuItems": [],
+    "posts": [],
+    "reels": [],
+    "reviews": [],
+    "ratings": [
+      {
+        "type": "rating",
+        "customerName": "sarada",
+        "customerEmail": "ed@sd",
+        "rating": 5,
+        "title": "dea",
+        "comment": "deae",
+        "category": "Overall Experience",
+        "isApproved": false,
+        "isPublic": true,
+        "helpful": 0,
+        "id": "1760125611356",
+        "createdAt": "2025-10-10T19:46:51.356Z",
+        "updatedAt": "2025-10-10T19:46:51.356Z"
+      }
+    ]
   }
 ]
