@@ -116,7 +116,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         .setPopup(
           new mapboxgl.Popup({ offset: 25 })
             .setHTML(`
-              <div style="padding: 8px;">
+              <div style="padding: 8px; color: black;">
                 <h3 style="margin: 0 0 4px 0; font-weight: bold;">${place.name}</h3>
 
                 ${place.description ? `<p style="margin: 4px 0 0 0; font-size: 12px;">${place.description}</p>` : ''}

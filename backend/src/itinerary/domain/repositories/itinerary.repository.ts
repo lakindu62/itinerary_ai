@@ -4,6 +4,7 @@ import { TravelPlanningSession } from '../aggregates/travel-planning-session.agg
 
 export abstract class ItineraryRepository {
   abstract create(
+    sessionId: string,
     userId: string,
     itineraryWithConversation: {
       itinerary: Itinerary;
@@ -17,4 +18,5 @@ export abstract class ItineraryRepository {
     sessionId: string,
     session: TravelPlanningSession,
   ): Promise<void>;
+  abstract getMyItineraries(userId: string): Promise<Itinerary[]>;
 }

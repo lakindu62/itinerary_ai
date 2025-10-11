@@ -10,7 +10,6 @@ import {
   Get,
 } from '@nestjs/common';
 import { ItineraryService } from 'src/itinerary/application/services/itinerary.service';
-import { CreateItineraryDto } from '../../application/dtos/create-itinerary.dto';
 import { ItineraryChatService } from 'src/itinerary/application/services/itinerary-chat.service';
 import { ChatItineraryRequestDto } from 'src/itinerary/application/dtos/requests/chatItinerary.dto';
 import { ItineraryChatServiceMock } from 'src/itinerary/application/services/mocks/itinerary-chat.service.mock';
@@ -28,9 +27,15 @@ export class ItineraryController {
     private readonly itineraryChatServiceMock: ItineraryChatServiceMock,
   ) {}
 
-  @Post()
-  async create(@Body() createDto: CreateItineraryDto) {
-    return await this.itineraryService.create(createDto);
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
+  @Get('/')
+  async getMyItineraries(@Req() req: Request) {
+    const userId = req.user?._id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return await this.itineraryService.getMyItineraries(userId);
   }
 
   @Get('chat/:id')
@@ -46,6 +51,11 @@ export class ItineraryController {
     { message, conversationId }: ChatItineraryRequestDto,
     @Req() req: Request,
   ): Promise<ChatItineraryResponseDto> {
+    console.log('🚀 ~ ItineraryController ~ chatItinerary ~ message:', message);
+    console.log(
+      '🚀 ~ ItineraryController ~ chatItinerary ~ conversationId:',
+      conversationId,
+    );
     const userId = req.user?._id;
     if (!userId) {
       this.logger.error('User not authenticated', req.user);

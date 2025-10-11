@@ -25,6 +25,7 @@ const baseQuery = fetchBaseQuery({
     }
 
     const token = await getClerkGetTokenFunc();
+    console.log("🚀 ~ token:", token)
     console.log("🚀 ~ token:", token);
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);

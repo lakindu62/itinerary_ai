@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { ItineraryRepository } from '../../domain/repositories/itinerary.repository';
 import { Itinerary } from '../../domain/entities/itinerary.entity';
 import { ItineraryDocument } from '../schemas/itinerary.schema';
@@ -23,6 +23,7 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
   }
 
   async create(
+    sessionId: string,
     userId: string,
     itineraryWithConversation: {
       itinerary: Itinerary;
@@ -30,6 +31,7 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
     },
   ): Promise<void> {
     const doc = new this.itineraryModel({
+      _id: new Types.ObjectId(sessionId),
       ...itineraryWithConversation.itinerary,
       conversation: itineraryWithConversation.conversation,
       user: userId,
@@ -108,6 +110,39 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
       {
         new: true,
       },
+    );
+  }
+  async getMyItineraries(userId: string): Promise<Itinerary[]> {
+    const docs = await this.itineraryModel.find({ user: userId }).exec();
+    return docs.map(
+      (doc) =>
+        new Itinerary(
+          doc.title,
+          doc.summary,
+          doc.days.length > 0
+            ? [
+                new Day(
+                  doc.days[0].dayNumber,
+                  doc.days[0].date,
+                  doc.days[0].destination,
+                  doc.days[0].activities.map(
+                    (activity) =>
+                      new Activity(
+                        activity.time,
+                        activity.name,
+                        activity.description,
+                        activity.address,
+                        activity.type,
+                        activity.coordinates,
+                      ),
+                  ),
+                ),
+              ]
+            : [],
+          doc.accommodation,
+          doc.tips,
+          doc._id.toString(),
+        ),
     );
   }
 

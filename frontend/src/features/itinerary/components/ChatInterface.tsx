@@ -5,30 +5,30 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Loader2, Send, MapPin, Clock, Users, DollarSign } from 'lucide-react';
-import { useAuth } from '@clerk/nextjs';
-import { ObjectId } from 'bson';
-import { ChatItineraryResponseDto, ConversationContextDto, ConversationMessageDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { ConversationContextDto, ConversationMessageDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 
 interface ChatInterfaceProps {
-  onItineraryGenerated: (itinerary: ItineraryDto | null, context: ConversationContextDto) => void;
+  messages: ConversationMessageDto[];
+  isLoading: boolean;
   context: ConversationContextDto;
-  id?: string;
+  onSendMessage: (message: string) => void;
+  initialQuery?: string;
+  conversationId?: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, context, id }) => {
-  const { getToken } = useAuth();
-  const [messages, setMessages] = useState<ConversationMessageDto[]>([
-    {
-      role: 'assistant',
-      content: "Hi! I'm your AI travel assistant. Tell me about your dream trip and I'll create a personalized itinerary for you. Where would you like to go?",
-
-    }
-  ]);
+const ChatInterface: React.FC<ChatInterfaceProps> = ({
+  messages,
+  isLoading,
+  context,
+  onSendMessage,
+  initialQuery,
+  conversationId
+}) => {
   const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversationId] = useState(() => id || new ObjectId().toString());
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -40,57 +40,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
-    const userMessage: ConversationMessageDto = {
-      role: 'user',
-      content: inputValue.trim(),
-
-    };
-
-    // Optimistically add user message
-    setMessages(prev => [...prev, userMessage]);
+    const message = inputValue.trim();
     setInputValue('');
-    setIsLoading(true);
-
-    try {
-      const token = await getToken();
-      const response = await fetch('http://localhost:3000/api/itineraries/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
-        },
-        body: JSON.stringify({
-          message: userMessage.content,
-          conversationId
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response from server');
-      }
-
-      const data: ChatItineraryResponseDto = await response.json();
-      console.log("🚀 ~ handleSendMessage ~ data:", data)
-
-      // Update messages and context from backend response
-      setMessages(data.conversation.messages);
-      onItineraryGenerated(data.currentItinerary || null, data.conversation.context);
-
-    } catch (error) {
-      console.error('Failed to send message:', error);
-
-      // Remove optimistic message and add error message
-      setMessages(prev => {
-        const withoutLast = prev.slice(0, -1);
-        return [...withoutLast, {
-          role: 'assistant',
-          content: "I apologize, but I couldn't process your request right now. Please try again or be more specific about your destination and preferences.",
-
-        }];
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    onSendMessage(message);
   };
 
   const getStageDisplay = (stage: ConversationContextDto['stage']) => {
@@ -124,10 +76,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
   ];
 
   return (
-    <div className="h-full flex flex-col bg-card">
-      <div className="p-4 border-b bg-muted/20">
-        <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-card-foreground">Chat with AI Assistant</h2>
+    <div className="h-full flex flex-col bg-card rounded-r-[30px] border">
+      <div className="p-4 border-b bg-muted/20 rounded-[30px]">
+        <div className="flex justify-between items-center rounded-[30px]">
+          <h2 className="font-semibold text-card-foreground rounded-[30px]">Chat with AI Assistant</h2>
           <span className="text-xs text-muted-foreground px-2 py-1 bg-primary/10 rounded-full">
             {getStageDisplay(context.stage)}
           </span>
@@ -203,7 +155,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onItineraryGenerated, con
         </div>
       </ScrollArea>
 
-      {messages.length === 1 && !context.destination && (
+      {messages.length <= 1 && !context.destination && (
         <div className="p-4 border-t bg-muted/10">
           <p className="text-sm text-muted-foreground mb-3">Quick suggestions:</p>
           <div className="space-y-2">
