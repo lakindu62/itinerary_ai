@@ -49,7 +49,7 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
       province: venue?.province || '',
       postalCode: venue?.postalCode || '',
       country: venue?.country || '',
-      capacity: venue?.capacity || '',
+      capacity: venue?.capacity || 0,
       facilities: venue?.facilities || [],
     },
   });

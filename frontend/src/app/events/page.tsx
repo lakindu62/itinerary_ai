@@ -49,6 +49,9 @@ const EventsPage = () => {
     fetchEvents();
   }, []);
 
+    const sortedEvents = [...events].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
+
   return (
     <div className="bg-white min-h-screen font-sans">
       <div className="bg-[#E3E2F7] px-4 sm:px-8 md:px-16 lg:px-24 py-8">
@@ -69,7 +72,7 @@ const EventsPage = () => {
               {!loading && !error && events.length === 0 && (
                 <p className="text-center text-gray-500">No events found.</p>
               )}
-              {!loading && !error && events.map((event, index) => (
+              {!loading && !error && sortedEvents.map((event, index) => (
                 <React.Fragment key={event.id}>
                   <EventCard event={event} />
                   {index < events.length - 1 && (

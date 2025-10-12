@@ -69,7 +69,9 @@ const CategoryList = () => {
             {filteredCategories.map((category) => (
               <TableRow key={category.id}>
                 <TableCell>{category.categoryName}</TableCell>
-                <TableCell>{category.description}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis"
+                title={category.description} >
+                {category.description}</TableCell>
                 <TableCell>
                   <Link href={`/admin/event/categories/edit/${category.id}`} passHref>
                     <Button variant="outline" size="sm" className="mr-2">

@@ -1,6 +1,34 @@
 
 // import { Venue } from "@shared/types/event/venue.types";
 
+export type SingleEventType = {
+  id: string;
+  eventName: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  imagesUrl?: string[];
+  venue: {
+    venueName: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+  organizer: {
+    organizerName: string;
+  };
+  category: {
+    categoryName: string;
+  };
+  hashtags: { hashtag: { name: string } }[];
+  ticketPrice: number;
+  eventStatus: 'active' | 'inactive' | 'completed';
+};
+
+
 const API_BASE_URL = 'http://localhost:3000/api/events';
 
 // Venue API
