@@ -246,3 +246,16 @@ export const deleteRsvp = async (id: string, getToken: GetToken): Promise<void> 
     const response = await authenticatedFetch(`/events/rsvp/${id}`, getToken, { method: 'DELETE' });
     if (!response.ok) throw new Error('Failed to delete rsvp');
 };
+
+export const createRsvp = async (rsvpData: { eventId: string; guestCount: number; rsvpStatus: string; }, getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch('/events/rsvp', getToken, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rsvpData),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create RSVP');
+    }
+    return response.json();
+};

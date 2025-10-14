@@ -1,5 +1,5 @@
 
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { AuthenticatedUser } from '@shared/types/user-management';
 import { EventRepository } from '../../domain/repositories/event.repository';
 import { EventVenueRepository } from '../../domain/repositories/event-venue.repository';
@@ -273,6 +273,19 @@ export class EventService {
     if (!event) {
       throw new NotFoundException('Event not found');
     }
+
+    // Capacity Check
+    const currentBookedGuests = await this.eventRsvpRepository.getTotalGuestCountForEvent(event.id!);
+    const availableCapacity = event.maxAttendees - currentBookedGuests;
+
+    if (createRsvpDto.guestCount <= 0) {
+      throw new BadRequestException('Guest count must be at least 1.');
+    }
+
+    if (createRsvpDto.guestCount > availableCapacity) {
+      throw new BadRequestException(`Not enough tickets available. Only ${availableCapacity} tickets remaining.`);
+    }
+
     const eventRsvp = new EventRsvp(
       null,
       event.businessAccountId,

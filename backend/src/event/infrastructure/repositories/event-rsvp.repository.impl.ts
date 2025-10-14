@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { EventRsvpRepository } from '../../domain/repositories/event-rsvp.repository';
 import { EventRsvp } from '../../domain/entities/event-rsvp.entity';
 import { EventRsvpDocument } from '../schemas/event-rsvp.schema';
@@ -48,5 +48,13 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
       doc.rsvpStatus,
       doc.guestCount,
     );
+  }
+
+  async getTotalGuestCountForEvent(eventId: string): Promise<number> {
+    const result = await this.eventRsvpModel.aggregate([
+      { $match: { 'event._id': new Types.ObjectId(eventId) } },
+      { $group: { _id: null, totalGuests: { $sum: '$guestCount' } } },
+    ]).exec();
+    return result.length > 0 ? result[0].totalGuests : 0;
   }
 }

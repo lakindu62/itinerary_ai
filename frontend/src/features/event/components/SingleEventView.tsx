@@ -78,7 +78,7 @@ const SingleEventView: React.FC<SingleEventViewProps> = ({ event }) => {
 
         {/* Right Column */}
         <div className="w-full">
-          <OrderSummaryCard ticketPrice={event.ticketPrice} />
+          <OrderSummaryCard eventId={event.id} ticketPrice={event.ticketPrice} maxAttendees={event.maxAttendees} />
         </div>
       </div>
     </div>
