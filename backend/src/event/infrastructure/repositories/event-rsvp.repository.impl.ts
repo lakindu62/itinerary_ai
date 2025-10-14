@@ -13,39 +13,40 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
     super();
   }
 
-  async create(eventRsvp: EventRsvp): Promise<any> {
+  async create(eventRsvp: EventRsvp): Promise<EventRsvp> {
     const newEventRsvp = new this.eventRsvpModel(eventRsvp);
     const savedEventRsvp = await newEventRsvp.save();
     return this.toDomainEntity(savedEventRsvp);
   }
 
-  async findAll(): Promise<any[]> {
-    const docs = await this.eventRsvpModel.find().exec();
+  async findAll(businessAccountId: string): Promise<EventRsvp[]> {
+    const docs = await this.eventRsvpModel.find({ businessAccountId }).exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  async findById(id: string): Promise<any | null> {
-    const doc = await this.eventRsvpModel.findById(id).exec();
+  async findById(id: string, businessAccountId: string): Promise<EventRsvp | null> {
+    const doc = await this.eventRsvpModel.findOne({ _id: id, businessAccountId }).exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async update(eventRsvp: EventRsvp): Promise<any | null> {
-    const updatedDoc = await this.eventRsvpModel.findByIdAndUpdate(eventRsvp.id, eventRsvp, { new: true }).exec();
+  async update(id: string, updates: Partial<EventRsvp>, businessAccountId: string): Promise<EventRsvp | null> {
+    const updatedDoc = await this.eventRsvpModel.findOneAndUpdate({ _id: id, businessAccountId }, updates, { new: true }).exec();
     return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.eventRsvpModel.findByIdAndDelete(id).exec();
+  async delete(id: string, businessAccountId: string): Promise<boolean> {
+    const result = await this.eventRsvpModel.deleteOne({ _id: id, businessAccountId }).exec();
+    return result.deletedCount > 0;
   }
 
-  private toDomainEntity(doc: EventRsvpDocument): any {
-    return {
-      id: doc._id.toString(),
-      event: doc.event as any,
-      userId: doc.userId,
-      rsvpStatus: doc.rsvpStatus,
-      createdAt: (doc as any).createdAt,
-      guestCount: doc.guestCount,
-    };
+  private toDomainEntity(doc: EventRsvpDocument): EventRsvp {
+    return new EventRsvp(
+      doc._id.toString(),
+      doc.businessAccountId,
+      doc.event as any,
+      doc.userId,
+      doc.rsvpStatus,
+      doc.guestCount,
+    );
   }
 }

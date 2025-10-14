@@ -1,3 +1,5 @@
+import { PartialType } from '@nestjs/mapped-types';
+
 export class CreateEventDto {
   eventName: string;
   description?: string;
@@ -13,6 +15,6 @@ export class CreateEventDto {
   organizerId: string;
   categoryId: string;
   hashtagIds?: string[];
-  // hashtags?: string[];
-  // location?: string;
 }
+
+export class UpdateEventDto extends PartialType(CreateEventDto) {}

@@ -1,14 +1,14 @@
-
 'use client';
 
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { createCategory, updateCategory } from '../lib/event-api';
+import { createBusinessCategory, updateBusinessCategory } from '../lib/event-api';
 
 interface Category {
   id: string;
@@ -27,6 +27,7 @@ interface CategoryFormProps {
 }
 
 const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSuccess }) => {
+  const { getToken } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -36,11 +37,12 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSuccess }) => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!getToken) return;
     try {
       if (category) {
-        await updateCategory(category.id, values);
+        await updateBusinessCategory(category.id, values, getToken);
       } else {
-        await createCategory(values);
+        await createBusinessCategory(values, getToken);
       }
       onSuccess();
     } catch (error) {

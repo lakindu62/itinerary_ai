@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { getCategories, deleteCategory } from '../lib/event-api';
+import { getBusinessCategories, deleteBusinessCategory } from '../lib/event-api';
 import Link from 'next/link';
 
 interface Category {
@@ -15,24 +16,27 @@ interface Category {
 }
 
 const CategoryList = () => {
+  const { getToken } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCategories = async () => {
+      if (!getToken) return; // Ensure getToken is available
       try {
-        const data = await getCategories();
+        const data = await getBusinessCategories(getToken);
         setCategories(data);
       } catch (error) {
         console.error('Failed to fetch categories:', error);
       }
     };
     fetchCategories();
-  }, []);
+  }, [getToken]);
 
   const handleDelete = async (id: string) => {
+    if (!getToken) return; // Ensure getToken is available
     try {
-      await deleteCategory(id);
+      await deleteBusinessCategory(id, getToken);
       setCategories(categories.filter((category) => category.id !== id));
     } catch (error) {
       console.error('Failed to delete category:', error);

@@ -8,6 +8,9 @@ export type EventOrganizerDocument = EventOrganizer & Document & { _id: Types.Ob
   strict: 'throw',
 })
 export class EventOrganizer {
+  @Prop({ required: true, index: true })
+  businessAccountId: string;
+
   @Prop({ required: true })
   organizerName: string;
 

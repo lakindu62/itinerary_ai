@@ -2,35 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getEventById } from '@/features/event/lib/event-api'; // Your existing function
+import { getEventByIdPublic, SingleEventType } from '@/features/event/lib/event-api';
 import SingleEventView from '@/features/event/components/SingleEventView';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
-
-// 1. DEFINE the detailed type here, inside the page file.
-type SingleEventType = {
-  id: string;
-  eventName: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  startTime: string;
-  endTime: string;
-  imagesUrl?: string[];
-  venue: { venueName: string; address: string; city: string; state: string; zipCode: string; };
-  organizer: { organizerName: string; };
-  category: { categoryName: string; };
-  hashtags: { hashtag: { name:string } }[];
-  ticketPrice: number;
-  eventStatus: 'active' | 'inactive' | 'completed';
-};
 
 const SingleEventPage = () => {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
 
-  // 2. USE the new type for your component's state.
   const [event, setEvent] = useState<SingleEventType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +21,7 @@ const SingleEventPage = () => {
       const fetchEvent = async () => {
         try {
           setLoading(true);
-          // 3. CAST the result to your new type using "as".
-          const eventData = await getEventById(id) as SingleEventType;
+          const eventData = await getEventByIdPublic(id) as SingleEventType;
           setEvent(eventData);
         } catch (err) {
           setError('Failed to load event. It may not exist or an error occurred.');

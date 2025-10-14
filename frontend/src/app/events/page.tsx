@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import EventCard from '@/features/event/components/EventCard';
-import { getEvents } from '@/features/event/lib/event-api';
+import { getAllEventsPublic } from '@/features/event/lib/event-api';
 import { ChevronLeft } from 'lucide-react';
 
 // Define the type for a single event to be used in the component state
@@ -35,7 +35,7 @@ const EventsPage = () => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const eventsData = await getEvents();
+        const eventsData = await getAllEventsPublic();
         setEvents(eventsData as Event[]);
         setError(null);
       } catch (err) {

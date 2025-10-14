@@ -1,9 +1,9 @@
 import { EventRsvp } from '../entities/event-rsvp.entity';
 
 export abstract class EventRsvpRepository {
-  abstract create(eventRsvp: EventRsvp): Promise<any>;
-  abstract findAll(): Promise<any[]>;
-  abstract findById(id: string): Promise<any | null>;
-  abstract update(eventRsvp: EventRsvp): Promise<any | null>;
-  abstract delete(id: string): Promise<void>;
+  abstract create(eventRsvp: EventRsvp): Promise<EventRsvp>;
+  abstract findAll(businessAccountId: string): Promise<EventRsvp[]>;
+  abstract findById(id: string, businessAccountId: string): Promise<EventRsvp | null>;
+  abstract update(id: string, updates: Partial<EventRsvp>, businessAccountId: string): Promise<EventRsvp | null>;
+  abstract delete(id: string, businessAccountId: string): Promise<boolean>;
 }

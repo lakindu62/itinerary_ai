@@ -1,206 +1,171 @@
-import { Controller, Post, Get, Body, Param, Patch, Delete, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Patch, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { EventService } from '../../application/services/event.service';
-import { CreateEventDto } from '../../application/dtos/create-event.dto';
-import { CreateEventRsvpDto } from '../../application/dtos/create-event-rsvp.dto';
-import { CreateEventHashtagDto } from '../../application/dtos/create-event-hashtag.dto';
-import { CreateEventHashtagMappingDto } from '../../application/dtos/create-event-hashtag-mapping.dto';
-import { CreateEventCategoryDto } from '../../application/dtos/create-event-category.dto';
-import { CreateEventOrganizerDto } from '../../application/dtos/create-event-organizer.dto';
-import { CreateEventVenueDto } from '../../application/dtos/create-event-venue.dto';
-
-import { UpdateEventDto } from '../../application/dtos/update-event.dto';
-import { UpdateEventVenueDto } from 'src/event/application/dtos/update-event-venue.dto';
-import { UpdateEventOrganizerDto } from 'src/event/application/dtos/update-event-organizer.dto';
-import { UpdateEventCategoryDto } from 'src/event/application/dtos/update-event-category.dto';
-import { UpdateEventHashtagDto } from 'src/event/application/dtos/update-event-hashtag.dto';
-import { UpdateEventRsvpDto } from 'src/event/application/dtos/update-event-rsvp.dto';
+import { CreateEventDto, UpdateEventDto } from '../../application/dtos/create-event.dto';
+import { CreateEventRsvpDto, UpdateEventRsvpDto } from '../../application/dtos/create-event-rsvp.dto';
+import { CreateEventHashtagDto, UpdateEventHashtagDto } from '../../application/dtos/create-event-hashtag.dto';
+import { CreateEventCategoryDto, UpdateEventCategoryDto } from '../../application/dtos/create-event-category.dto';
+import { CreateEventOrganizerDto, UpdateEventOrganizerDto } from '../../application/dtos/create-event-organizer.dto';
+import { CreateEventVenueDto, UpdateEventVenueDto } from '../../application/dtos/create-event-venue.dto';
+import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
+import { AuthenticatedUser } from '@shared/types/user-management';
 
 @Controller('events')
 export class EventController {
   constructor(private readonly eventService: EventService) {}
 
+  // ================= PUBLIC ROUTES =================
+  @Get('all')
+  findAllPublic() {
+    return this.eventService.getAllEventsPublic();
+  }
+
+  @Get(':id/public')
+  findEventByIdPublic(@Param('id') id: string) {
+    return this.eventService.getEventByIdPublic(id);
+  }
+
+  // ================= BUSINESS-SCOPED ROUTES =================
+
+  // --- Full Event CRUD ---
+  @UseGuards(ClerkAuthGuard)
   @Post()
-  async create(@Body() createDto: CreateEventDto) {
-    return await this.eventService.create(createDto);
+  createEvent(@Body() createDto: CreateEventDto, @Req() req: Request) {
+    return this.eventService.createEvent(createDto, req.user as AuthenticatedUser);
   }
 
-  @Post('rsvp')
-  async createRsvp(@Body() createRsvpDto: CreateEventRsvpDto) {
-    return await this.eventService.createRsvp(createRsvpDto);
+  @UseGuards(ClerkAuthGuard)
+  @Get()
+  getAllEvents(@Req() req: Request) {
+    return this.eventService.getAllEvents(req.user as AuthenticatedUser);
   }
 
-  @Post('hashtag')
-  async createHashtag(@Body() createHashtagDto: CreateEventHashtagDto) {
-    return await this.eventService.createHashtag(createHashtagDto);
-  }
-
-  @Post('hashtag/map')
-  async mapHashtagToEvent(
-    @Body() createEventHashtagMappingDto: CreateEventHashtagMappingDto,
-  ) {
-    return await this.eventService.mapHashtagToEvent(
-      createEventHashtagMappingDto,
-    );
-  }
-
-  @Post('category')
-  async createCategory(@Body() createDto: CreateEventCategoryDto) {
-    return await this.eventService.createCategory(createDto);
-  }
-
-  @Post('organizer')
-  async createOrganizer(@Body() createDto: CreateEventOrganizerDto) {
-    return await this.eventService.createOrganizer(createDto);
-  }
-
-  @Post('venue')
-  async createVenue(@Body() createDto: CreateEventVenueDto) {
-    return await this.eventService.createVenue(createDto);
-  }
-
-
-
-
-  // Add this route to get all venues
-@Get('venue')
-async getVenues() {
-  return await this.eventService.getVenues();
-}
-
-@Get('organizer')
-async getOrganizers() {
-  return await this.eventService.getOrganizers();
-}
-
-@Get('category')
-async getCategories() {
-  return await this.eventService.getCategories();
-}
-
-@Get('rsvp')
-async getRsvps() {
-  return await this.eventService.getRsvps();
-}
-
- @Get('hashtag')
-async getAllHashtags() {
-  return await this.eventService.getHashtags();
-}
-
-  @Get('allEvents')
-  async getAllEvents() {
-    return await this.eventService.getAllEvents();
-  }
-
-  //get venue by id
-  @Get('venue/:id')
-  async getVenueById(@Param('id') id: string) {
-    return await this.eventService.getVenueById(id);
-  }
-  
-  //get category by id
-  @Get('category/:id')
-  async getCategoryById(@Param('id') id: string) {
-    return await this.eventService.getCategoryById(id);
-  }
-
-   //get organizer by id
-  @Get('organizer/:id')
-  async getOrganizerById(@Param('id') id: string) {
-    return await this.eventService.getOrganizerById(id);
-  }
-
-  //get rsvp by id
-  @Get('rsvp/:id')
-  async getRsvpById(@Param('id') id: string) {
-    return await this.eventService.getRsvpById(id);
-  }
-
-  //get hashtag by id
-  @Get('hashtag/:id')
-  async getHashtagById(@Param('id') id: string) {
-    return await this.eventService.getHashtagById(id);
-  }
-  
-  // Hashtag mapping routes
-  // GET /api/events/hashtag-mapping?eventId=123
-  @Get('hashtag-mapping')
-  async getEventHashtagMappings(@Query('eventId') eventId: string) {
-    return await this.eventService.getEventHashtagMappings(eventId);
-  }
-
-  //get event by id
+  @UseGuards(ClerkAuthGuard)
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return await this.eventService.findById(id);
+  findEventById(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.findEventById(id, req.user as AuthenticatedUser);
   }
 
-
-
-
-  //update
-  @Patch('venue/:id')
-  async updateVenue(@Param('id') id: string, @Body() updateDto: UpdateEventVenueDto) {
-    return await this.eventService.updateVenue(id, updateDto);
-  }
-
-  @Patch('organizer/:id')
-  async updateOrganizer(@Param('id') id: string, @Body() updateDto: UpdateEventOrganizerDto) {
-    return await this.eventService.updateOrganizer(id, updateDto);
-  }
-
-  @Patch('category/:id')
-  async updateCategory(@Param('id') id: string, @Body() updateDto: UpdateEventCategoryDto) {
-    return await this.eventService.updateCategory(id, updateDto);
-  }
-
-  @Patch('hashtag/:id')
-  async updateHashtag(@Param('id') id: string, @Body() updateDto: UpdateEventHashtagDto) {
-    return await this.eventService.updateHashtag(id, updateDto);
-  }
-
-  @Patch('rsvp/:id')
-  async updateRsvp(@Param('id') id: string, @Body() updateDto: UpdateEventRsvpDto) {
-    return await this.eventService.updateRsvp(id, updateDto);
-  }
-
+  @UseGuards(ClerkAuthGuard)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateDto: UpdateEventDto) {
-    return await this.eventService.update(id, updateDto);
+  updateEvent(@Param('id') id: string, @Body() updateDto: UpdateEventDto, @Req() req: Request) {
+    return this.eventService.updateEvent(id, updateDto, req.user as AuthenticatedUser);
   }
 
-
-
-  //delete event by id
-  @Delete('hashtag/:id')
-  async deleteHashtag(@Param('id') id: string) {
-    return await this.eventService.deleteHashtag(id);
+  @UseGuards(ClerkAuthGuard)
+  @Delete(':id')
+  deleteEvent(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.deleteEvent(id, req.user as AuthenticatedUser);
   }
 
-  @Delete('category/:id')
-  async deleteCategory(@Param('id') id: string) {
-    return await this.eventService.deleteCategory(id);
+  // --- Venue CRUD ---
+  @UseGuards(ClerkAuthGuard)
+  @Post('venue')
+  createVenue(@Body() createDto: CreateEventVenueDto, @Req() req: Request) {
+    return this.eventService.createVenue(createDto, req.user as AuthenticatedUser);
   }
 
-  @Delete('organizer/:id')
-  async deleteOrganizer(@Param('id') id: string) {
-    return await this.eventService.deleteOrganizer(id);
+  @UseGuards(ClerkAuthGuard)
+  @Get('venue/all')
+  getVenues(@Req() req: Request) {
+    return this.eventService.getVenues(req.user as AuthenticatedUser);
+  }
+  
+  @UseGuards(ClerkAuthGuard)
+  @Patch('venue/:id')
+  updateVenue(@Param('id') id: string, @Body() updateDto: UpdateEventVenueDto, @Req() req: Request) {
+    return this.eventService.updateVenue(id, updateDto, req.user as AuthenticatedUser);
   }
 
+  @UseGuards(ClerkAuthGuard)
   @Delete('venue/:id')
-  async deleteVenue(@Param('id') id: string) {
-    return await this.eventService.deleteVenue(id);
+  deleteVenue(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.deleteVenue(id, req.user as AuthenticatedUser);
   }
 
+  // --- Organizer CRUD ---
+  @UseGuards(ClerkAuthGuard)
+  @Post('organizer')
+  createOrganizer(@Body() createDto: CreateEventOrganizerDto, @Req() req: Request) {
+    return this.eventService.createOrganizer(createDto, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Get('organizer/all')
+  getOrganizers(@Req() req: Request) {
+    return this.eventService.getOrganizers(req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Patch('organizer/:id')
+  updateOrganizer(@Param('id') id: string, @Body() updateDto: UpdateEventOrganizerDto, @Req() req: Request) {
+    return this.eventService.updateOrganizer(id, updateDto, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Delete('organizer/:id')
+  deleteOrganizer(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.deleteOrganizer(id, req.user as AuthenticatedUser);
+  }
+
+  // --- Category CRUD ---
+  @UseGuards(ClerkAuthGuard)
+  @Post('category')
+  createCategory(@Body() createDto: CreateEventCategoryDto, @Req() req: Request) {
+    return this.eventService.createCategory(createDto, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Get('category/all')
+  getCategories(@Req() req: Request) {
+    return this.eventService.getCategories(req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Patch('category/:id')
+  updateCategory(@Param('id') id: string, @Body() updateDto: UpdateEventCategoryDto, @Req() req: Request) {
+    return this.eventService.updateCategory(id, updateDto, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Delete('category/:id')
+  deleteCategory(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.deleteCategory(id, req.user as AuthenticatedUser);
+  }
+
+  // --- RSVP (Traveler and Business) ---
+  @UseGuards(ClerkAuthGuard)
+  @Post('rsvp')
+  createRsvp(@Body() createRsvpDto: CreateEventRsvpDto, @Req() req: Request) {
+    return this.eventService.createRsvp(createRsvpDto, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Get('rsvp/all')
+  getRsvps(@Req() req: Request) {
+    return this.eventService.getRsvps(req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
   @Delete('rsvp/:id')
-  async deleteRsvp(@Param('id') id: string) {
-    return await this.eventService.deleteRsvp(id);
+  deleteRsvp(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.deleteRsvp(id, req.user as AuthenticatedUser);
   }
 
-   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return await this.eventService.delete(id);
+  // --- Hashtag (Global) ---
+  @Get('hashtag/all')
+  getAllHashtags() {
+    return this.eventService.getHashtags();
   }
 
-
+  @UseGuards(ClerkAuthGuard)
+  @Post('hashtag')
+  createHashtag(@Body() createHashtagDto: CreateEventHashtagDto) {
+    return this.eventService.createHashtag(createHashtagDto);
+  }
+  
+  @Get('hashtag-mapping')
+  getEventHashtagMappings(@Query('eventId') eventId: string) {
+    return this.eventService.getEventHashtagMappings(eventId);
+  }
 }

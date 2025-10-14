@@ -1,16 +1,15 @@
-
 'use client';
 
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { createVenue, updateVenue } from '../lib/event-api';
+import { createBusinessVenue, updateBusinessVenue } from '../lib/event-api';
 
-// Temporary Venue type definition
 interface Venue {
   id: string;
   venueName: string;
@@ -40,6 +39,7 @@ interface VenueFormProps {
 }
 
 const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
+  const { getToken } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -55,11 +55,12 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!getToken) return;
     try {
       if (venue) {
-        await updateVenue(venue.id, values);
+        await updateBusinessVenue(venue.id, values, getToken);
       } else {
-        await createVenue(values);
+        await createBusinessVenue(values, getToken);
       }
       onSuccess();
     } catch (error) {
@@ -165,8 +166,6 @@ const VenueForm: React.FC<VenueFormProps> = ({ venue, onSuccess }) => {
                   placeholder="e.g., 100"
                   min={1}
                   {...field}
-                  
-                  // onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormMessage />

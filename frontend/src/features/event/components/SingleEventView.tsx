@@ -40,7 +40,7 @@ const SingleEventView: React.FC<SingleEventViewProps> = ({ event }) => {
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
       {/* Image Header */}
-      <div className="w-full h-48 md:h-72 rounded-lg bg-gray-200 mb-8 overflow-hidden">
+      <div className="w-full h-48 md:h-100 rounded-lg bg-gray-200 mb-8 overflow-hidden">
         {imageLoading ? (
           <div className="w-full h-full flex items-center justify-center text-gray-500">Loading Image...</div>
         ) : imageSignedUrl ? (

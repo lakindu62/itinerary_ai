@@ -1,31 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { AuthenticatedUser } from '@shared/types/user-management';
 import { EventRepository } from '../../domain/repositories/event.repository';
-import { Event } from '../../domain/entities/event.entity';
-import { CreateEventDto } from '../dtos/create-event.dto';
 import { EventVenueRepository } from '../../domain/repositories/event-venue.repository';
 import { EventOrganizerRepository } from '../../domain/repositories/event-organizer.repository';
 import { EventCategoryRepository } from '../../domain/repositories/event-category.repository';
 import { EventRsvpRepository } from '../../domain/repositories/event-rsvp.repository';
-import { EventRsvp } from '../../domain/entities/event-rsvp.entity';
-import { CreateEventRsvpDto } from '../dtos/create-event-rsvp.dto';
 import { EventHashtagRepository } from '../../domain/repositories/event-hashtag.repository';
-import { EventHashtag } from '../../domain/entities/event-hashtag.entity';
-import { CreateEventHashtagDto } from '../dtos/create-event-hashtag.dto';
 import { EventHashtagMappingRepository } from '../../domain/repositories/event-hashtag-mapping.repository';
-import { EventHashtagMapping } from '../../domain/entities/event-hashtag-mapping.entity';
-import { CreateEventHashtagMappingDto } from '../dtos/create-event-hashtag-mapping.dto';
-import { CreateEventCategoryDto } from '../dtos/create-event-category.dto';
-import { CreateEventOrganizerDto } from '../dtos/create-event-organizer.dto';
-import { CreateEventVenueDto } from '../dtos/create-event-venue.dto';
-import { EventCategory } from '../../domain/entities/event-category.entity';
-import { EventOrganizer } from '../../domain/entities/event-organizer.entity';
+import { Event } from '../../domain/entities/event.entity';
 import { EventVenue } from '../../domain/entities/event-venue.entity';
-import { UpdateEventDto } from '../dtos/update-event.dto';
-import { UpdateEventVenueDto } from '../dtos/update-event-venue.dto';
-import { UpdateEventOrganizerDto } from '../dtos/update-event-organizer.dto';
-import { UpdateEventCategoryDto } from '../dtos/update-event-category.dto';
-import { UpdateEventHashtagDto } from '../dtos/update-event-hashtag.dto';
-import { UpdateEventRsvpDto } from '../dtos/update-event-rsvp.dto';
+import { EventOrganizer } from '../../domain/entities/event-organizer.entity';
+import { EventCategory } from '../../domain/entities/event-category.entity';
+import { EventRsvp } from '../../domain/entities/event-rsvp.entity';
+import { EventHashtag } from '../../domain/entities/event-hashtag.entity';
+import { EventHashtagMapping } from '../../domain/entities/event-hashtag-mapping.entity';
+import { CreateEventDto, UpdateEventDto } from '../dtos/create-event.dto';
+import { CreateEventVenueDto, UpdateEventVenueDto } from '../dtos/create-event-venue.dto';
+import { CreateEventOrganizerDto, UpdateEventOrganizerDto } from '../dtos/create-event-organizer.dto';
+import { CreateEventCategoryDto, UpdateEventCategoryDto } from '../dtos/create-event-category.dto';
+import { CreateEventRsvpDto, UpdateEventRsvpDto } from '../dtos/create-event-rsvp.dto';
+import { CreateEventHashtagDto, UpdateEventHashtagDto } from '../dtos/create-event-hashtag.dto';
+import { CreateEventHashtagMappingDto } from '../dtos/create-event-hashtag-mapping.dto';
 
 
 @Injectable()
@@ -40,21 +35,48 @@ export class EventService {
     private readonly eventHashtagMappingRepository: EventHashtagMappingRepository,
   ) {}
 
-  async create(createDto: CreateEventDto): Promise<Event> {
-    const venue = await this.eventVenueRepository.findById(createDto.venueId);
-    const organizer = await this.eventOrganizerRepository.findById(
-      createDto.organizerId,
-    );
-    const category = await this.eventCategoryRepository.findById(
-      createDto.categoryId,
-    );
+  private _getBusinessId(user: AuthenticatedUser): string {
+    if (!user.business_account_id) {
+      throw new UnauthorizedException('User is not associated with a business.');
+    }
+    return user.business_account_id;
+  }
 
-    // if (!venue || !organizer || !category) {
-    //   throw new Error('Venue, Organizer or Category not found');
-    // }
+  // =================================================================
+  // Public Methods (No Business Scope)
+  // =================================================================
+
+  async getAllEventsPublic(): Promise<Event[]> {
+    return this.eventRepository.findAllPublic();
+  }
+  
+  async getEventByIdPublic(id: string): Promise<Event | null> {
+    const event = await this.eventRepository.findPublicById(id);
+    if (!event) {
+        throw new NotFoundException(`Event with ID ${id} not found`);
+    }
+    return event;
+  }
+
+  // =================================================================
+  // Business-Scoped Event Methods
+  // =================================================================
+
+  async createEvent(createDto: CreateEventDto, user: AuthenticatedUser): Promise<Event> {
+    const businessAccountId = this._getBusinessId(user);
+
+    const venue = await this.eventVenueRepository.findById(createDto.venueId, businessAccountId);
+    if (!venue) throw new NotFoundException(`Venue with ID ${createDto.venueId} not found for your business.`);
+    
+    const organizer = await this.eventOrganizerRepository.findById(createDto.organizerId, businessAccountId);
+    if (!organizer) throw new NotFoundException(`Organizer with ID ${createDto.organizerId} not found for your business.`);
+
+    const category = await this.eventCategoryRepository.findById(createDto.categoryId, businessAccountId);
+    if (!category) throw new NotFoundException(`Category with ID ${createDto.categoryId} not found for your business.`);
 
     const event = new Event(
       null,
+      businessAccountId,
       createDto.eventName,
       createDto.description || '',
       createDto.startDate,
@@ -72,7 +94,6 @@ export class EventService {
 
     const savedEvent = await this.eventRepository.create(event);
 
-    // ✅ START: Add hashtag mapping logic
     if (createDto.hashtagIds && createDto.hashtagIds.length > 0) {
       for (const hashtagId of createDto.hashtagIds) {
         const hashtag = await this.eventHashtagRepository.findById(hashtagId);
@@ -82,375 +103,193 @@ export class EventService {
         }
       }
     }
-    // ✅ END: Add hashtag mapping logic
-
     return savedEvent;
   }
 
-  async getVenues(): Promise<EventVenue[]> {
-  return await this.eventVenueRepository.findAll();
+  async getAllEvents(user: AuthenticatedUser): Promise<Event[]> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventRepository.findAll(businessAccountId);
   }
 
-  async getOrganizers(): Promise<EventOrganizer[]> {
-    return await this.eventOrganizerRepository.findAll();
-  }
-
-  async getCategories(): Promise<EventCategory[]> {
-    return await this.eventCategoryRepository.findAll();
-  }
-
-  async getHashtags(): Promise<EventHashtag[]> {
-    return await this.eventHashtagRepository.findAll();
-  }
-
-  async getRsvps(): Promise<EventRsvp[]> {
-    return await this.eventRsvpRepository.findAll();
-  }
-
-  async getAllEvents(): Promise<Event[]> {
-    return await this.eventRepository.findAll();
-  }
-
-
-
-  //find event by id
-  async findById(id: string): Promise<Event | null> {
-    return await this.eventRepository.findById(id);
-  }
-
-  //find the venue by id
-  async getVenueById(id: string): Promise<EventVenue | null> {
-    return await this.eventVenueRepository.findById(id);
-  }
-
-  //find the organizer by id
-  async getOrganizerById(id: string): Promise<EventOrganizer | null> {
-    return await this.eventOrganizerRepository.findById(id);
-  }
-  
-  //find the category by id
-  async getCategoryById(id: string): Promise<EventCategory | null> {
-    return await this.eventCategoryRepository.findById(id);
-  }
-  //find the rsvp by id
-  async getRsvpById(id: string): Promise<EventRsvp | null> {
-    return await this.eventRsvpRepository.findById(id);
-  }
-
-  //find the hashtag by id
-  async getHashtagById(id: string): Promise<EventHashtag | null> {
-    return await this.eventHashtagRepository.findById(id);
-  }
-
- 
-
-
-
-
-  //create
-
-  async createRsvp(createRsvpDto: CreateEventRsvpDto): Promise<EventRsvp> {
-    const event = await this.eventRepository.findById(createRsvpDto.eventId);
-
-    if (!event) {
-      throw new Error('Event not found');
+  async findEventById(id: string, user: AuthenticatedUser): Promise<Event | null> {
+    const businessAccountId = this._getBusinessId(user);
+    const event = await this.eventRepository.findById(id, businessAccountId);
+     if (!event) {
+        throw new NotFoundException(`Event with ID ${id} not found for your business.`);
     }
-
-    const eventRsvp = new EventRsvp(
-      null,
-      event,
-      createRsvpDto.userId,
-      createRsvpDto.rsvpStatus,
-      createRsvpDto.guestCount,
-    );
-
-    return await this.eventRsvpRepository.create(eventRsvp);
+    return event;
   }
 
-  async createHashtag(
-    createHashtagDto: CreateEventHashtagDto,
-  ): Promise<EventHashtag> {
-    const eventHashtag = new EventHashtag(
-      null,
-      createHashtagDto.hashtagName,
-    );
-
-    return await this.eventHashtagRepository.create(eventHashtag);
-  }
-
-  async mapHashtagToEvent(
-    createEventHashtagMappingDto: CreateEventHashtagMappingDto,
-  ): Promise<EventHashtagMapping> {
-    const event = await this.eventRepository.findById(
-      createEventHashtagMappingDto.eventId,
-    );
-    const hashtag = await this.eventHashtagRepository.findById(
-      createEventHashtagMappingDto.hashtagId,
-    );
-
-    if (!event || !hashtag) {
-      throw new Error('Event or Hashtag not found');
-    }
-
-    const eventHashtagMapping = new EventHashtagMapping(
-      event,
-      hashtag,
-    );
-
-    return await this.eventHashtagMappingRepository.create(eventHashtagMapping);
-  }
-
-  async createCategory(
-    createDto: CreateEventCategoryDto,
-  ): Promise<EventCategory> {
-    const category = new EventCategory(
-      null,
-      createDto.categoryName,
-      createDto.description,
-    );
-    return await this.eventCategoryRepository.create(category);
-  }
-
-  async createOrganizer(
-    createDto: CreateEventOrganizerDto,
-  ): Promise<EventOrganizer> {
-    const organizer = new EventOrganizer(
-      null,
-      createDto.organizerName,
-      createDto.contactEmail,
-      createDto.contactPhone,
-      createDto.organization,
-    );
-    return await this.eventOrganizerRepository.create(organizer);
-  }
-
-  async createVenue(createDto: CreateEventVenueDto): Promise<EventVenue> {
-    const venue = new EventVenue(
-      null,
-      createDto.venueName,
-      createDto.address,
-      createDto.city,
-      createDto.province,
-      createDto.postalCode,
-      createDto.country,
-      createDto.capacity,
-      createDto.facilities,
-    );
-    return await this.eventVenueRepository.create(venue);
-  }
-
-
-
-
-
-
-
-  //update
-
-  //update event by id
-  async update(id: string, updateDto: UpdateEventDto): Promise<Event | null> {
-    const existingEvent = await this.eventRepository.findById(id);
-
-    if (!existingEvent) {
-      throw new NotFoundException(`Event with ID ${id} not found`);
-    }
-        // Manually map the DTO properties to the domain entity
-    // This prevents adding properties like 'venueId' that aren't in the schema
-    existingEvent.eventName = updateDto.eventName ?? existingEvent.eventName;
-    existingEvent.description = updateDto.description ?? existingEvent.description;
-    existingEvent.startDate = updateDto.startDate ?? existingEvent.startDate;
-    existingEvent.endDate = updateDto.endDate ?? existingEvent.endDate;
-    existingEvent.startTime = updateDto.startTime ?? existingEvent.startTime;
-    existingEvent.endTime = updateDto.endTime ?? existingEvent.endTime;
-    existingEvent.maxAttendees = updateDto.maxAttendees ?? existingEvent.maxAttendees;
-    existingEvent.ticketPrice = updateDto.ticketPrice ?? existingEvent.ticketPrice;
-    existingEvent.eventStatus = updateDto.eventStatus ?? existingEvent.eventStatus;
-    existingEvent.imagesUrl = updateDto.imagesUrl ?? existingEvent.imagesUrl;
-
-    // Apply updates from DTO to the existing domain entity
-    // Object.assign(existingEvent, updateDto);
-
-
-    // If a new venueId is provided, fetch the new venue and update the entity
-    if (updateDto.venueId) {
-      const venue = await this.eventVenueRepository.findById(updateDto.venueId);
-      if (!venue) throw new NotFoundException(`Venue with ID ${updateDto.venueId} not found`);
-      existingEvent.venue = venue;
-    }
-
-    // If a new organizerId is provided, fetch and update
-    if (updateDto.organizerId) {
-      const organizer = await this.eventOrganizerRepository.findById(updateDto.organizerId);
-      if (!organizer) throw new NotFoundException(`Organizer with ID ${updateDto.organizerId} not found`);
-      existingEvent.organizer = organizer;
-    }
-
-    // If a new categoryId is provided, fetch and update
-    if (updateDto.categoryId) {
-      const category = await this.eventCategoryRepository.findById(updateDto.categoryId);
-      if (!category) throw new NotFoundException(`Category with ID ${updateDto.categoryId} not found`);
-      existingEvent.category = category;
-    }
-
-    // Now, save the correctly structured domain entity
-    // return await this.eventRepository.update (existingEvent);
+  async updateEvent(id: string, updateDto: UpdateEventDto, user: AuthenticatedUser): Promise<Event | null> {
+    const businessAccountId = this._getBusinessId(user);
     
-        const updatedEvent = await this.eventRepository.update(existingEvent);
+    await this.findEventById(id, user);
 
-    // ✅ START: Add hashtag update logic
+    const updatedEvent = await this.eventRepository.update(id, updateDto, businessAccountId);
+
     if (updateDto.hashtagIds) {
-      // 1. Delete all old mappings for this event
       await this.eventHashtagMappingRepository.deleteByEventId(id);
-
-      // 2. Create new mappings from the provided list
       for (const hashtagId of updateDto.hashtagIds) {
         const hashtag = await this.eventHashtagRepository.findById(hashtagId);
-        if (hashtag) {
+        if (hashtag && updatedEvent) {
           const mapping = new EventHashtagMapping(updatedEvent, hashtag);
           await this.eventHashtagMappingRepository.create(mapping);
         }
       }
     }
-    // ✅ END: Add hashtag update logic
-
     return updatedEvent;
   }
 
-  //update venue by id
-  async updateVenue(id: string, updateDto: UpdateEventVenueDto): Promise<EventVenue | null> {
-    const existingVenue = await this.eventVenueRepository.findById(id);
-
-    if (!existingVenue) {
-      throw new NotFoundException(`Event Venue with ID ${id} not found`);
+  async deleteEvent(id: string, user: AuthenticatedUser): Promise<void> {
+    const businessAccountId = this._getBusinessId(user);
+    const success = await this.eventRepository.delete(id, businessAccountId);
+    if (!success) {
+      throw new NotFoundException(`Event with ID "${id}" not found for your business.`);
     }
-
-    // Apply updates from DTO to the existing domain entity
-    Object.assign(existingVenue, updateDto);
-
-    return await this.eventVenueRepository.update(existingVenue);
   }
 
-  //update organizer by id
-  async updateOrganizer(id: string, updateDto: UpdateEventOrganizerDto): Promise<EventOrganizer | null> {
-    const existingOrganizer = await this.eventOrganizerRepository.findById(id);
+  // =================================================================
+  // Business-Scoped Sub-Entity Methods (Venue, Organizer, etc.)
+  // =================================================================
 
-    if (!existingOrganizer) {
-      throw new NotFoundException(`Event Organizer with ID ${id} not found`);
-    }
-
-    // Apply updates from DTO to the existing domain entity
-    Object.assign(existingOrganizer, updateDto);
-
-    return await this.eventOrganizerRepository.update(existingOrganizer);
+  async createVenue(createDto: CreateEventVenueDto, user: AuthenticatedUser): Promise<EventVenue> {
+    const businessAccountId = this._getBusinessId(user);
+    const venue = new EventVenue(null, businessAccountId, createDto.venueName, createDto.address, createDto.city, createDto.province, createDto.postalCode, createDto.country, createDto.capacity, createDto.facilities);
+    return this.eventVenueRepository.create(venue);
   }
 
-  //update category by id
-  async updateCategory(id: string, updateDto: UpdateEventCategoryDto): Promise<EventCategory | null> {
-    const existingCategory = await this.eventCategoryRepository.findById(id);
-
-    if (!existingCategory) {
-      throw new NotFoundException(`Event Category with ID ${id} not found`);
-    }
-
-    // Apply updates from DTO to the existing domain entity
-    Object.assign(existingCategory, updateDto);
-
-    return await this.eventCategoryRepository.update(existingCategory);
+  async getVenues(user: AuthenticatedUser): Promise<EventVenue[]> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventVenueRepository.findAll(businessAccountId);
+  }
+  
+  async getVenueById(id: string, user: AuthenticatedUser): Promise<EventVenue | null> {
+      const businessAccountId = this._getBusinessId(user);
+      return this.eventVenueRepository.findById(id, businessAccountId);
   }
 
+  async updateVenue(id: string, updateDto: UpdateEventVenueDto, user: AuthenticatedUser): Promise<EventVenue | null> {
+      const businessAccountId = this._getBusinessId(user);
+      return this.eventVenueRepository.update(id, updateDto, businessAccountId);
+  }
 
-  //update hashtag by id
+  async deleteVenue(id: string, user: AuthenticatedUser): Promise<void> {
+      const businessAccountId = this._getBusinessId(user);
+      const success = await this.eventVenueRepository.delete(id, businessAccountId);
+      if (!success) throw new NotFoundException(`Venue with ID ${id} not found.`);
+  }
+
+  async createOrganizer(createDto: CreateEventOrganizerDto, user: AuthenticatedUser): Promise<EventOrganizer> {
+    const businessAccountId = this._getBusinessId(user);
+    const organizer = new EventOrganizer(null, businessAccountId, createDto.organizerName, createDto.contactEmail, createDto.contactPhone, createDto.organization);
+    return this.eventOrganizerRepository.create(organizer);
+  }
+
+  async getOrganizers(user: AuthenticatedUser): Promise<EventOrganizer[]> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventOrganizerRepository.findAll(businessAccountId);
+  }
+  
+  async getOrganizerById(id: string, user: AuthenticatedUser): Promise<EventOrganizer | null> {
+      const businessAccountId = this._getBusinessId(user);
+      return this.eventOrganizerRepository.findById(id, businessAccountId);
+  }
+
+  async updateOrganizer(id: string, updateDto: UpdateEventOrganizerDto, user: AuthenticatedUser): Promise<EventOrganizer | null> {
+      const businessAccountId = this._getBusinessId(user);
+      return this.eventOrganizerRepository.update(id, updateDto, businessAccountId);
+  }
+
+  async deleteOrganizer(id: string, user: AuthenticatedUser): Promise<void> {
+      const businessAccountId = this._getBusinessId(user);
+      const success = await this.eventOrganizerRepository.delete(id, businessAccountId);
+      if (!success) throw new NotFoundException(`Organizer with ID ${id} not found.`);
+  }
+
+  async createCategory(createDto: CreateEventCategoryDto, user: AuthenticatedUser): Promise<EventCategory> {
+    const businessAccountId = this._getBusinessId(user);
+    const category = new EventCategory(null, businessAccountId, createDto.categoryName, createDto.description);
+    return this.eventCategoryRepository.create(category);
+  }
+
+  async getCategories(user: AuthenticatedUser): Promise<EventCategory[]> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventCategoryRepository.findAll(businessAccountId);
+  }
+  
+  async getCategoryById(id: string, user: AuthenticatedUser): Promise<EventCategory | null> {
+      const businessAccountId = this._getBusinessId(user);
+      return this.eventCategoryRepository.findById(id, businessAccountId);
+  }
+
+  async updateCategory(id: string, updateDto: UpdateEventCategoryDto, user: AuthenticatedUser): Promise<EventCategory | null> {
+      const businessAccountId = this._getBusinessId(user);
+      return this.eventCategoryRepository.update(id, updateDto, businessAccountId);
+  }
+
+  async deleteCategory(id: string, user: AuthenticatedUser): Promise<void> {
+      const businessAccountId = this._getBusinessId(user);
+      const success = await this.eventCategoryRepository.delete(id, businessAccountId);
+      if (!success) throw new NotFoundException(`Category with ID ${id} not found.`);
+  }
+
+  // --- RSVP (Traveler and Business) ---
+  async createRsvp(createRsvpDto: CreateEventRsvpDto, user: AuthenticatedUser): Promise<EventRsvp> {
+    const event = await this.eventRepository.findPublicById(createRsvpDto.eventId);
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    const eventRsvp = new EventRsvp(
+      null,
+      event.businessAccountId,
+      event,
+      user.clerk_id,
+      createRsvpDto.rsvpStatus,
+      createRsvpDto.guestCount,
+    );
+    return this.eventRsvpRepository.create(eventRsvp);
+  }
+
+  async getRsvps(user: AuthenticatedUser): Promise<EventRsvp[]> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventRsvpRepository.findAll(businessAccountId);
+  }
+
+  async deleteRsvp(id: string, user: AuthenticatedUser): Promise<void> {
+      const businessAccountId = this._getBusinessId(user);
+      const success = await this.eventRsvpRepository.delete(id, businessAccountId);
+      if (!success) throw new NotFoundException(`RSVP with ID ${id} not found.`);
+  }
+
+  // --- Hashtag (Global) ---
+  async getHashtags(): Promise<EventHashtag[]> {
+    return this.eventHashtagRepository.findAll();
+  }
+
+  async createHashtag(createHashtagDto: CreateEventHashtagDto): Promise<EventHashtag> {
+    const eventHashtag = new EventHashtag(null, createHashtagDto.hashtagName);
+    return this.eventHashtagRepository.create(eventHashtag);
+  }
+  
+  async getHashtagById(id: string): Promise<EventHashtag | null> {
+    return this.eventHashtagRepository.findById(id);
+  }
+
   async updateHashtag(id: string, updateDto: UpdateEventHashtagDto): Promise<EventHashtag | null> {
     const existingHashtag = await this.eventHashtagRepository.findById(id);
-
     if (!existingHashtag) {
-      throw new NotFoundException(`Event Hashtag with ID ${id} not found`);
+      throw new NotFoundException(`Hashtag with ID ${id} not found`);
     }
-
     // Apply updates from DTO to the existing domain entity
     Object.assign(existingHashtag, updateDto);
-
-    return await this.eventHashtagRepository.update(existingHashtag);
-  }
-
-  //update rsvp by id
-  async updateRsvp(id: string, updateDto: UpdateEventRsvpDto): Promise<EventRsvp | null> {
-    const existingRsvp = await this.eventRsvpRepository.findById(id);
-
-    if (!existingRsvp) {
-      throw new NotFoundException(`Event Rsvp with ID ${id} not found`);
-    }
-
-    // Apply updates from DTO to the existing domain entity
-    Object.assign(existingRsvp, updateDto);
-
-    return await this.eventRsvpRepository.update(existingRsvp);
-  }
-
-
-
-
-
-//delete
-
-  //delete event by id
- async delete(id: string): Promise<void> {
-    const event = await this.eventRepository.findById(id);
-    if (!event) {
-      throw new NotFoundException(`Event with ID ${id} not found`);
-    }
-    await this.eventRepository.delete(id);
+    return this.eventHashtagRepository.update(existingHashtag);
   }
 
   async deleteHashtag(id: string): Promise<void> {
-    const hashtag = await this.eventHashtagRepository.findById(id);
-    if (!hashtag) {
-      throw new NotFoundException(`Event Hashtag with ID ${id} not found`);
-    }
     await this.eventHashtagRepository.delete(id);
   }
-
-  async deleteCategory(id: string): Promise<void> {
-    const category = await this.eventCategoryRepository.findById(id);
-    if (!category) {
-      throw new NotFoundException(`Event Category with ID ${id} not found`);
-    }
-    await this.eventCategoryRepository.delete(id);
-  }
-
-  async deleteOrganizer(id: string): Promise<void> {
-    const organizer = await this.eventOrganizerRepository.findById(id);
-    if (!organizer) {
-      throw new NotFoundException(`Event Organizer with ID ${id} not found`);
-    }
-    await this.eventOrganizerRepository.delete(id);
-  }
-
-  async deleteVenue(id: string): Promise<void> {
-    const venue = await this.eventVenueRepository.findById(id);
-    if (!venue) {
-      throw new NotFoundException(`Event Venue with ID ${id} not found`);
-    }
-    await this.eventVenueRepository.delete(id);
-  }
-
-  async deleteRsvp(id: string): Promise<void> {
-    const rsvp = await this.eventRsvpRepository.findById(id);
-    if (!rsvp) {
-      throw new NotFoundException(`Event Rsvp with ID ${id} not found`);
-    }
-    await this.eventRsvpRepository.delete(id);
-  }
-
-
   
-
-  //event hashtag mapping methods
-
-  // Get all hashtag mappings for a specific event
-async getEventHashtagMappings(eventId: string): Promise<EventHashtagMapping[]> {
-  return await this.eventHashtagMappingRepository.findByEventId(eventId);
-}
-
-
+  async getEventHashtagMappings(eventId: string): Promise<EventHashtagMapping[]> {
+    return this.eventHashtagMappingRepository.findByEventId(eventId);
+  }
 }
