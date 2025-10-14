@@ -5,8 +5,8 @@ import { ArrowLeft, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import RoomsList from './RoomsList';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { useHotel } from '../../hooks/useHotels';
-import { useRooms } from '../../hooks/useRooms';
+import { useGetHotelQuery } from '../../services/api/hotelApi';
+import { useGetRoomsByHotelQuery } from '../../services/api/roomApi';
 
 interface HotelRoomsPageProps {
   hotelId: string;
@@ -14,8 +14,8 @@ interface HotelRoomsPageProps {
 
 export default function HotelRoomsPage({ hotelId }: HotelRoomsPageProps) {
   const router = useRouter();
-  const { data: hotel, isLoading: hotelLoading } = useHotel(hotelId);
-  const { rooms, isLoading: roomsLoading } = useRooms(hotelId);
+  const { data: hotel, isLoading: hotelLoading } = useGetHotelQuery(hotelId);
+  const { data: rooms, isLoading: roomsLoading } = useGetRoomsByHotelQuery(hotelId);
 
   if (hotelLoading || roomsLoading) return <LoadingSpinner />;
 

@@ -17,10 +17,11 @@ import {
   MapPin,
   Loader2
 } from 'lucide-react';
-import { useHotels } from '../../hooks/useHotels';
+import { useGetMyHotelsQuery } from '../../services/api/hotelApi';
 
 export default function DashboardOverview() {
-  const { myHotels, isLoading: isLoadingHotels } = useHotels();
+  const { data: myHotelsData, isLoading: isLoadingHotels } = useGetMyHotelsQuery();
+  const myHotels = myHotelsData || [];
   const [totalRooms, setTotalRooms] = useState(0);
   const [isLoadingRooms, setIsLoadingRooms] = useState(true);
   const [dashboardStats, setDashboardStats] = useState({
@@ -36,11 +37,7 @@ export default function DashboardOverview() {
   const currentTimestamp = '2025-09-26 17:50:44';
   const currentUser = 'NadPerz';
 
-  console.log('🏨 Dashboard Loading for:', {
-    user: currentUser,
-    timestamp: currentTimestamp,
-    utc: true
-  });
+
 
   // Calculate total rooms across all hotels for NadPerz
   useEffect(() => {
@@ -51,11 +48,7 @@ export default function DashboardOverview() {
         return;
       }
 
-      console.log(`🏨 Dashboard: ${currentUser} calculating real data for ${myHotels.length} hotels`, {
-        timestamp: currentTimestamp,
-        user: currentUser,
-        hotels: myHotels.map(h => ({ id: h.id, title: h.title }))
-      });
+
 
       setIsLoadingRooms(true);
       let roomCount = 0;
@@ -64,7 +57,7 @@ export default function DashboardOverview() {
         // Fetch rooms for each hotel using your working API
         for (const hotel of myHotels) {
           try {
-            console.log(`🏠 Dashboard: Fetching rooms for hotel ${hotel.title} (${hotel.id})`);
+
             
             // Use your working API endpoint
             const response = await fetch(`http://localhost:3000/api/rooms/hotel/${hotel.id}`, {
@@ -82,7 +75,7 @@ export default function DashboardOverview() {
               const hotelRoomCount = roomsData.data?.length || 0;
               roomCount += hotelRoomCount;
               
-              console.log(`🏠 Hotel "${hotel.title}" has ${hotelRoomCount} rooms`);
+
             } else {
               console.warn(`⚠️ Failed to fetch rooms for hotel ${hotel.title}:`, response.status);
             }
@@ -91,12 +84,7 @@ export default function DashboardOverview() {
           }
         }
 
-        console.log(`✅ Dashboard: Real data calculated for ${currentUser}:`, {
-          timestamp: currentTimestamp,
-          user: currentUser,
-          totalHotels: myHotels.length,
-          totalRooms: roomCount
-        });
+
 
         setTotalRooms(roomCount);
       } catch (error) {
@@ -123,18 +111,12 @@ export default function DashboardOverview() {
   };
 
   const handleRefreshData = () => {
-    console.log(`🔄 Dashboard: ${currentUser} refreshing real data...`, {
-      timestamp: currentTimestamp,
-      user: currentUser
-    });
+
     window.location.reload();
   };
 
   const handleViewAnalytics = () => {
-    console.log(`📊 Dashboard: ${currentUser} viewing analytics...`, {
-      timestamp: currentTimestamp,
-      user: currentUser
-    });
+
   };
 
   return (

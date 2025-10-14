@@ -8,7 +8,7 @@ import { HotelSchema, HotelDocument } from '../schemas/hotel.schema';
 @Injectable()
 export class HotelRepositoryImpl implements HotelRepository {
   constructor(
-    @InjectModel(HotelSchema.name)
+    @InjectModel(Hotel.name)
     private hotelModel: Model<HotelDocument>,
   ) {}
 

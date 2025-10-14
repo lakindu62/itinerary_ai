@@ -7,18 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, Calendar } from 'lucide-react';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { useBookings } from '../../hooks/useBookings';
+import { useGetMyBookingsQuery } from '../../services/api/hotelBookingApi';
 import { formatDate, formatPrice } from '../../lib/formatters';
 
 export default function AllBookingsPage() {
-  const { bookings, isLoading } = useBookings();
+  const { data: bookings, isLoading } = useGetMyBookingsQuery();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredBookings = bookings.filter(booking =>
+  const filteredBookings = bookings ? bookings.filter(booking =>
     booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     booking.roomId.toLowerCase().includes(searchTerm.toLowerCase()) ||
     booking.hotelId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   if (isLoading) return <LoadingSpinner />;
 

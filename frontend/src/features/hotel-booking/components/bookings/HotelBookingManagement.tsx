@@ -30,9 +30,9 @@ import {
   XCircle
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { bookingsApi } from '../../services/api/bookings.api';
-import { useHotel } from '../../hooks/useHotels';
-import { useRooms } from '../../hooks/useRooms';
+import { useGetHotelBookingsQuery } from '../../services/api/hotelBookingApi';
+import { useGetHotelQuery } from '../../services/api/hotelApi';
+import { useGetRoomsByHotelQuery } from '../../services/api/roomApi';
 
 interface HotelBookingManagementProps {
   hotelId: string;
@@ -61,99 +61,27 @@ interface HotelBooking {
 
 export default function HotelBookingManagement({ hotelId }: HotelBookingManagementProps) {
   const router = useRouter();
-  const { data: hotel, isLoading: isLoadingHotel } = useHotel(hotelId);
-  const { rooms, isLoading: isLoadingRooms } = useRooms(hotelId);
-  
-  const [hotelBookings, setHotelBookings] = useState<HotelBooking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<HotelBooking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: hotel, isLoading: isLoadingHotel } = useGetHotelQuery(hotelId);
+  const { data: rooms, isLoading: isLoadingRooms } = useGetRoomsByHotelQuery(hotelId);
+  const { data: hotelBookings, isLoading: isLoadingBookings } = useGetHotelBookingsQuery(hotelId);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Current context for NadPerz - UPDATED TO CURRENT TIME
-  const currentTimestamp = '2025-09-27 05:48:13';
-  const currentUser = 'NadPerz';
-
-  console.log('🏨 Hotel-Specific Booking Management - NadPerz:', {
-    hotelId: hotelId.slice(-8),
-    hotelTitle: hotel?.title,
-    timestamp: currentTimestamp,
-    user: currentUser,
-    utc: true,
-    role: 'hotel-owner'
-  });
-
-  useEffect(() => {
-    if (hotel) {
-      fetchHotelBookings();
-    }
-  }, [hotelId, hotel]);
-
-  useEffect(() => {
-    filterBookings();
-  }, [hotelBookings, searchTerm, filterStatus]);
-
-  const fetchHotelBookings = async () => {
-    try {
-      console.log('🏨 Fetching bookings for specific hotel - NadPerz:', {
-        hotelId: hotelId.slice(-8),
-        hotelName: hotel?.title,
-        timestamp: currentTimestamp,
-        user: currentUser
-      });
-
-      setIsLoading(true);
-      const allBookings = await bookingsApi.getAll();
-      
-      // Filter bookings for this specific hotel
-      const hotelSpecificBookings = allBookings.filter(booking => booking.hotelId === hotelId);
-
-      console.log('✅ Hotel bookings loaded for NadPerz:', {
-        hotelId: hotelId.slice(-8),
-        totalBookings: hotelSpecificBookings.length,
-        timestamp: currentTimestamp,
-        user: currentUser
-      });
-
-      setHotelBookings(hotelSpecificBookings);
-    } catch (error) {
-      console.error('❌ Error fetching hotel bookings for NadPerz:', error);
-      setHotelBookings([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const filterBookings = () => {
-    let filtered = hotelBookings;
-
-    // Search filter
+  const filteredBookings = hotelBookings ? hotelBookings.filter(booking => {
+    let match = true;
     if (searchTerm) {
-      filtered = filtered.filter(booking => 
-        booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      match = booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.guestEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.guestName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.roomName?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+        booking.roomName?.toLowerCase().includes(searchTerm.toLowerCase());
     }
 
-    // Status filter
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(booking => booking.status === filterStatus);
+    if (filterStatus!== 'all') {
+      match = match && booking.status === filterStatus;
     }
 
-    console.log('🔍 Hotel bookings filtered for NadPerz:', {
-      hotelId: hotelId.slice(-8),
-      total: hotelBookings.length,
-      filtered: filtered.length,
-      searchTerm,
-      filterStatus,
-      timestamp: currentTimestamp
-    });
-
-    setFilteredBookings(filtered);
-  };
+    return match;
+  }) : [];
 
   const handleViewBooking = (bookingId: string) => {
     console.log('👁️ NadPerz viewing hotel booking:', {

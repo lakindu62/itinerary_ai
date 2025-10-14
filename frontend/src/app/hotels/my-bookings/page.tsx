@@ -19,13 +19,14 @@ import {
   AlertCircle,
   ArrowLeft
 } from 'lucide-react';
-import { useUserBookings } from '@/features/hotel-booking/hooks/useBookings';
+import { useGetMyBookingsQuery, useCancelBookingMutation } from '@/features/hotel-booking/services/api/hotelBookingApi';
 import LoadingSpinner from '@/features/hotel-booking/components/shared/LoadingSpinner';
 import { format, parseISO, isAfter, addDays } from 'date-fns';
 
 export default function MyBookingsPage() {
   const router = useRouter();
-  const { userBookings, isLoading, cancelBooking, isCancelling } = useUserBookings('NadPerz');
+  const { data: userBookings, isLoading } = useGetMyBookingsQuery();
+  const [cancelBooking, { isLoading: isCancelling }] = useCancelBookingMutation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -35,7 +36,7 @@ export default function MyBookingsPage() {
     user: 'NadPerz'
   });
 
-  const filteredBookings = userBookings.filter(booking => {
+  const filteredBookings = userBookings ? userBookings.filter(booking => {
     const matchesSearch = searchTerm === '' || 
       booking.hotelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.roomName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,7 +45,7 @@ export default function MyBookingsPage() {
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
 
     return matchesSearch && matchesStatus;
-  });
+  }) : [];
 
   const handleCancelBooking = async (bookingId: string) => {
     if (window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {

@@ -27,7 +27,7 @@ import {
   Undo2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { bookingsApi } from '../../services/api/bookings.api';
+import { useGetMyBookingsQuery } from '../../services/api/hotelBookingApi';
 
 interface CancelledBooking {
   id: string;
@@ -57,151 +57,49 @@ interface CancelledBooking {
 
 export default function CancellationManagement() {
   const router = useRouter();
-  const [cancelledBookings, setCancelledBookings] = useState<CancelledBooking[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<CancelledBooking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: allBookings, isLoading: isLoadingBookings } = useGetMyBookingsQuery();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Current context for NadPerz - UPDATED TO CURRENT TIME
-  const currentTimestamp = '2025-09-27 05:39:29';
-  const currentUser = 'NadPerz';
+  const cancelledBookings = allBookings?.filter(b => b.status === 'cancelled') || [];
 
-  console.log('❌ Cancellation Management Dashboard - NadPerz:', {
-    timestamp: currentTimestamp,
-    user: currentUser,
-    utc: true,
-    role: 'hotel-owner'
-  });
-
-  useEffect(() => {
-    fetchCancelledBookings();
-  }, []);
-
-  useEffect(() => {
-    filterBookings();
-  }, [cancelledBookings, searchTerm, dateFilter]);
-
-  const fetchCancelledBookings = async () => {
-    try {
-      console.log('❌ Fetching cancelled bookings for NadPerz:', {
-        timestamp: currentTimestamp,
-        user: currentUser
-      });
-
-      setIsLoading(true);
-      const allBookings = await bookingsApi.getAll();
-      
-      // Filter only cancelled bookings
-      const cancelled = allBookings
-        .filter(booking => booking.status === 'cancelled')
-        .map(booking => ({
-          ...booking,
-          cancelledAt: booking.updatedAt, // Use updatedAt as cancelled date
-          cancellationReason: booking.specialRequests || 'No reason provided',
-          refundAmount: calculateRefundAmount(booking.totalPrice),
-          cancellationFee: calculateCancellationFee(booking.totalPrice)
-        }));
-
-      console.log('✅ Cancelled bookings loaded for NadPerz:', {
-        count: cancelled.length,
-        timestamp: currentTimestamp,
-        user: currentUser
-      });
-
-      setCancelledBookings(cancelled);
-    } catch (error) {
-      console.error('❌ Error fetching cancelled bookings for NadPerz:', error);
-      setCancelledBookings([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateRefundAmount = (totalPrice: number) => {
-    // Simulate refund calculation (75% refund)
-    return totalPrice * 0.75;
-  };
-
-  const calculateCancellationFee = (totalPrice: number) => {
-    // Simulate cancellation fee (25% fee)
-    return totalPrice * 0.25;
-  };
-
-  const filterBookings = () => {
-    let filtered = cancelledBookings;
-
-    // Search filter
+  const filteredBookings = cancelledBookings.filter(booking => {
+    let match = true;
     if (searchTerm) {
-      filtered = filtered.filter(booking => 
-        booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      match = booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.hotelName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.guestEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.guestName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+        booking.guestName.toLowerCase().includes(searchTerm.toLowerCase());
     }
 
-    // Date filter
-    if (dateFilter !== 'all') {
+    if (dateFilter!== 'all') {
       const now = new Date();
       const filterDate = new Date();
       
       switch (dateFilter) {
         case 'today':
           filterDate.setHours(0, 0, 0, 0);
-          filtered = filtered.filter(booking => 
-            new Date(booking.cancelledAt || booking.updatedAt) >= filterDate
-          );
+          match = match && new Date(booking.cancelledAt || booking.updatedAt) >= filterDate;
           break;
         case 'week':
           filterDate.setDate(now.getDate() - 7);
-          filtered = filtered.filter(booking => 
-            new Date(booking.cancelledAt || booking.updatedAt) >= filterDate
-          );
+          match = match && new Date(booking.cancelledAt || booking.updatedAt) >= filterDate;
           break;
         case 'month':
           filterDate.setMonth(now.getMonth() - 1);
-          filtered = filtered.filter(booking => 
-            new Date(booking.cancelledAt || booking.updatedAt) >= filterDate
-          );
+          match = match && new Date(booking.cancelledAt || booking.updatedAt) >= filterDate;
           break;
       }
     }
 
-    console.log('🔍 Cancellations filtered for NadPerz:', {
-      total: cancelledBookings.length,
-      filtered: filtered.length,
-      searchTerm,
-      dateFilter,
-      timestamp: currentTimestamp
-    });
-
-    setFilteredBookings(filtered);
-  };
-
-  const handleRefresh = async () => {
-    console.log('🔄 NadPerz refreshing cancellations data:', {
-      timestamp: currentTimestamp
-    });
-    setIsRefreshing(true);
-    await fetchCancelledBookings();
-    setIsRefreshing(false);
-  };
+    return match;
+  });
 
   const handleViewBooking = (bookingId: string) => {
-    console.log('👁️ NadPerz viewing cancelled booking:', {
-      bookingId: bookingId.slice(-8),
-      timestamp: currentTimestamp
-    });
     router.push(`/dashboard/reservations/${bookingId}`);
   };
 
   const handleExportCancellations = () => {
-    console.log('📊 NadPerz exporting cancellations:', {
-      count: filteredBookings.length,
-      timestamp: currentTimestamp
-    });
     // Export functionality would go here
   };
 
@@ -246,10 +144,7 @@ export default function CancellationManagement() {
               <div>
                 <h1 className="text-3xl font-bold text-red-600">Cancellation Management</h1>
                 <p className="text-gray-600 mt-1">
-                  Monitor and manage cancelled reservations for <span className="font-semibold text-blue-600">{currentUser}</span>'s hotels
-                </p>
-                <p className="text-sm text-gray-500">
-                  Last updated: {currentTimestamp} UTC • Cancellation analytics and refund tracking
+                  Monitor and manage cancelled reservations
                 </p>
               </div>
             </div>
@@ -257,10 +152,6 @@ export default function CancellationManagement() {
               <Button variant="outline" onClick={handleExportCancellations}>
                 <Download className="mr-2 h-4 w-4" />
                 Export CSV
-              </Button>
-              <Button onClick={handleRefresh} disabled={isRefreshing}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
               </Button>
             </div>
           </div>
@@ -405,10 +296,10 @@ export default function CancellationManagement() {
               </div>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
+              {isLoadingBookings ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">Loading cancellations for {currentUser}...</p>
+                  <p className="mt-4 text-gray-600">Loading cancellations...</p>
                 </div>
               ) : filteredBookings.length === 0 ? (
                 <div className="text-center py-12">
@@ -510,32 +401,6 @@ export default function CancellationManagement() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* NadPerz Context Info */}
-          <Card className="border-red-200 bg-red-50">
-            <CardContent className="p-4">
-              <div className="text-sm text-red-800">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <p><strong>Hotel Owner:</strong> {currentUser}</p>
-                    <p><strong>System Time:</strong> {currentTimestamp} UTC</p>
-                  </div>
-                  <div>
-                    <p><strong>Total Cancellations:</strong> {stats.total}</p>
-                    <p><strong>Lost Revenue:</strong> ${stats.lostRevenue.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p><strong>Total Refunds:</strong> ${stats.totalRefunds.toFixed(2)}</p>
-                    <p><strong>Cancellation Fees:</strong> ${stats.totalFees.toFixed(2)}</p>
-                  </div>
-                  <div>
-                    <p><strong>Cancellation Rate:</strong> {stats.total > 0 ? '5.2%' : '0%'}</p>
-                    <p><strong>System Status:</strong> <span className="text-green-600 font-medium">Active</span></p>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>

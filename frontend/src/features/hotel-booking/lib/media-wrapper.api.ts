@@ -6,14 +6,14 @@ const HOTEL_MEDIA_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://loca
 console.log('🖼️ Hotel Media API initialized:', {
   baseUrl: HOTEL_MEDIA_API_BASE_URL,
   timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-  user: 'NadPerz'
+  user: 'TODO: Get user from session'
 });
 
 // Enhanced upload function for hotel booking resources
 export const uploadToHotelResourceBucket = async (
   file: File,
   resourceType: HotelResourceType,
-  userId: string = 'NadPerz'
+  userId: string = 'TODO: Get user from session'
 ): Promise<string> => {
   try {
     console.log(`🏨 Starting ${resourceType} upload:`, {
@@ -73,6 +73,10 @@ export const uploadToHotelResourceBucket = async (
   }
 };
 
+import { getClerkGetTokenFunc } from '../../../store/api/rootApiSlice';
+
+// ... (rest of the file)
+
 // Get signed upload URL for hotel resources
 export const getHotelSignedUploadUrl = async (
   fileName: string,
@@ -86,15 +90,18 @@ export const getHotelSignedUploadUrl = async (
     bucket,
     apiUrl: HOTEL_MEDIA_API_BASE_URL,
     timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-    user: 'NadPerz'
+    user: 'TODO: Get user from session'
   });
+
+  const token = await getClerkGetTokenFunc?.();
 
   const response = await fetch(`${HOTEL_MEDIA_API_BASE_URL}/media/signed-upload-url`, {
     method: "POST",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
-      "X-User-Login": "NadPerz",
-      "X-Request-Timestamp": new Date().toISOString()
+      "X-User-Login": "TODO: Get user from session",
+      "X-Request-Timestamp": new Date().toISOString(),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify(body),
   });
@@ -128,7 +135,7 @@ export const uploadHotelFileToSignedUrl = async (
     method: "PUT",
     headers: {
       "Content-Type": file.type,
-      "X-User-Login": "NadPerz",
+      "X-User-Login": "TODO: Get user from session",
     },
     body: file,
   });
@@ -144,7 +151,7 @@ export const uploadHotelFileToSignedUrl = async (
     resourceType,
     status: uploadResponse.status,
     timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-    user: 'NadPerz'
+    user: 'TODO: Get user from session'
   });
 };
 
@@ -162,15 +169,18 @@ export const getHotelSignedGetUrl = async (
     filePath,
     expiry: expiry || 'default',
     timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-    user: 'NadPerz'
+    user: 'TODO: Get user from session'
   });
   
+  const token = await getClerkGetTokenFunc?.();
+
   const response = await fetch(
     `${HOTEL_MEDIA_API_BASE_URL}/media/signed-get-url?${params.toString()}`,
     {
       headers: {
-        "X-User-Login": "NadPerz",
-        "X-Request-Timestamp": new Date().toISOString()
+        "X-User-Login": "TODO: Get user from session",
+        "X-Request-Timestamp": new Date().toISOString(),
+        ...(token && { Authorization: `Bearer ${token}` }),
       }
     }
   );
@@ -190,7 +200,7 @@ export const getHotelSignedGetUrl = async (
 export const uploadMultipleHotelFiles = async (
   files: File[],
   resourceType: HotelResourceType,
-  userId: string = 'NadPerz'
+  userId: string = 'TODO: Get user from session'
 ): Promise<{ successful: string[]; failed: { file: File; error: string }[] }> => {
   console.log(`📁 Starting batch hotel ${resourceType} upload:`, {
     fileCount: files.length,

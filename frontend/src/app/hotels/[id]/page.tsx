@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from 'next/navigation';
-import { useHotel } from '@/features/hotel-booking/hooks/useHotels';
+import { useGetHotelQuery } from '@/features/hotel-booking/services/api/hotelApi';
 import HotelDetailsPage from '@/features/hotel-booking/components/hotels/HotelDetailsPage';
 
 export default function HotelDetailPage() {
@@ -13,19 +13,19 @@ export default function HotelDetailPage() {
   console.log('🔍 Current URL:', window.location.href);
   console.log('🔍 This should show HOTEL DETAILS, not room creation');
   
-  const { data: hotel, isLoading, error } = useHotel(hotelId);
+  const { data: hotel, isLoading, error } = useGetHotelQuery(hotelId);
 
   console.log('🔍 Hotel data:', { hotel, isLoading, error });
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
+      {/* <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
         <h2 className="font-bold text-yellow-800">DEBUG INFO:</h2>
         <p className="text-yellow-700">Hotel ID: {hotelId}</p>
         <p className="text-yellow-700">Page: Hotel Details (should NOT be room creation)</p>
         <p className="text-yellow-700">Hotel Loading: {isLoading ? 'Yes' : 'No'}</p>
         <p className="text-yellow-700">Hotel Found: {hotel ? 'Yes' : 'No'}</p>
-      </div>
+      </div> */}
       
       <HotelDetailsPage 
         hotel={hotel} 

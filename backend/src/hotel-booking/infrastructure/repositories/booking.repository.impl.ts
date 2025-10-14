@@ -8,7 +8,7 @@ import { BookingSchema, BookingDocument } from '../schemas/booking.schema';
 @Injectable()
 export class BookingRepositoryImpl implements BookingRepository {
   constructor(
-    @InjectModel(BookingSchema.name)
+    @InjectModel(Booking.name)
     private bookingModel: Model<BookingDocument>,
   ) {}
 

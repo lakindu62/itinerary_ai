@@ -19,15 +19,16 @@ import {
   Heart,
   Filter
 } from 'lucide-react';
-import { useHotels } from '@/features/hotel-booking/hooks/useHotels';
-import { useRooms } from '@/features/hotel-booking/hooks/useRooms';
+import { useGetHotelsQuery } from '@/features/hotel-booking/services/api/hotelApi';
+import { useGetRoomsByHotelQuery } from '@/features/hotel-booking/services/api/roomApi';
 import { Hotel } from '@/features/hotel-booking/types/hotel.types';
 import HotelImageSimple from '@/features/hotel-booking/components/shared/HotelImageSimple';
 import LoadingSpinner from '@/features/hotel-booking/components/shared/LoadingSpinner';
 
 // Component to get minimum room price for a hotel
 function HotelPriceDisplay({ hotelId }: { hotelId: string }) {
-  const { rooms, isLoading } = useRooms(hotelId);
+  const { data: roomsData, isLoading } = useGetRoomsByHotelQuery(hotelId);
+  const rooms = roomsData || [];
   
   const getMinimumPrice = () => {
     if (isLoading || !rooms || rooms.length === 0) {
@@ -40,14 +41,7 @@ function HotelPriceDisplay({ hotelId }: { hotelId: string }) {
 
   const minimumPrice = getMinimumPrice();
 
-  console.log('💰 Hotel pricing:', {
-    hotelId: hotelId.slice(-8),
-    roomsCount: rooms.length,
-    minimumPrice,
-    allPrices: rooms.map(r => r.roomPrice),
-    timestamp: '2025-09-26 09:01:21',
-    user: 'NadPerz'
-  });
+
 
   return (
     <div className="text-right">
@@ -65,17 +59,15 @@ function HotelPriceDisplay({ hotelId }: { hotelId: string }) {
 
 export default function HotelsPage() {
   const router = useRouter();
-  const { hotels, isLoading } = useHotels();
+  const { data: hotelsData, isLoading } = useGetHotelsQuery();
+  console.log('hotelsData', hotelsData);
+  const hotels = hotelsData || [];
   
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [filteredHotels, setFilteredHotels] = useState<Hotel[]>([]);
 
-  console.log('🏨 Hotels Page loaded with dynamic pricing:', {
-    hotelsCount: hotels.length,
-    timestamp: '2025-09-26 09:01:21',
-    user: 'NadPerz'
-  });
+
 
   // Get unique cities for filter
   const cities = Array.from(new Set(hotels.map(hotel => hotel.city))).sort();
@@ -102,12 +94,7 @@ export default function HotelsPage() {
   }, [hotels, searchTerm, selectedCity]);
 
   const handleViewAndBook = (hotelId: string, hotelTitle: string) => {
-    console.log('👁️ Viewing hotel:', {
-      hotelId,
-      hotelTitle,
-      timestamp: '2025-09-26 09:01:21',
-      user: 'NadPerz'
-    });
+
     router.push(`/hotels/${hotelId}/book`);
   };
 
@@ -237,7 +224,7 @@ export default function HotelsPage() {
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('💝 Added to wishlist:', hotel.title);
+
                       }}
                     >
                       <Heart className="h-4 w-4" />

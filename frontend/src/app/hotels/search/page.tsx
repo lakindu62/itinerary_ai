@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useHotels } from '@/features/hotel-booking/hooks/useHotels';
+import { useGetHotelsQuery } from '@/features/hotel-booking/services/api/hotelApi';
 import { Hotel } from '@/features/hotel-booking/types/hotel.types';
 import HotelSearch from '@/features/hotel-booking/components/hotels/HotelSearch';
 
 export default function HotelSearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { hotels: allHotels, isLoading: isLoadingAllHotels } = useHotels();
+  const { data: allHotels, isLoading: isLoadingAllHotels } = useGetHotelsQuery();
   
   const [filteredHotels, setFilteredHotels] = useState<Hotel[]>([]);
   const [isSearching, setIsSearching] = useState(false);

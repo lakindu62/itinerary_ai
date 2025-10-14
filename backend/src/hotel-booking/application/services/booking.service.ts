@@ -5,6 +5,7 @@ import { RoomRepository } from '../../domain/repositories/room.repository';
 import { HotelRepository } from '../../domain/repositories/hotel.repository';
 import { CreateBookingDto } from '../dtos/create-booking.dto';
 import { UpdateBookingStatusDto } from '../dtos/update-booking-status.dto';
+import { AuthenticatedUser } from '@shared/types/user-management';
 
 @Injectable()
 export class BookingService {
@@ -17,10 +18,13 @@ export class BookingService {
     private readonly hotelRepository: HotelRepository,
   ) {}
 
-  async createBooking(userId: string, createBookingDto: CreateBookingDto): Promise<Booking> {
-    // Validate dates
+  async createBooking(user: AuthenticatedUser, createBookingDto: CreateBookingDto): Promise<Booking> {
     const startDate = new Date(createBookingDto.startDate);
     const endDate = new Date(createBookingDto.endDate);
+
+    if (!user._id) {
+      throw new BadRequestException('User ID not found');
+    }
     
     if (startDate >= endDate) {
       throw new BadRequestException('Start date must be before end date');
@@ -66,7 +70,7 @@ export class BookingService {
     try {
       // FIX: Pass the correct object structure to Booking.create()
       const booking = Booking.create({
-        userId,
+        userId: user._id,
         roomId: createBookingDto.roomId,
         hotelId: createBookingDto.hotelId,
         hotelOwnerId: createBookingDto.hotelOwnerId,
@@ -92,8 +96,11 @@ export class BookingService {
     return booking;
   }
 
-  async findMyBookings(userId: string): Promise<Booking[]> {
-    return await this.bookingRepository.findByUserId(userId);
+  async findMyBookings(user: AuthenticatedUser): Promise<Booking[]> {
+    if (!user._id) {
+      throw new BadRequestException('User ID not found');
+    }
+    return await this.bookingRepository.findByUserId(user._id);
   }
 
   async findHotelBookings(hotelOwnerId: string): Promise<Booking[]> {
@@ -106,13 +113,13 @@ export class BookingService {
 
   async updateBookingStatus(
     id: string,
-    userId: string,
+    user: AuthenticatedUser,
     updateDto: UpdateBookingStatusDto
   ): Promise<Booking> {
     const existingBooking = await this.findBookingById(id);
     
     // Only booking owner or hotel owner can update payment status
-    if (existingBooking.userId !== userId && existingBooking.hotelOwnerId !== userId) {
+    if (existingBooking.userId !== user._id && existingBooking.hotelOwnerId !== user.business_account_id) {
       throw new ForbiddenException('You can only update your own bookings or bookings for your hotels');
     }
 
@@ -124,11 +131,11 @@ export class BookingService {
     return await this.bookingRepository.update(updatedBooking);
   }
 
-  async cancelBooking(id: string, userId: string): Promise<void> {
+  async cancelBooking(id: string, user: AuthenticatedUser): Promise<void> {
     const existingBooking = await this.findBookingById(id);
     
     // Only booking owner can cancel
-    if (existingBooking.userId !== userId) {
+    if (existingBooking.userId !== user._id) {
       throw new ForbiddenException('You can only cancel your own bookings');
     }
 

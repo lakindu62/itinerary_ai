@@ -19,75 +19,18 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { useGetMyBookingsQuery, useCancelBookingMutation } from '@/features/hotel-booking/services/api/hotelBookingApi';
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns';
 
-// Mock booking data
-const mockBookings = [
-  {
-    id: 'booking_1_abc123',
-    paymentId: 'pay_1_xyz789',
-    hotelId: 'hotel_1758728256298_xe3lzcniw',
-    hotelName: 'ssssssssssssssssss',
-    hotelCity: 'demo city',
-    hotelCountry: 'Sri Lanka',
-    roomId: 'room_1758736640894_2okk0iq4',
-    roomName: 'delussssssssss',
-    checkIn: '2025-09-26',
-    checkOut: '2025-09-27',
-    guests: 2,
-    totalPrice: 100,
-    status: 'confirmed',
-    guestName: 'NadPerz',
-    guestEmail: 'nadperz@example.com',
-    createdAt: '2025-09-25T10:49:00Z',
-    canCancel: true
-  },
-  {
-    id: 'booking_2_def456',
-    paymentId: 'pay_2_uvw012',
-    hotelId: 'hotel_1758699345963_h2jzcrk3t',
-    hotelName: 'Grand Plaza Hotel',
-    hotelCity: 'New York',
-    hotelCountry: 'USA',
-    roomId: 'room_2_suite',
-    roomName: 'Executive Suite',
-    checkIn: '2025-10-15',
-    checkOut: '2025-10-18',
-    guests: 3,
-    totalPrice: 450,
-    status: 'confirmed',
-    guestName: 'NadPerz',
-    guestEmail: 'nadperz@example.com',
-    createdAt: '2025-09-20T15:30:00Z',
-    canCancel: true
-  },
-  {
-    id: 'booking_3_ghi789',
-    paymentId: 'pay_3_rst345',
-    hotelId: 'hotel_3_beach',
-    hotelName: 'Ocean View Resort',
-    hotelCity: 'Miami',
-    hotelCountry: 'USA',
-    roomId: 'room_3_ocean',
-    roomName: 'Ocean View Room',
-    checkIn: '2025-08-10',
-    checkOut: '2025-08-12',
-    guests: 2,
-    totalPrice: 200,
-    status: 'completed',
-    guestName: 'NadPerz',
-    guestEmail: 'nadperz@example.com',
-    createdAt: '2025-08-05T09:15:00Z',
-    canCancel: false
-  }
-];
+
 
 export default function ReservationsPage() {
   const router = useRouter();
-  const [bookings, setBookings] = useState(mockBookings);
+  const { data: bookings, isLoading } = useGetMyBookingsQuery();
+  const [cancelBooking] = useCancelBookingMutation();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [filteredBookings, setFilteredBookings] = useState(mockBookings);
+  const [filteredBookings, setFilteredBookings] = useState([]);
 
   console.log('📅 Reservations Page loaded:', {
     bookingCount: bookings.length,
@@ -96,39 +39,28 @@ export default function ReservationsPage() {
   });
 
   useEffect(() => {
-    let filtered = bookings;
+    if (bookings) {
+      let filtered = bookings;
 
-    if (searchTerm) {
-      filtered = filtered.filter(booking =>
-        booking.hotelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.roomName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        booking.hotelCity.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+      if (searchTerm) {
+        filtered = filtered.filter(booking =>
+          booking.hotelName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          booking.roomName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          booking.hotelCity.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(booking => booking.status === statusFilter);
+      }
+
+      setFilteredBookings(filtered);
     }
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(booking => booking.status === statusFilter);
-    }
-
-    setFilteredBookings(filtered);
   }, [bookings, searchTerm, statusFilter]);
 
-  const handleCancelBooking = (bookingId: string) => {
+  const handleCancelBooking = async (bookingId: string) => {
     if (window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
-      console.log('❌ Cancelling booking:', {
-        bookingId,
-        timestamp: '2025-09-25 10:49:00',
-        user: 'NadPerz'
-      });
-
-      setBookings(prev =>
-        prev.map(booking =>
-          booking.id === bookingId
-            ? { ...booking, status: 'cancelled', canCancel: false }
-            : booking
-        )
-      );
-
+      await cancelBooking(bookingId);
       alert('Booking cancelled successfully!');
     }
   };

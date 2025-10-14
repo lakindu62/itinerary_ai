@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, MapPin, Users, Phone } from 'lucide-react';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { useBookings } from '../../hooks/useBookings';
-import { formatDate, formatPrice } from '../../lib/formatters';
+import { useGetMyBookingsQuery } from '../../services/api/hotelBookingApi';
 
 export default function MyBookingsPage() {
-  const { myBookings, isLoading } = useBookings();
+  const { data: myBookings, isLoading, error } = useGetMyBookingsQuery();
 
   if (isLoading) return <LoadingSpinner />;
+  if (error) return <div>Error loading bookings</div>;
 
   return (
     <div className="space-y-6">

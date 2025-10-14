@@ -11,22 +11,33 @@ import {
   HttpCode,
   Headers,
   BadRequestException,
+  UseGuards,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { BookingService } from '../../application/services/booking.service';
 import { CreateBookingDto } from '../../application/dtos/create-booking.dto';
 import { UpdateBookingStatusDto } from '../../application/dtos/update-booking-status.dto';
+import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
+import { AuthenticatedUser, UserRole } from '@shared/types/user-management';
+import { Roles } from 'src/shared/decorators/roles.decorator';
+import { Request } from 'express';
 
 @Controller('bookings')
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
+  @UseGuards(ClerkAuthGuard)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createBooking(
-    @Headers('x-user-id') userId: string = 'test-user-123',
+    @Req() req: Request,
     @Body() createBookingDto: CreateBookingDto,
   ) {
-    const booking = await this.bookingService.createBooking(userId, createBookingDto);
+    if (!req.user?._id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const booking = await this.bookingService.createBooking(req.user, createBookingDto);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Booking created successfully',
@@ -34,9 +45,13 @@ export class BookingController {
     };
   }
 
+  @UseGuards(ClerkAuthGuard)
   @Get('my-bookings')
-  async findMyBookings(@Headers('x-user-id') userId: string = 'test-user-123') {
-    const bookings = await this.bookingService.findMyBookings(userId);
+  async findMyBookings(@Req() req: Request) {
+    if (!req.user?._id) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const bookings = await this.bookingService.findMyBookings(req.user);
     return {
       statusCode: HttpStatus.OK,
       message: 'Your bookings retrieved successfully',
@@ -45,9 +60,14 @@ export class BookingController {
     };
   }
 
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.BUSINESS_OWNER])
   @Get('hotel-bookings')
-  async findHotelBookings(@Headers('x-user-id') hotelOwnerId: string = 'test-user-123') {
-    const bookings = await this.bookingService.findHotelBookings(hotelOwnerId);
+  async findHotelBookings(@Req() req: Request) {
+    if (!req.user?.business_account_id) {
+      throw new UnauthorizedException('User is not a business owner');
+    }
+    const bookings = await this.bookingService.findHotelBookings(req.user.business_account_id);
     return {
       statusCode: HttpStatus.OK,
       message: 'Hotel bookings retrieved successfully',
@@ -94,13 +114,17 @@ export class BookingController {
     };
   }
 
+  @UseGuards(ClerkAuthGuard)
   @Put(':id/status')
   async updateBookingStatus(
     @Param('id') id: string,
-    @Headers('x-user-id') userId: string = 'test-user-123',
+    @Req() req: Request,
     @Body() updateDto: UpdateBookingStatusDto,
   ) {
-    const booking = await this.bookingService.updateBookingStatus(id, userId, updateDto);
+    if (!req.user) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const booking = await this.bookingService.updateBookingStatus(id, req.user, updateDto);
     return {
       statusCode: HttpStatus.OK,
       message: 'Booking status updated successfully',
@@ -108,12 +132,16 @@ export class BookingController {
     };
   }
 
+  @UseGuards(ClerkAuthGuard)
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async cancelBooking(
     @Param('id') id: string,
-    @Headers('x-user-id') userId: string = 'test-user-123',
+    @Req() req: Request,
   ) {
-    await this.bookingService.cancelBooking(id, userId);
+    if (!req.user) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    await this.bookingService.cancelBooking(id, req.user);
   }
 }

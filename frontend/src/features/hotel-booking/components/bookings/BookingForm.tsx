@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CalendarDays, Users, Loader2 } from 'lucide-react';
 import * as z from 'zod';
 import { formatPrice } from '../../lib/formatters';
+import { useCreateBookingMutation } from '../../services/api/hotelBookingApi';
 
 // Define the schema directly in the component to avoid type conflicts
 const bookingFormSchema = z.object({
@@ -43,7 +43,7 @@ export default function BookingForm({
   onSuccess, 
   onCancel 
 }: BookingFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createBooking, { isLoading }] = useCreateBookingMutation();
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
@@ -61,23 +61,11 @@ export default function BookingForm({
   });
 
   const onSubmit: SubmitHandler<BookingFormData> = async (data) => {
-    setIsSubmitting(true);
     try {
-      console.log('🏨 Booking submission:', {
-        ...data,
-        timestamp: '2025-09-25 08:47:17',
-        user: 'NadPerz'
-      });
-
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      console.log('✅ Booking created successfully');
+      await createBooking(data).unwrap();
       onSuccess?.();
     } catch (error) {
       console.error('❌ Booking failed:', error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -89,7 +77,7 @@ export default function BookingForm({
           Book This Room
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Room Price: {formatPrice(roomPrice)} per night | User: NadPerz | Date: 2025-09-25 08:47:17
+          Room Price: {formatPrice(roomPrice)} per night
         </p>
       </CardHeader>
       
@@ -109,7 +97,7 @@ export default function BookingForm({
                       <Input 
                         type="date" 
                         {...field} 
-                        disabled={isSubmitting}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -127,7 +115,7 @@ export default function BookingForm({
                       <Input 
                         type="date" 
                         {...field} 
-                        disabled={isSubmitting}
+                        disabled={isLoading}
                       />
                     </FormControl>
                     <FormMessage />
@@ -150,7 +138,7 @@ export default function BookingForm({
                       max="20"
                       {...field}
                       onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage />
@@ -168,7 +156,7 @@ export default function BookingForm({
                     <Checkbox
                       checked={field.value}
                       onCheckedChange={(checked) => field.onChange(checked === true)}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
@@ -193,7 +181,7 @@ export default function BookingForm({
                       placeholder="Any special requests or requirements..."
                       className="min-h-[80px]"
                       {...field}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage />
@@ -221,17 +209,17 @@ export default function BookingForm({
                   type="button"
                   variant="outline"
                   onClick={onCancel}
-                  disabled={isSubmitting}
+                  disabled={isLoading}
                 >
                   Cancel
                 </Button>
               )}
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isLoading}
                 className="min-w-[120px]"
               >
-                {isSubmitting ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Booking...

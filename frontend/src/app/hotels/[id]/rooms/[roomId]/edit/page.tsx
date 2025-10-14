@@ -106,7 +106,7 @@ export default function EditRoomPage() {
             Update "{room.title}" in {hotel.title}
           </p>
           
-          <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+          {/* <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
             <span>👤 User: NadPerz</span>
             <span>•</span>
             <span>📅 September 24, 2025</span>
@@ -114,11 +114,11 @@ export default function EditRoomPage() {
             <span>⏰ 18:31 UTC</span>
             <span>•</span>
             <span>💾 Images stored in room-bucket</span>
-          </div>
+          </div> */}
         </div>
         
         {/* Debug Info */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        {/* <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <h3 className="font-semibold text-blue-800 mb-2">🔍 DEBUG INFO:</h3>
           <div className="text-blue-700 text-sm space-y-1">
             <p><strong>URL:</strong> {window.location.href}</p>
@@ -128,7 +128,7 @@ export default function EditRoomPage() {
             <p><strong>Room Found:</strong> {room ? 'Yes' : 'No'}</p>
             <p><strong>Expected:</strong> Room Edit Form (NOT Hotel Edit Form)</p>
           </div>
-        </div>
+        </div> */}
         
         <RoomForm
           selectedHotelId={hotelId}
