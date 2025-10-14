@@ -12,6 +12,7 @@ export class CreateHotelDto {
 
   // @ApiProperty({ example: 'https://example.com/hotel-image.jpg' })
   @IsString()
+  @IsOptional()
   image: string;
 
   // @ApiProperty({ example: 'USA' })

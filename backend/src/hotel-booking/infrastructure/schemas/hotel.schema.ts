@@ -17,7 +17,7 @@ export class HotelSchema {
   @Prop({ required: true })
   description: string;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   image: string;
 
   @Prop({ required: true })

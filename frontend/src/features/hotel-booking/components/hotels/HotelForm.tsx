@@ -93,14 +93,14 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
   const onSubmit: SubmitHandler<HotelFormData> = async (data) => {
     try {
       console.log(`🏨 ${isEditMode ? 'Updating' : 'Creating'} hotel:`, data);
-      
+
       // Clean the data - convert empty locationDescription to undefined
       const cleanData = {
         ...data,
         locationDescription: data.locationDescription?.trim() || undefined,
         imageFile: selectedImage || undefined,
       };
-      
+
       if (isEditMode && hotel) {
         // UPDATE existing hotel
         console.log('🔄 Updating hotel ID:', hotel.id);
@@ -152,7 +152,7 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
           )}
         </div>
         <p className="text-sm text-gray-600">
-          {isEditMode 
+          {isEditMode
             ? `Update "${hotel?.title}" details`
             : 'Fill in the details to add a new hotel property'
           }
@@ -161,14 +161,14 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
           📦 Images will be stored in hotel-bucket/images/hotels_NadPerz_timestamp_filename
         </p>
       </CardHeader>
-      
+
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Basic Information</h3>
-              
+
               <FormField
                 control={form.control}
                 name="title"
@@ -176,9 +176,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                   <FormItem>
                     <FormLabel>Hotel Name *</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="e.g. Grand Palace Hotel" 
-                        {...field} 
+                      <Input
+                        placeholder="e.g. Grand Palace Hotel"
+                        {...field}
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -194,10 +194,10 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                   <FormItem>
                     <FormLabel>Description *</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Describe your hotel, its features, and what makes it special..." 
+                      <Textarea
+                        placeholder="Describe your hotel, its features, and what makes it special..."
                         className="min-h-[100px]"
-                        {...field} 
+                        {...field}
                         disabled={isSubmitting}
                       />
                     </FormControl>
@@ -225,7 +225,7 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
             {/* Location Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Location</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -234,9 +234,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                     <FormItem>
                       <FormLabel>Country *</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g. Sri Lanka" 
-                          {...field} 
+                        <Input
+                          placeholder="e.g. Sri Lanka"
+                          {...field}
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -252,9 +252,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                     <FormItem>
                       <FormLabel>State/Province *</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g. Western" 
-                          {...field} 
+                        <Input
+                          placeholder="e.g. Western"
+                          {...field}
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -270,9 +270,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                     <FormItem>
                       <FormLabel>City *</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="e.g. Colombo" 
-                          {...field} 
+                        <Input
+                          placeholder="e.g. Colombo"
+                          {...field}
                           disabled={isSubmitting}
                         />
                       </FormControl>
@@ -289,9 +289,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                   <FormItem>
                     <FormLabel>Location Description (Optional)</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Additional details about the location, nearby attractions, etc..." 
-                        {...field} 
+                      <Textarea
+                        placeholder="Additional details about the location, nearby attractions, etc..."
+                        {...field}
                         disabled={isSubmitting}
                       />
                     </FormControl>
