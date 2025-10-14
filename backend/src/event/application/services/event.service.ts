@@ -1,3 +1,4 @@
+
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { AuthenticatedUser } from '@shared/types/user-management';
 import { EventRepository } from '../../domain/repositories/event.repository';
@@ -96,7 +97,7 @@ export class EventService {
 
     if (createDto.hashtagIds && createDto.hashtagIds.length > 0) {
       for (const hashtagId of createDto.hashtagIds) {
-        const hashtag = await this.eventHashtagRepository.findById(hashtagId);
+        const hashtag = await this.eventHashtagRepository.findById(hashtagId); // Hashtags are global
         if (hashtag) {
           const mapping = new EventHashtagMapping(savedEvent, hashtag);
           await this.eventHashtagMappingRepository.create(mapping);
@@ -123,15 +124,49 @@ export class EventService {
   async updateEvent(id: string, updateDto: UpdateEventDto, user: AuthenticatedUser): Promise<Event | null> {
     const businessAccountId = this._getBusinessId(user);
     
-    await this.findEventById(id, user);
+    // First, ensure the event exists and belongs to the business before updating
+    const existingEvent = await this.findEventById(id, user); // This also throws NotFoundException if not found
 
-    const updatedEvent = await this.eventRepository.update(id, updateDto, businessAccountId);
+    // Build the update payload for Mongoose explicitly
+    const updatePayload: Partial<Event> = {};
 
+    // Copy direct properties from DTO to payload
+    if (updateDto.eventName !== undefined) updatePayload.eventName = updateDto.eventName;
+    if (updateDto.description !== undefined) updatePayload.description = updateDto.description;
+    if (updateDto.startDate !== undefined) updatePayload.startDate = updateDto.startDate;
+    if (updateDto.endDate !== undefined) updatePayload.endDate = updateDto.endDate;
+    if (updateDto.startTime !== undefined) updatePayload.startTime = updateDto.startTime;
+    if (updateDto.endTime !== undefined) updatePayload.endTime = updateDto.endTime;
+    if (updateDto.maxAttendees !== undefined) updatePayload.maxAttendees = updateDto.maxAttendees;
+    if (updateDto.ticketPrice !== undefined) updatePayload.ticketPrice = updateDto.ticketPrice;
+    if (updateDto.eventStatus !== undefined) updatePayload.eventStatus = updateDto.eventStatus;
+    if (updateDto.imagesUrl !== undefined) updatePayload.imagesUrl = updateDto.imagesUrl;
+
+    // Map DTO IDs to Mongoose reference fields
+    if (updateDto.venueId) {
+      const venue = await this.eventVenueRepository.findById(updateDto.venueId, businessAccountId);
+      if (!venue) throw new NotFoundException(`Venue with ID ${updateDto.venueId} not found for your business.`);
+      updatePayload.venue = venue; // Assign the full venue object (Mongoose will extract _id)
+    }
+    if (updateDto.organizerId) {
+      const organizer = await this.eventOrganizerRepository.findById(updateDto.organizerId, businessAccountId);
+      if (!organizer) throw new NotFoundException(`Organizer with ID ${updateDto.organizerId} not found for your business.`);
+      updatePayload.organizer = organizer;
+    }
+    if (updateDto.categoryId) {
+      const category = await this.eventCategoryRepository.findById(updateDto.categoryId, businessAccountId);
+      if (!category) throw new NotFoundException(`Category with ID ${updateDto.categoryId} not found for your business.`);
+      updatePayload.category = category;
+    }
+
+    const updatedEvent = await this.eventRepository.update(id, updatePayload, businessAccountId);
+
+    // ... (hashtag mapping logic remains the same)
     if (updateDto.hashtagIds) {
       await this.eventHashtagMappingRepository.deleteByEventId(id);
       for (const hashtagId of updateDto.hashtagIds) {
         const hashtag = await this.eventHashtagRepository.findById(hashtagId);
-        if (hashtag && updatedEvent) {
+        if (hashtag && updatedEvent) { // Check updatedEvent is not null
           const mapping = new EventHashtagMapping(updatedEvent, hashtag);
           await this.eventHashtagMappingRepository.create(mapping);
         }
@@ -149,7 +184,7 @@ export class EventService {
   }
 
   // =================================================================
-  // Business-Scoped Sub-Entity Methods (Venue, Organizer, etc.)
+  // Business-Scoped Sub-Entity Methods (Venue, Organizer, Category, RSVP)
   // =================================================================
 
   async createVenue(createDto: CreateEventVenueDto, user: AuthenticatedUser): Promise<EventVenue> {
@@ -233,7 +268,6 @@ export class EventService {
       if (!success) throw new NotFoundException(`Category with ID ${id} not found.`);
   }
 
-  // --- RSVP (Traveler and Business) ---
   async createRsvp(createRsvpDto: CreateEventRsvpDto, user: AuthenticatedUser): Promise<EventRsvp> {
     const event = await this.eventRepository.findPublicById(createRsvpDto.eventId);
     if (!event) {
@@ -261,7 +295,10 @@ export class EventService {
       if (!success) throw new NotFoundException(`RSVP with ID ${id} not found.`);
   }
 
-  // --- Hashtag (Global) ---
+  // =================================================================
+  // Global Hashtag Methods
+  // =================================================================
+
   async getHashtags(): Promise<EventHashtag[]> {
     return this.eventHashtagRepository.findAll();
   }
@@ -280,16 +317,18 @@ export class EventService {
     if (!existingHashtag) {
       throw new NotFoundException(`Hashtag with ID ${id} not found`);
     }
-    // Apply updates from DTO to the existing domain entity
     Object.assign(existingHashtag, updateDto);
     return this.eventHashtagRepository.update(existingHashtag);
   }
 
   async deleteHashtag(id: string): Promise<void> {
-    await this.eventHashtagRepository.delete(id);
+    const success = await this.eventHashtagRepository.delete(id);
+    if (!success) throw new NotFoundException(`Hashtag with ID ${id} not found.`);
   }
   
-  async getEventHashtagMappings(eventId: string): Promise<EventHashtagMapping[]> {
+  async getEventHashtagMappings(eventId: string, user: AuthenticatedUser): Promise<EventHashtagMapping[]> {
+    // First, ensure the event exists and belongs to the authenticated business
+    await this.findEventById(eventId, user);
     return this.eventHashtagMappingRepository.findByEventId(eventId);
   }
 }

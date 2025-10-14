@@ -15,6 +15,8 @@ type Event = {
   description: string;
   startDate: string;
   startTime: string;
+  endDate: string;
+  endTime: string;
   imagesUrl?: string[];
   venue?: {
     venueName: string;

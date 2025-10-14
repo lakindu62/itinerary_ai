@@ -110,6 +110,12 @@ export const deleteBusinessVenue = async (id: string, getToken: GetToken): Promi
     if (!response.ok) throw new Error('Failed to delete venue');
 };
 
+export const getVenueById = async (id: string, getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch(`/events/venue/${id}`, getToken);
+    if (!response.ok) throw new Error('Failed to fetch venue');
+    return response.json();
+};
+
 // --- Organizer API ---
 export const getBusinessOrganizers = async (getToken: GetToken): Promise<any[]> => {
     const response = await authenticatedFetch('/events/organizer/all', getToken);
@@ -140,6 +146,12 @@ export const updateBusinessOrganizer = async (id: string, organizerData: any, ge
 export const deleteBusinessOrganizer = async (id: string, getToken: GetToken): Promise<void> => {
     const response = await authenticatedFetch(`/events/organizer/${id}`, getToken, { method: 'DELETE' });
     if (!response.ok) throw new Error('Failed to delete organizer');
+};
+
+export const getOrganizerById = async (id: string, getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch(`/events/organizer/${id}`, getToken);
+    if (!response.ok) throw new Error('Failed to fetch organizer');
+    return response.json();
 };
 
 // --- Category API ---
@@ -174,6 +186,12 @@ export const deleteBusinessCategory = async (id: string, getToken: GetToken): Pr
     if (!response.ok) throw new Error('Failed to delete category');
 };
 
+export const getCategoryById = async (id: string, getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch(`/events/category/${id}`, getToken);
+    if (!response.ok) throw new Error('Failed to fetch category');
+    return response.json();
+};
+
 // --- Global Hashtag API ---
 export const getHashtags = async (getToken: GetToken): Promise<any[]> => {
     const response = await authenticatedFetch(`/events/hashtag/all`, getToken);
@@ -188,6 +206,12 @@ export const createHashtag = async (data: any, getToken: GetToken): Promise<any>
         body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to create hashtag');
+    return response.json();
+};
+
+export const getHashtagById = async (id: string, getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch(`/events/hashtag/${id}`, getToken);
+    if (!response.ok) throw new Error('Failed to fetch hashtag');
     return response.json();
 };
 

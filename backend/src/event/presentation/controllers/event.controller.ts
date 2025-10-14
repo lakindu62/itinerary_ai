@@ -27,6 +27,13 @@ export class EventController {
 
   // ================= BUSINESS-SCOPED ROUTES =================
 
+  // --- Hashtag Mapping (Specific route, must be before generic :id) ---
+  @UseGuards(ClerkAuthGuard)
+  @Get('/hashtag-mapping')
+  getEventHashtagMappings(@Query('eventId') eventId: string, @Req() req: Request) {
+    return this.eventService.getEventHashtagMappings(eventId, req.user as AuthenticatedUser);
+  }
+
   // --- Full Event CRUD ---
   @UseGuards(ClerkAuthGuard)
   @Post()
@@ -41,7 +48,7 @@ export class EventController {
   }
 
   @UseGuards(ClerkAuthGuard)
-  @Get(':id')
+  @Get(':id') // Generic :id route comes AFTER more specific ones
   findEventById(@Param('id') id: string, @Req() req: Request) {
     return this.eventService.findEventById(id, req.user as AuthenticatedUser);
   }
@@ -72,6 +79,12 @@ export class EventController {
   }
   
   @UseGuards(ClerkAuthGuard)
+  @Get('venue/:id')
+  getVenueById(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.getVenueById(id, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
   @Patch('venue/:id')
   updateVenue(@Param('id') id: string, @Body() updateDto: UpdateEventVenueDto, @Req() req: Request) {
     return this.eventService.updateVenue(id, updateDto, req.user as AuthenticatedUser);
@@ -97,6 +110,12 @@ export class EventController {
   }
 
   @UseGuards(ClerkAuthGuard)
+  @Get('organizer/:id')
+  getOrganizerById(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.getOrganizerById(id, req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
   @Patch('organizer/:id')
   updateOrganizer(@Param('id') id: string, @Body() updateDto: UpdateEventOrganizerDto, @Req() req: Request) {
     return this.eventService.updateOrganizer(id, updateDto, req.user as AuthenticatedUser);
@@ -119,6 +138,12 @@ export class EventController {
   @Get('category/all')
   getCategories(@Req() req: Request) {
     return this.eventService.getCategories(req.user as AuthenticatedUser);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Get('category/:id')
+  getCategoryById(@Param('id') id: string, @Req() req: Request) {
+    return this.eventService.getCategoryById(id, req.user as AuthenticatedUser);
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -158,14 +183,23 @@ export class EventController {
     return this.eventService.getHashtags();
   }
 
-  @UseGuards(ClerkAuthGuard)
   @Post('hashtag')
   createHashtag(@Body() createHashtagDto: CreateEventHashtagDto) {
     return this.eventService.createHashtag(createHashtagDto);
   }
   
-  @Get('hashtag-mapping')
-  getEventHashtagMappings(@Query('eventId') eventId: string) {
-    return this.eventService.getEventHashtagMappings(eventId);
+  @Get('hashtag/:id')
+  getHashtagById(@Param('id') id: string) {
+    return this.eventService.getHashtagById(id);
+  }
+
+  @Patch('hashtag/:id')
+  updateHashtag(@Param('id') id: string, @Body() updateDto: UpdateEventHashtagDto) {
+    return this.eventService.updateHashtag(id, updateDto);
+  }
+
+  @Delete('hashtag/:id')
+  deleteHashtag(@Param('id') id: string) {
+    return this.eventService.deleteHashtag(id);
   }
 }
