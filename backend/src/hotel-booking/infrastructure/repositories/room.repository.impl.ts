@@ -8,7 +8,7 @@ import { RoomSchema, RoomDocument } from '../schemas/room.schema';
 @Injectable()
 export class RoomRepositoryImpl implements RoomRepository {
   constructor(
-    @InjectModel(RoomSchema.name)
+    @InjectModel(Room.name)
     private roomModel: Model<RoomDocument>,
   ) {}
 

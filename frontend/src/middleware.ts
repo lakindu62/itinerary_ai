@@ -4,6 +4,7 @@ import { UserType } from "@shared/types/user-management/user.types";
 
 const isOnboardingRoute = createRouteMatcher(["/business/onboarding"]);
 const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/", "/business/registration"]);
+const isBusinessRoute = createRouteMatcher(["/dashboard(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { isAuthenticated, redirectToSignIn, sessionClaims } = await auth();
@@ -22,6 +23,12 @@ export default clerkMiddleware(async (auth, req) => {
     // Add custom logic to run before redirecting
     return redirectToSignIn();
   }
+
+  if (isAuthenticated && isBusinessRoute(req) && sessionClaims?.unsafe_metadata?.userType !== UserType.BUSINESS_USER) {
+    const homeUrl = new URL("/", req.url);
+    return NextResponse.redirect(homeUrl);
+  }
+
   if (
     isAuthenticated &&
     !sessionClaims?.metadata?.onboardingComplete &&

@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Hotel } from '../../types/hotel.types';
 import { Room } from '../../types/room.types';
-import { useRooms } from '../../hooks/useRooms';
+import { useGetRoomsByHotelQuery } from '../../services/api/roomApi';
 import HotelImageSimple from '../shared/HotelImageSimple';
 
 interface HotelCardProps {
@@ -42,7 +42,7 @@ export default function HotelCard({
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Get room count for this hotel - Fixed type
-  const { rooms = [] }: { rooms: Room[] } = useRooms(hotel.id);
+  const { data: rooms = [] } = useGetRoomsByHotelQuery(hotel.id);
 
   const amenities = [];
   if (hotel.gym) amenities.push({ icon: '🏋️', name: 'Gym' });

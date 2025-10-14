@@ -13,9 +13,8 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '
 import { Badge } from '@/components/ui/badge';
 import { X, Loader2, Bed, ArrowLeft } from 'lucide-react';
 import MinioImageUpload from '../shared/MinioImageUpload';
-import { useHotels } from '../../hooks/useHotels';
-import { useRooms } from '../../hooks/useRooms';
-import { Room } from '../../types/room.types';
+import { useCreateRoomMutation, useUpdateRoomMutation } from '../../services/api/roomApi';
+import { useGetMyHotelsQuery } from '../../services/api/hotelApi';
 
 // Room form validation schema
 const roomSchema = z.object({
@@ -50,8 +49,9 @@ interface RoomFormProps {
 }
 
 export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }: RoomFormProps) {
-  const { myHotels } = useHotels();
-  const { createRoom, updateRoom, isCreating, isUpdating } = useRooms(selectedHotelId);
+  const { data: myHotels } = useGetMyHotelsQuery();
+  const [createRoom, { isLoading: isCreating }] = useCreateRoomMutation();
+  const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation();
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
@@ -59,7 +59,7 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
   const isSubmitting = isCreating || isUpdating;
 
   // Find the selected hotel
-  const selectedHotel = myHotels.find(h => h.id === selectedHotelId);
+  const selectedHotel = myHotels?.find(h => h.id === selectedHotelId);
 
   const form = useForm<RoomFormData>({
     resolver: zodResolver(roomSchema),
@@ -114,11 +114,11 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
         await updateRoom({
           id: room.id,
           data: roomData,
-        });
+        }).unwrap();
         console.log('✅ Room updated successfully');
       } else {
         // CREATE new room
-        await createRoom(roomData);
+        await createRoom(roomData).unwrap();
         console.log('✅ Room created successfully');
       }
 
@@ -181,13 +181,13 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
             </div>
           )}
           
-          <div className="flex items-center space-x-2 text-xs text-gray-500">
+          {/* <div className="flex items-center space-x-2 text-xs text-gray-500">
             <span>👤 User: NadPerz</span>
             <span>•</span>
             <span>📅 {new Date().toLocaleDateString()}</span>
             <span>•</span>
             <span>💾 Images stored in room-bucket</span>
-          </div>
+          </div> */}
         </div>
       </CardHeader>
       

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { Hotel } from '../../types/hotel.types';
 import { Room } from '../../types/room.types';
-import { useRooms } from '../../hooks/useRooms';
+import { useGetRoomsByHotelQuery } from '../../services/api/roomApi';
 import HotelImageSimple from '../shared/HotelImageSimple';
 import HotelForm from './HotelForm';
 
@@ -40,14 +40,10 @@ export default function HotelDetailsPage({ hotel, isLoading, error }: HotelDetai
   
   // Fetch rooms for this hotel with enhanced debugging
   const { 
-    rooms = [], 
+    data: rooms = [], 
     isLoading: isLoadingRooms,
     error: roomsError 
-  }: { 
-    rooms: Room[];
-    isLoading: boolean;
-    error: any;
-  } = useRooms(hotel?.id);
+  } = useGetRoomsByHotelQuery(hotel?.id);
 
   // Debug logging
   console.log('🏨 HotelDetailsPage Debug:', {

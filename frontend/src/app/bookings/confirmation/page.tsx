@@ -18,8 +18,8 @@ import {
   Star,
   Clock
 } from 'lucide-react';
-import { useHotel } from '@/features/hotel-booking/hooks/useHotels';
-import { useRoom } from '@/features/hotel-booking/hooks/useRooms';
+import { useGetHotelQuery } from '@/features/hotel-booking/services/api/hotelApi';
+import { useGetRoomQuery } from '@/features/hotel-booking/services/api/roomApi';
 import { format } from 'date-fns';
 
 function BookingConfirmationContent() {
@@ -37,8 +37,8 @@ function BookingConfirmationContent() {
   const guestName = searchParams.get('guestName') || '';
   const guestEmail = searchParams.get('guestEmail') || '';
   
-  const { data: hotel } = useHotel(hotelId);
-  const { data: room } = useRoom(roomId);
+  const { data: hotel } = useGetHotelQuery(hotelId);
+  const { data: room } = useGetRoomQuery(roomId);
 
   console.log('✅ Booking Confirmation Page loaded:', {
     bookingId,
@@ -123,7 +123,7 @@ Thank you for booking with us!
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 shadow-lg animate-bounce">
             <CheckCircle className="h-12 w-12 text-green-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">🎉 Booking Confirmed!</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-3"> Booking Confirmed!</h1>
           <p className="text-xl text-gray-600 mb-2">Your reservation has been successfully created</p>
           <p className="text-sm text-gray-500">
             Confirmed by NadPerz • 2025-09-25 12:10:52 UTC
@@ -368,7 +368,7 @@ Thank you for booking with us!
         {/* Thank You Message */}
         <div className="mt-12 text-center">
           <div className="bg-white rounded-lg p-8 shadow-lg border-0">
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">🙏 Thank You for Your Booking!</h3>
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Thank You for Your Booking!</h3>
             <p className="text-gray-600 mb-4">
               Your reservation is confirmed and we can't wait to welcome you. A detailed confirmation 
               email has been sent to <span className="font-medium text-blue-600">{guestEmail}</span>.

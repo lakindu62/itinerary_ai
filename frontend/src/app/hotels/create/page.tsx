@@ -15,9 +15,9 @@ export default function CreateHotelPage() {
         </div>
         
         {/* Temporary API Test - Remove this after testing */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <ApiTest />
-        </div>
+        </div> */}
         
         <Suspense fallback={<LoadingSpinner />}>
           <HotelForm />

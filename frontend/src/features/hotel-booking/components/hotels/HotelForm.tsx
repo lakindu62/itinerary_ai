@@ -12,8 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { X, Loader2, Hotel } from 'lucide-react';
 import MinioImageUpload from '../shared/MinioImageUpload';
-import { useHotels } from '../../hooks/useHotels';
-import { Hotel as HotelType } from '../../types/hotel.types';
+import { useCreateHotelMutation, useUpdateHotelMutation } from '../../services/api/hotelApi';
 
 // Define the hotel schema with optional locationDescription
 const hotelSchema = z.object({
@@ -40,13 +39,14 @@ const hotelSchema = z.object({
 type HotelFormData = z.infer<typeof hotelSchema>;
 
 interface HotelFormProps {
-  hotel?: HotelType | null;
+  hotel?: Hotel | null;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
 export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps) {
-  const { createHotel, updateHotel, isCreating, isUpdating } = useHotels();
+  const [createHotel, { isLoading: isCreating }] = useCreateHotelMutation();
+  const [updateHotel, { isLoading: isUpdating }] = useUpdateHotelMutation();
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
@@ -91,6 +91,7 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
   };
 
   const onSubmit: SubmitHandler<HotelFormData> = async (data) => {
+    console.log("force refresh");
     try {
       console.log(`🏨 ${isEditMode ? 'Updating' : 'Creating'} hotel:`, data);
       
@@ -107,18 +108,18 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
         await updateHotel({
           id: hotel.id,
           data: cleanData,
-        });
+        }).unwrap();
         console.log('✅ Hotel updated successfully');
       } else {
         // CREATE new hotel
         console.log('🆕 Creating new hotel');
-        await createHotel(cleanData);
+        await createHotel(cleanData).unwrap();
         console.log('✅ Hotel created successfully');
       }
 
       onSuccess?.();
     } catch (error: any) {
-      console.error(`❌ Failed to ${isEditMode ? 'update' : 'create'} hotel:`, error);
+      console.error(`❌ Failed to ${isEditMode ? 'update' : 'create'} hotel:`, JSON.stringify(error, null, 2));
     }
   };
 
@@ -157,9 +158,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
             : 'Fill in the details to add a new hotel property'
           }
         </p>
-        <p className="text-xs text-blue-600">
+        {/* <p className="text-xs text-blue-600">
           📦 Images will be stored in hotel-bucket/images/hotels_NadPerz_timestamp_filename
-        </p>
+        </p> */}
       </CardHeader>
       
       <CardContent>
@@ -216,9 +217,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                   folder="images"
                   isUploading={isSubmitting}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                {/* <p className="text-xs text-gray-500 mt-1">
                   💾 File will be stored as: hotel-bucket/images/hotels_NadPerz_{Date.now()}_filename.jpg
-                </p>
+                </p> */}
               </div>
             </div>
 
@@ -238,12 +239,12 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                           placeholder="e.g. Sri Lanka" 
                           {...field} 
                           disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
                 <FormField
                   control={form.control}
@@ -256,12 +257,12 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                           placeholder="e.g. Western" 
                           {...field} 
                           disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
                 <FormField
                   control={form.control}
@@ -274,12 +275,12 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
                           placeholder="e.g. Colombo" 
                           {...field} 
                           disabled={isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               </div>
 
               <FormField

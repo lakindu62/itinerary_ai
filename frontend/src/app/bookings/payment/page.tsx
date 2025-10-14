@@ -14,8 +14,8 @@ import {
   Loader2,
   MapPin
 } from 'lucide-react';
-import { useHotel } from '@/features/hotel-booking/hooks/useHotels';
-import { useRoom } from '@/features/hotel-booking/hooks/useRooms';
+import { useGetHotelQuery } from '@/features/hotel-booking/services/api/hotelApi';
+import { useGetRoomQuery } from '@/features/hotel-booking/services/api/roomApi';
 import LoadingSpinner from '@/features/hotel-booking/components/shared/LoadingSpinner';
 import { stripeService } from '@/features/hotel-booking/services/stripe/stripe.service';
 import { bookingsApi } from '@/features/hotel-booking/services/api/bookings.api';
@@ -32,8 +32,8 @@ function PaymentContent() {
   const guests = parseInt(searchParams.get('guests') || '2');
   const totalPrice = parseFloat(searchParams.get('totalPrice') || '0');
   
-  const { data: hotel } = useHotel(hotelId);
-  const { data: room } = useRoom(roomId);
+  const { data: hotel } = useGetHotelQuery(hotelId);
+  const { data: room } = useGetRoomQuery(roomId);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({

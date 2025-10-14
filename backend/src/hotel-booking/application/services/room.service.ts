@@ -14,13 +14,13 @@ export class RoomService {
     private readonly hotelRepository: HotelRepository,
   ) {}
 
-  async createRoom(userId: string, createRoomDto: CreateRoomDto): Promise<Room> {
+  async createRoom(businessAccountId: string, createRoomDto: CreateRoomDto): Promise<Room> {
     // Verify hotel ownership
     const hotel = await this.hotelRepository.findById(createRoomDto.hotelId);
     if (!hotel) {
       throw new NotFoundException('Hotel not found');
     }
-    if (hotel.userId !== userId) {
+    if (hotel.userId !== businessAccountId) {
       throw new ForbiddenException('You can only add rooms to your own hotels');
     }
 
@@ -51,7 +51,7 @@ export class RoomService {
     return await this.roomRepository.findAvailableRooms(hotelId, startDate, endDate);
   }
 
-  async updateRoom(id: string, userId: string, updateRoomDto: UpdateRoomDto): Promise<Room> {
+  async updateRoom(id: string, businessAccountId: string, updateRoomDto: UpdateRoomDto): Promise<Room> {
     const existingRoom = await this.findRoomById(id);
     
     // Verify hotel ownership
@@ -59,7 +59,7 @@ export class RoomService {
     if (!hotel) {
       throw new NotFoundException('Hotel not found');
     }
-    if (hotel.userId !== userId) {
+    if (hotel.userId !== businessAccountId) {
       throw new ForbiddenException('You can only update rooms in your own hotels');
     }
 
@@ -67,7 +67,7 @@ export class RoomService {
     return await this.roomRepository.update(updatedRoom);
   }
 
-  async deleteRoom(id: string, userId: string): Promise<void> {
+  async deleteRoom(id: string, businessAccountId: string): Promise<void> {
     const existingRoom = await this.findRoomById(id);
     
     // Verify hotel ownership
@@ -75,7 +75,7 @@ export class RoomService {
     if (!hotel) {
       throw new NotFoundException('Hotel not found');
     }
-    if (hotel.userId !== userId) {
+    if (hotel.userId !== businessAccountId) {
       throw new ForbiddenException('You can only delete rooms in your own hotels');
     }
 

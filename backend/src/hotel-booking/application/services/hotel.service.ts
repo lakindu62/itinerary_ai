@@ -11,10 +11,10 @@ export class HotelService {
     private readonly hotelRepository: HotelRepository
   ) {}
 
-  async createHotel(userId: string, createHotelDto: CreateHotelDto): Promise<Hotel> {
+  async createHotel(businessAccountId: string, createHotelDto: CreateHotelDto): Promise<Hotel> {
     try {
       const hotel = Hotel.create({
-        userId,
+        userId: businessAccountId,
         ...createHotelDto,
       });
       return await this.hotelRepository.create(hotel);
@@ -40,14 +40,14 @@ export class HotelService {
     return await this.hotelRepository.findAll(filters);
   }
 
-  async findHotelsByUser(userId: string): Promise<Hotel[]> {
-    return await this.hotelRepository.findByUserId(userId);
+  async findHotelsByBusiness(businessAccountId: string): Promise<Hotel[]> {
+    return await this.hotelRepository.findByUserId(businessAccountId);
   }
 
-  async updateHotel(id: string, userId: string, updateHotelDto: UpdateHotelDto): Promise<Hotel> {
+  async updateHotel(id: string, businessAccountId: string, updateHotelDto: UpdateHotelDto): Promise<Hotel> {
     const existingHotel = await this.findHotelById(id);
     
-    if (existingHotel.userId !== userId) {
+    if (existingHotel.userId !== businessAccountId) {
       throw new ForbiddenException('You can only update your own hotels');
     }
 
@@ -55,10 +55,10 @@ export class HotelService {
     return await this.hotelRepository.update(updatedHotel);
   }
 
-  async deleteHotel(id: string, userId: string): Promise<void> {
+  async deleteHotel(id: string, businessAccountId: string): Promise<void> {
     const existingHotel = await this.findHotelById(id);
     
-    if (existingHotel.userId !== userId) {
+    if (existingHotel.userId !== businessAccountId) {
       throw new ForbiddenException('You can only delete your own hotels');
     }
 

@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 export const reducerBasePath = "api";
 
-let getClerkGetTokenFunc: (() => Promise<string | null>) | undefined;
+export let getClerkGetTokenFunc: (() => Promise<string | null>) | undefined;
 export const setClerkGetTokenFunc = (
   getToken: () => Promise<string | null>
 ) => {

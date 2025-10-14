@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 import LoadingSpinner from '../shared/LoadingSpinner';
-import { useBookings } from '../../hooks/useBookings';
+import { useGetMyBookingsQuery } from '../../services/api/hotelBookingApi';
 import { formatDate, formatPrice } from '../../lib/formatters';
 
 export default function ConflictsPage() {
-  const { conflicts, isLoading } = useBookings();
+  const { data: bookings, isLoading } = useGetMyBookingsQuery();
+  const conflicts = bookings ? bookings.flatMap(b => b.conflicts || []) : [];
 
   if (isLoading) return <LoadingSpinner />;
 

@@ -28,7 +28,7 @@ import {
   Phone
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { bookingsApi } from '../../services/api/bookings.api';
+
 
 interface Booking {
   id: string;
@@ -53,11 +53,12 @@ interface Booking {
   canCancel: boolean;
 }
 
+import { useGetHotelBookingsQuery } from '../../services/api/hotelBookingApi';
+
 export default function ReservationsOverview() {
   const router = useRouter();
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const { data: bookings, isLoading, error } = useGetHotelBookingsQuery();
   const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
@@ -75,41 +76,13 @@ export default function ReservationsOverview() {
   });
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
-
-  useEffect(() => {
-    filterBookings();
+    if (bookings) {
+      filterBookings();
+    }
   }, [bookings, searchTerm, filterStatus]);
 
-  const fetchBookings = async () => {
-    try {
-      console.log('📅 Fetching all hotel bookings for NadPerz:', {
-        timestamp: currentTimestamp,
-        user: currentUser,
-        endpoint: '/bookings/hotel-bookings'
-      });
-
-      setIsLoading(true);
-      const fetchedBookings = await bookingsApi.getAll();
-      
-      console.log('✅ Bookings fetched for NadPerz:', {
-        count: fetchedBookings.length,
-        timestamp: currentTimestamp,
-        user: currentUser
-      });
-
-      setBookings(fetchedBookings);
-    } catch (error) {
-      console.error('❌ Error fetching bookings for NadPerz:', error);
-      setBookings([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const filterBookings = () => {
-    let filtered = bookings;
+    let filtered = bookings || [];
 
     // Search filter
     if (searchTerm) {
@@ -127,7 +100,7 @@ export default function ReservationsOverview() {
     }
 
     console.log('🔍 Bookings filtered for NadPerz:', {
-      total: bookings.length,
+      total: bookings?.length || 0,
       filtered: filtered.length,
       searchTerm,
       filterStatus,
@@ -165,9 +138,7 @@ export default function ReservationsOverview() {
     console.log('🔄 NadPerz refreshing reservations data:', {
       timestamp: currentTimestamp
     });
-    setIsRefreshing(true);
-    await fetchBookings();
-    setIsRefreshing(false);
+    // This will be handled by RTK Query
   };
 
   const handleExportBookings = () => {
@@ -188,18 +159,21 @@ export default function ReservationsOverview() {
 
   // Calculate statistics
   const stats = {
-    total: bookings.length,
-    confirmed: bookings.filter(b => b.status === 'confirmed').length,
-    pending: bookings.filter(b => b.status === 'pending').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length,
-    completed: bookings.filter(b => b.status === 'completed').length,
-    revenue: bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.totalPrice, 0),
-    avgBookingValue: bookings.length > 0 ? 
-      (bookings.reduce((sum, b) => sum + b.totalPrice, 0) / bookings.length).toFixed(2) : '0.00',
-    todayBookings: bookings.filter(b => 
+    total: bookings?.length || 0,
+    confirmed: bookings?.filter(b => b.status === 'confirmed').length || 0,
+    pending: bookings?.filter(b => b.status === 'pending').length || 0,
+    cancelled: bookings?.filter(b => b.status === 'cancelled').length || 0,
+    completed: bookings?.filter(b => b.status === 'completed').length || 0,
+    revenue: bookings?.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.totalPrice, 0) || 0,
+    avgBookingValue: (bookings?.length || 0) > 0 ? 
+      ((bookings?.reduce((sum, b) => sum + b.totalPrice, 0) || 0) / (bookings?.length || 1)).toFixed(2) : '0.00',
+    todayBookings: bookings?.filter(b => 
       new Date(b.createdAt).toDateString() === new Date().toDateString()
-    ).length
+    ).length || 0
   };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error loading bookings</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">

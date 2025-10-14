@@ -9,25 +9,34 @@ import {
   Query,
   HttpStatus,
   HttpCode,
-  Headers,
-  BadRequestException,
+  UseGuards,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { RoomService } from '../../application/services/room.service';
 import { CreateRoomDto } from '../../application/dtos/create-room.dto';
 import { UpdateRoomDto } from '../../application/dtos/update-room.dto';
+import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
+import { Roles } from 'src/shared/decorators/roles.decorator';
+import { UserRole } from '@shared/types/user-management';
+import { Request } from 'express';
 
 @Controller('rooms')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.BUSINESS_OWNER])
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createRoom(
+    @Req() req: Request,
     @Body() createRoomDto: CreateRoomDto,
-    @Headers('x-user-id') userId?: string,  // Optional parameter comes last   
   ) {
-    const actualUserId = userId || 'test-user-123';  // Use default if not provided
-    const room = await this.roomService.createRoom(actualUserId, createRoomDto);
+    if (!req.user?.business_account_id) {
+      throw new UnauthorizedException('User is not a business owner');
+    }
+    const room = await this.roomService.createRoom(req.user.business_account_id, createRoomDto);
     return {
       statusCode: HttpStatus.CREATED,
       message: 'Room created successfully',
@@ -74,14 +83,18 @@ export class RoomController {
     };
   }
 
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.BUSINESS_OWNER])
   @Put(':id')
   async updateRoom(
     @Param('id') id: string,
+    @Req() req: Request,
     @Body() updateRoomDto: UpdateRoomDto,
-    @Headers('x-user-id') userId?: string,  // Optional parameter comes last
   ) {
-    const actualUserId = userId || 'test-user-123';  // Use default if not provided
-    const room = await this.roomService.updateRoom(id, actualUserId, updateRoomDto);
+    if (!req.user?.business_account_id) {
+      throw new UnauthorizedException('User is not a business owner');
+    }
+    const room = await this.roomService.updateRoom(id, req.user.business_account_id, updateRoomDto);
     return {
       statusCode: HttpStatus.OK,
       message: 'Room updated successfully',
@@ -89,13 +102,17 @@ export class RoomController {
     };
   }
 
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.BUSINESS_OWNER])
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteRoom(
     @Param('id') id: string,
-    @Headers('x-user-id') userId?: string,  // Optional parameter comes last
+    @Req() req: Request,
   ) {
-    const actualUserId = userId || 'test-user-123';  // Use default if not provided
-    await this.roomService.deleteRoom(id, actualUserId);
+    if (!req.user?.business_account_id) {
+      throw new UnauthorizedException('User is not a business owner');
+    }
+    await this.roomService.deleteRoom(id, req.user.business_account_id);
   }
 }
