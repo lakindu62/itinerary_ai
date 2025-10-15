@@ -1,14 +1,14 @@
-
 'use client';
 
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { createOrganizer, updateOrganizer } from '../lib/event-api';
+import { createBusinessOrganizer, updateBusinessOrganizer } from '../lib/event-api';
 
 interface Organizer {
   id: string;
@@ -31,6 +31,7 @@ interface OrganizerFormProps {
 }
 
 const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) => {
+  const { getToken } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -42,11 +43,12 @@ const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) =
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!getToken) return;
     try {
       if (organizer) {
-        await updateOrganizer(organizer.id, values);
+        await updateBusinessOrganizer(organizer.id, values, getToken);
       } else {
-        await createOrganizer(values);
+        await createBusinessOrganizer(values, getToken);
       }
       onSuccess();
     } catch (error) {
@@ -55,14 +57,12 @@ const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) =
   };
 
   function formatSriLankaPhone(input: string) {
-  // Remove all non-digit characters
-  const digits = input.replace(/\D/g, '');
-  if (digits.length === 0) return '';
-  if (digits.length <= 3) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
-}
-
+    const digits = input.replace(/\D/g, '');
+    if (digits.length === 0) return '';
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  }
 
   return (
     <Form {...form}>
@@ -100,14 +100,12 @@ const OrganizerForm: React.FC<OrganizerFormProps> = ({ organizer, onSuccess }) =
             <FormItem>
               <FormLabel>Contact Phone</FormLabel>
               <FormControl>
-                {/* <Input placeholder="e.g., 076 757 6666" {...field} /> */}
                  <Input
                     type="tel"
-                    maxLength={14} // (XXX) XXX-XXXX is 14 chars
+                    maxLength={14}
                     placeholder="(076) 757-6666"
                     value={formatSriLankaPhone(field.value)}
                     onChange={e => {
-                      // Only store digits in the form state
                       const digits = e.target.value.replace(/\D/g, '');
                       field.onChange(digits);
                     }}

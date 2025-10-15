@@ -13,41 +13,41 @@ export class EventOrganizerRepositoryImpl extends EventOrganizerRepository {
     super();
   }
 
-  async create(eventOrganizer: EventOrganizer): Promise<any> {
+  async create(eventOrganizer: EventOrganizer): Promise<EventOrganizer> {
     const newEventOrganizer = new this.eventOrganizerModel(eventOrganizer);
     const savedEventOrganizer = await newEventOrganizer.save();
     return this.toDomainEntity(savedEventOrganizer);
   }
 
-  async findAll(): Promise<any[]> {
-    const docs = await this.eventOrganizerModel.find().exec();
+  async findAll(businessAccountId: string): Promise<EventOrganizer[]> {
+    const docs = await this.eventOrganizerModel.find({ businessAccountId }).exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
   
-  async findById(id: string): Promise<any | null> {
-    const doc = await this.eventOrganizerModel.findById(id).exec();
+  async findById(id: string, businessAccountId: string): Promise<EventOrganizer | null> {
+    const doc = await this.eventOrganizerModel.findOne({ _id: id, businessAccountId }).exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async update(eventOrganizer: EventOrganizer): Promise<any | null> {
-    const updatedDoc = await this.eventOrganizerModel.findByIdAndUpdate(eventOrganizer.id, eventOrganizer, { new: true }).exec();
+  async update(id: string, updates: Partial<EventOrganizer>, businessAccountId: string): Promise<EventOrganizer | null> {
+    const updatedDoc = await this.eventOrganizerModel.findOneAndUpdate({ _id: id, businessAccountId }, updates, { new: true }).exec();
     return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.eventOrganizerModel.findByIdAndDelete(id).exec();
+  async delete(id: string, businessAccountId: string): Promise<boolean> {
+    const result = await this.eventOrganizerModel.deleteOne({ _id: id, businessAccountId }).exec();
+    return result.deletedCount > 0;
   }
 
 
-  private toDomainEntity(doc: EventOrganizerDocument): any {
-    return {
-      id: doc._id.toString(),
-      organizerName: doc.organizerName,
-      contactEmail: doc.contactEmail,
-      contactPhone: doc.contactPhone,
-      organization: doc.organization,
-      createdAt: (doc as any).createdAt,
-      updatedAt: (doc as any).updatedAt,
-    };
+  private toDomainEntity(doc: EventOrganizerDocument): EventOrganizer {
+    return new EventOrganizer(
+      doc._id.toString(),
+      doc.businessAccountId,
+      doc.organizerName,
+      doc.contactEmail,
+      doc.contactPhone,
+      doc.organization,
+    );
   }
 }

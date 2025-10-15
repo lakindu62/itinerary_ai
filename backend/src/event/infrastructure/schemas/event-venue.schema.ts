@@ -8,6 +8,9 @@ export type EventVenueDocument = EventVenue & Document & { _id: Types.ObjectId }
   strict: 'throw',
 })
 export class EventVenue {
+  @Prop({ required: true, index: true })
+  businessAccountId: string;
+
   @Prop({ required: true })
   venueName: string;
 

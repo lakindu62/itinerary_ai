@@ -8,6 +8,9 @@ export type EventCategoryDocument = EventCategory & Document & { _id: Types.Obje
   strict: 'throw',
 })
 export class EventCategory {
+  @Prop({ required: true, index: true })
+  businessAccountId: string;
+
   @Prop({ required: true })
   categoryName: string;
 

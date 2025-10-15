@@ -13,40 +13,38 @@ export class EventCategoryRepositoryImpl extends EventCategoryRepository {
     super();
   }
 
-  async create(eventCategory: EventCategory): Promise<any> {
+  async create(eventCategory: EventCategory): Promise<EventCategory> {
     const newEventCategory = new this.eventCategoryModel(eventCategory);
     const savedEventCategory = await newEventCategory.save();
     return this.toDomainEntity(savedEventCategory);
   }
 
-  async findAll(): Promise<any[]> {
-    const docs = await this.eventCategoryModel.find().exec();
+  async findAll(businessAccountId: string): Promise<EventCategory[]> {
+    const docs = await this.eventCategoryModel.find({ businessAccountId }).exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  async findById(id: string): Promise<any | null> {
-    const doc = await this.eventCategoryModel.findById(id).exec();
+  async findById(id: string, businessAccountId: string): Promise<EventCategory | null> {
+    const doc = await this.eventCategoryModel.findOne({ _id: id, businessAccountId }).exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async update(eventCategory: EventCategory): Promise<any | null> {
-    const updatedDoc = await this.eventCategoryModel.findByIdAndUpdate(eventCategory.id, eventCategory, { new: true }).exec();
+  async update(id: string, updates: Partial<EventCategory>, businessAccountId: string): Promise<EventCategory | null> {
+    const updatedDoc = await this.eventCategoryModel.findOneAndUpdate({ _id: id, businessAccountId }, updates, { new: true }).exec();
     return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.eventCategoryModel.findByIdAndDelete(id).exec();
+  async delete(id: string, businessAccountId: string): Promise<boolean> {
+    const result = await this.eventCategoryModel.deleteOne({ _id: id, businessAccountId }).exec();
+    return result.deletedCount > 0;
   }
 
-
-  
-
-  private toDomainEntity(doc: EventCategoryDocument): any {
-    return {
-      id: doc._id.toString(),
-      categoryName: doc.categoryName,
-      description: doc.description,
-      createdAt: (doc as any).createdAt,
-    };
+  private toDomainEntity(doc: EventCategoryDocument): EventCategory {
+    return new EventCategory(
+      doc._id.toString(),
+      doc.businessAccountId,
+      doc.categoryName,
+      doc.description,
+    );
   }
 }

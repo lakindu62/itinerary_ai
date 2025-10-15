@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { getVenues, deleteVenue } from '../lib/event-api';
+import { getBusinessVenues, deleteBusinessVenue } from '../lib/event-api';
 import Link from 'next/link';
 
-// Temporary Venue type definition
 interface Venue {
   id: string;
   venueName: string;
@@ -22,24 +22,27 @@ interface Venue {
 }
 
 const VenueList = () => {
+  const { getToken } = useAuth();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchVenues = async () => {
+      if (!getToken) return; // Ensure getToken is available
       try {
-        const data = await getVenues();
+        const data = await getBusinessVenues(getToken);
         setVenues(data);
       } catch (error) {
         console.error('Failed to fetch venues:', error);
       }
     };
     fetchVenues();
-  }, []);
+  }, [getToken]);
 
   const handleDelete = async (id: string) => {
+    if (!getToken) return; // Ensure getToken is available
     try {
-      await deleteVenue(id);
+      await deleteBusinessVenue(id, getToken);
       setVenues(venues.filter((venue) => venue.id !== id));
     } catch (error) {
       console.error('Failed to delete venue:', error);
