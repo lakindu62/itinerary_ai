@@ -67,15 +67,16 @@ export const PostPDFTemplate: React.FC<{ data: PostPDFData }> = ({ data }) => (
             <View key={idx} style={{ marginBottom: 15 }}>
               {media.type === "image" ? (
                 <>
-                  <Image
-                    src={media.url}
-                    style={{
-                      width: "100%",
-                      maxHeight: 300,
-                      objectFit: "contain",
-                      marginBottom: 5,
-                    }}
-                  />
+                  <View style={{ marginBottom: 5, alignItems: "center" }}>
+                    <Image
+                      src={media.url}
+                      style={{
+                        maxWidth: "100%",
+                        maxHeight: 400,
+                        objectFit: "contain",
+                      }}
+                    />
+                  </View>
                   <Text style={commonStyles.small}>
                     Path: {media.originalPath}
                   </Text>

@@ -5,16 +5,8 @@ import { Button } from "@frontend/components/ui/button";
 import { PencilIcon, XIcon, TrashIcon, DownloadIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PostHeaderProps } from "../../types/social.types";
-import { AuthSetup } from "@frontend/lib/AuthSetup";
-import {
-  BasePdfTemplate,
-  AsyncPdfDownloadButton,
-} from "@frontend/components/pdf";
-import {
-  PostPDFTemplate,
-  ProcessedMedia,
-} from "@frontend/components/pdf/templates/PostPDFTemplate";
-import { getSignedGetUrl } from "@frontend/lib/media.api";
+import { AsyncPdfDownloadButton } from "@frontend/components/pdf";
+import { usePostPdfDocument } from "../../hooks/usePostPdfDocument";
 
 const PostHeader: React.FC<PostHeaderProps> = ({
   post,
@@ -40,65 +32,21 @@ const PostHeader: React.FC<PostHeaderProps> = ({
   const profilePictureUrl =
     post.userInfo?.profilePicture || "/alien-profile-pic-1.jpg";
 
-  // Helper to determine if file is an image
-  const isImageFile = (filePath: string): boolean => {
-    const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
-    return imageExtensions.some((ext) => filePath.toLowerCase().endsWith(ext));
-  };
-
-  // Prepare PDF document with async media processing
-  const preparePdfDocument = async () => {
-    const mediaFiles = post.mediaFiles || [];
-    const processedMedia: ProcessedMedia[] = await Promise.all(
-      mediaFiles.map(async (filePath) => {
-        const isImage = isImageFile(filePath);
-
-        if (isImage) {
-          try {
-            const signedUrl = await getSignedGetUrl(filePath);
-            return {
-              type: "image" as const,
-              url: signedUrl,
-              originalPath: filePath,
-            };
-          } catch (error) {
-            console.error(`Failed to get signed URL for ${filePath}:`, error);
-            return {
-              type: "image" as const,
-              url: "",
-              originalPath: filePath,
-            };
-          }
-        } else {
-          return {
-            type: "video" as const,
-            url: "",
-            originalPath: filePath,
-          };
-        }
-      })
-    );
-
-    // Return the PDF document with processed media
-    return (
-      <PostPDFTemplate
-        data={{
-          user: {
-            displayName,
-            profilePictureUrl,
-          },
-          post: {
-            id: post.id,
-            content: post.content,
-            createdAt: post.createdAt,
-            updatedAt: post.updatedAt,
-            processedMedia,
-            likesCount: post.likeCount ?? 0,
-          },
-        }}
-      />
-    );
-  };
+  // Use the custom hook to prepare PDF document
+  const { preparePdfDocument } = usePostPdfDocument({
+    post: {
+      id: post.id,
+      content: post.content,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+      mediaFiles: post.mediaFiles,
+      likeCount: post.likeCount,
+    },
+    user: {
+      displayName,
+      profilePictureUrl,
+    },
+  });
 
   return (
     <div className="flex space-x-3 mb-2">
