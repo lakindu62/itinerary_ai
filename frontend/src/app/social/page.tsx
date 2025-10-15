@@ -26,7 +26,7 @@ const page = (props: Props) => {
       <AuthSetup />
 
       {/* <Navbar /> */}
-      <main className="py-8">
+      <main className="py-8 mt-12">
         {/*Container to center the content */}
         <div className="max-w-7xl mx-auto px-4">
           {/*Grid container */}
