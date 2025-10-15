@@ -11,8 +11,11 @@ import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary
 
 @Injectable()
 export class ItineraryChatService {
-  private sessions = new Map<string, TravelPlanningSession>();
   private readonly logger = new Logger(ItineraryChatService.name);
+
+  // In-memory session storage using Map
+  private readonly sessions: Map<string, TravelPlanningSession> = new Map();
+
   constructor(
     private readonly updateContextUseCase: UpdateContextUseCase,
     private readonly handleClarificationUseCase: HandleClarificationUseCase,
@@ -21,52 +24,96 @@ export class ItineraryChatService {
     private readonly itineraryRepository: ItineraryRepository,
   ) {}
 
+  async getChatItinerary(
+    sessionId: string,
+  ): Promise<ChatItineraryResponseDto | null> {
+    // First check in-memory cache
+    let session: TravelPlanningSession | null | undefined =
+      this.sessions.get(sessionId);
+
+    // If not in memory, try to load from DB
+    if (!session) {
+      session =
+        await this.itineraryRepository.getTravelPlanningSession(sessionId);
+      if (session) {
+        // Cache it in memory for future requests
+        this.sessions.set(sessionId, session);
+      }
+    }
+
+    if (!session) {
+      return null;
+    }
+
+    return {
+      response:
+        session.getConversation().messages[
+          session.getConversation().messages.length - 1
+        ].content,
+      conversation: session.getConversation(),
+      currentItinerary: session.getCurrentItinerary(),
+    };
+  }
+
   async chatItinerary(
+    userId: string,
     message: string,
     sessionId: string,
   ): Promise<ChatItineraryResponseDto> {
     this.logger.log(`Received message: ${message}, sessionId: ${sessionId}`);
-    let session = this.sessions.get(sessionId);
+
+    // Get session from memory first, then DB, or create new
+    let session: TravelPlanningSession | null | undefined =
+      this.sessions.get(sessionId);
+    if (!session) {
+      session =
+        await this.itineraryRepository.getTravelPlanningSession(sessionId);
+    }
     if (!session) {
       session = new TravelPlanningSession(sessionId);
     }
 
-    session.addUserMessage(message);
-    console.log(message);
+    // Store session in memory immediately
+    this.sessions.set(sessionId, session);
 
+    session.addUserMessage(message);
     await this.updateContextUseCase.execute(message, session);
-    console.log(session.getContext());
 
     let response: string = '';
 
     // Now the business logic is cleaner and more expressive
     if (session.needsClarification()) {
-      response = this.handleClarification(message, session);
+      response = await this.handleClarification(message, session);
     } else if (session.isReadyForItineraryCreation()) {
-      response = await this.createItinerary(session);
+      response = await this.createItinerary(userId, session, sessionId);
     } else if (session.canModifyItinerary()) {
-      response = await this.modifyItinerary(message, session);
+      response = await this.modifyItinerary(message, session, sessionId);
     }
 
     session.addAssistantMessage(response);
-    console.log(
-      '🚀 ~ ItineraryChatService ~ chatItinerary ~ session.getContext():',
-      session.getContext(),
-    );
+
+    // Update in-memory session
     this.sessions.set(sessionId, session);
+
+    this.logger.log(
+      `Sending response: ${JSON.stringify({
+        response,
+        conversation: session.getConversation(),
+        currentItinerary: session.getCurrentItinerary(),
+      })}`,
+    );
 
     return {
       response,
-      conversation: session.getConversationMessages(),
-      context: session.getContext(),
+      conversation: session.getConversation(),
       currentItinerary: session.getCurrentItinerary(),
     };
   }
 
-  private handleClarification(
+  private async handleClarification(
     message: string,
     session: TravelPlanningSession,
-  ): string {
+  ): Promise<string> {
     const context = session.getContext();
 
     if (!context.destination) {
@@ -77,13 +124,13 @@ export class ItineraryChatService {
   }
 
   private async createItinerary(
+    userId: string,
     session: TravelPlanningSession,
+    sessionId: string,
   ): Promise<string> {
     const createResult = await this.createItineraryUseCase.execute(
       session.getContext(),
     );
-
-    console.log(createResult);
 
     // Use aggregate method instead of manual context updates
     session.createItinerary(
@@ -93,17 +140,27 @@ export class ItineraryChatService {
       createResult.itinerary.accommodation,
       createResult.itinerary.tips,
     );
-    console.log(
-      '🚀 ~ ItineraryChatService ~ createItinerary ~ session:',
-      session.getCurrentItinerary(),
+
+    this.logger.log(`Created itinerary -> _id: ${createResult.itinerary.id}`);
+
+    // Now save to DB since itinerary is complete
+    await this.itineraryRepository.create(
+      sessionId,
+      userId,
+      session.getItineraryWithConversation(),
     );
-    await this.itineraryRepository.create(session.getCurrentItinerary()!);
+
+    this.logger.log(
+      `Itinerary with _id: ${createResult.itinerary.id} saved in DB for user ${userId}`,
+    );
+
     return createResult.response;
   }
 
   private async modifyItinerary(
     message: string,
     session: TravelPlanningSession,
+    sessionId: string,
   ): Promise<string> {
     const currentItinerary = session.getCurrentItinerary()!;
 
@@ -122,6 +179,30 @@ export class ItineraryChatService {
       modifyResult.itinerary.tips,
     );
 
+    // Update DB with modified itinerary
+    await this.itineraryRepository.updateTravelPlanningSession(
+      sessionId,
+      session,
+    );
+
     return modifyResult.response;
+  }
+
+  /**
+   * Optional: Method to clear old sessions from memory to prevent memory leaks
+   * Call this periodically or when needed
+   */
+  clearInactiveSessionsOlderThan(hours: number = 24): void {
+    // This is a simple implementation - you might want to track lastAccessTime
+    // For now, you can manually clear sessions or implement a more sophisticated approach
+    this.logger.log(`Session cache size: ${this.sessions.size}`);
+  }
+
+  /**
+   * Optional: Method to manually remove a session from cache
+   */
+  clearSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+    this.logger.log(`Cleared session ${sessionId} from cache`);
   }
 }

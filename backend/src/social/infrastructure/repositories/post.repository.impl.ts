@@ -2,10 +2,11 @@
 
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ClientSession, Model } from 'mongoose';
+import { ClientSession, Model, Types } from 'mongoose';
 import {
   Post,
   PostWithLikeStatus,
+  PostWithUserInfo,
 } from 'src/social/domain/entities/post.entity';
 import { PostRepository } from 'src/social/domain/repositories/post.repository';
 import { PostDocument } from '../schemas/post.schema';
@@ -145,8 +146,29 @@ export class PostRepositoryImpl extends PostRepository {
           `[PostRepositoryImpl.getAllWithLikeStatus] No userId provided, returning posts without like status`,
         );
         const posts = await this.getAll();
-        return posts.map((post) => this.toPostWithLikeStatus(post, false));
+        return posts.map((post) =>
+          this.toPostWithLikeStatus(post, false, false),
+        );
       }
+
+      // Convert userId string to ObjectId BEFORE the aggregation pipeline
+      const userObjectId = new Types.ObjectId(userId);
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithLikeStatus] ===== OWNERSHIP DEBUG =====`,
+      );
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithLikeStatus] userId string: "${userId}"`,
+      );
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithLikeStatus] userObjectId: ${userObjectId.toString()}`,
+      );
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithLikeStatus] userObjectId type: ${typeof userObjectId}`,
+      );
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithLikeStatus] userObjectId instanceof ObjectId: ${userObjectId instanceof Types.ObjectId}`,
+      );
 
       // Use MongoDB aggregation to join posts with likes in a single query
       const docs = await this.postModel
@@ -168,7 +190,7 @@ export class PostRepositoryImpl extends PostRepository {
                     $expr: {
                       $and: [
                         { $eq: ['$post', '$$postId'] },
-                        { $eq: ['$user', { $toObjectId: userId }] },
+                        { $eq: ['$user', userObjectId] }, // Use pre-converted ObjectId
                       ],
                     },
                   },
@@ -185,6 +207,14 @@ export class PostRepositoryImpl extends PostRepository {
             },
           },
 
+          // Add isOwner field (true if post.user equals current userId)
+          // Convert both to strings for comparison since $user comes back as string from MongoDB
+          {
+            $addFields: {
+              isOwner: { $eq: [{ $toString: '$user' }, userId] },
+            },
+          },
+
           // Remove the userLikes array as we only need the boolean
           {
             $project: {
@@ -198,11 +228,177 @@ export class PostRepositoryImpl extends PostRepository {
         `[PostRepositoryImpl.getAllWithLikeStatus] Found ${docs.length} posts with like status`,
       );
 
+      // Debug: Log first post to see what MongoDB returned
+      if (docs.length > 0) {
+        const firstPost = docs[0];
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] ===== FIRST POST DEBUG =====`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] Post._id: ${firstPost._id}`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] Post.user (raw): ${JSON.stringify(firstPost.user)}`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] Post.user.toString(): ${firstPost.user.toString()}`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] Post.user type: ${typeof firstPost.user}`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] Post.isOwner: ${firstPost.isOwner}`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] userObjectId: ${userObjectId.toString()}`,
+        );
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithLikeStatus] Manual comparison: ${firstPost.user.toString() === userObjectId.toString()}`,
+        );
+      }
+
       // Convert MongoDB documents to PostWithLikeStatus entities
       return docs.map((doc) => this.toPostWithLikeStatusFromDoc(doc));
     } catch (error) {
       this.logger.error(
         'Failed to fetch posts with like status from database',
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
+   * Uses MongoDB aggregation to join posts with user and like info in a single query.
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities
+   */
+  async getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]> {
+    this.logger.debug(
+      `[PostRepositoryImpl.getAllWithUserInfo] Fetching posts with user info for user: ${userId}`,
+    );
+    this.logger.debug(
+      `[PostRepositoryImpl.getAllWithUserInfo] userId type: ${typeof userId}, length: ${userId?.length}`,
+    );
+
+    // Convert userId string to ObjectId BEFORE the aggregation pipeline
+    const userObjectId = new Types.ObjectId(userId);
+    this.logger.debug(
+      `[PostRepositoryImpl.getAllWithUserInfo] Converted to ObjectId: ${userObjectId}`,
+    );
+
+    try {
+      // MongoDB aggregation pipeline to join user info, like status, and ownership
+      const docs = await this.postModel
+        .aggregate([
+          // 1. Match all posts
+          { $match: {} },
+
+          // 2. Sort by creation date (newest first)
+          { $sort: { createdAt: -1 } },
+
+          // 3. Lookup user info for each post
+          {
+            $lookup: {
+              from: 'users', // Collection name for users
+              localField: 'user',
+              foreignField: '_id',
+              as: 'userInfoArr',
+            },
+          },
+
+          // 4. Lookup likes for the specific user
+          {
+            $lookup: {
+              from: 'likes',
+              let: { postId: '$_id' },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $and: [
+                        { $eq: ['$post', '$$postId'] },
+                        { $eq: ['$user', userObjectId] }, // Use pre-converted ObjectId
+                      ],
+                    },
+                  },
+                },
+              ],
+              as: 'userLikes',
+            },
+          },
+
+          // 5. Add userLiked field based on whether userLikes array has any items
+          {
+            $addFields: {
+              userLiked: { $gt: [{ $size: '$userLikes' }, 0] },
+            },
+          },
+
+          // 6. Add isOwner field (true if post.user equals current userId)
+          {
+            $addFields: {
+              isOwner: { $eq: ['$user', userObjectId] }, // Use pre-converted ObjectId
+            },
+          },
+
+          // 7. Unwind userInfoArr to get single userInfo object
+          {
+            $unwind: { path: '$userInfoArr', preserveNullAndEmptyArrays: true },
+          },
+
+          // 8. Project only needed fields (inclusion only - no mixing with exclusion)
+          {
+            $project: {
+              // All post fields
+              _id: 1,
+              user: 1,
+              content: 1,
+              likeCount: 1,
+              commentCount: 1,
+              createdAt: 1,
+              updatedAt: 1,
+              image: 1,
+              mediaFiles: 1,
+              userLiked: 1,
+              isOwner: 1,
+              // User info fields
+              'userInfoArr._id': 1,
+              'userInfoArr.clerkUserId': 1,
+              'userInfoArr.firstName': 1,
+              'userInfoArr.lastName': 1,
+              'userInfoArr.email': 1,
+              'userInfoArr.travelProfile': 1, // Include entire travelProfile to access profilePicture
+              // userLikes removed - we don't need it after calculating userLiked
+            },
+          },
+        ])
+        .exec();
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfo] Found ${docs.length} posts with user info`,
+      );
+
+      // Debug: Log sample results to verify isOwner is being set correctly
+      if (docs.length > 0) {
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithUserInfo] Sample results (first 2 posts):`,
+          docs.slice(0, 2).map((d) => ({
+            _id: d._id?.toString(),
+            postUser: d.user?.toString(),
+            currentUserId: userId,
+            isOwner: d.isOwner,
+            ownershipMatch: d.user?.toString() === userId,
+          })),
+        );
+      }
+
+      // Convert MongoDB documents to PostWithUserInfo entities
+      return docs.map((doc) => this.toPostWithUserInfoDomainEntity(doc));
+    } catch (error) {
+      this.logger.error(
+        'Failed to fetch posts with user info from database',
         error.stack,
       );
       throw error;
@@ -465,11 +661,13 @@ export class PostRepositoryImpl extends PostRepository {
    * @private
    * @param post - The Post entity to convert
    * @param userLiked - Whether the user has liked this post
+   * @param isOwner - Whether the current user owns this post
    * @returns The corresponding PostWithLikeStatus entity
    */
   private toPostWithLikeStatus(
     post: Post,
     userLiked: boolean,
+    isOwner: boolean = false,
   ): PostWithLikeStatus {
     return new PostWithLikeStatus(
       post.id,
@@ -482,6 +680,7 @@ export class PostRepositoryImpl extends PostRepository {
       post.updatedAt,
       post.image,
       post.mediaFiles,
+      isOwner,
     );
   }
 
@@ -504,6 +703,41 @@ export class PostRepositoryImpl extends PostRepository {
       doc.updatedAt,
       doc.image,
       doc.mediaFiles ?? [],
+      doc.isOwner ?? false,
+    );
+  }
+
+  /**
+   * Converts a MongoDB aggregation result to PostWithUserInfo entity.
+   * @param doc - The MongoDB aggregation result document
+   * @returns The corresponding PostWithUserInfo entity
+   */
+  private toPostWithUserInfoDomainEntity(doc: any): PostWithUserInfo {
+    // Defensive: handle missing userInfoArr
+    const userInfo = doc.userInfoArr
+      ? {
+          _id: doc.userInfoArr._id?.toString() ?? '',
+          clerkUserId: doc.userInfoArr.clerkUserId ?? '',
+          firstName: doc.userInfoArr.firstName ?? '',
+          lastName: doc.userInfoArr.lastName ?? '',
+          email: doc.userInfoArr.email ?? '',
+          profilePicture:
+            doc.userInfoArr.travelProfile?.profilePicture ?? undefined, // Extract from travelProfile
+        }
+      : undefined;
+    return new PostWithUserInfo(
+      doc._id?.toString() ?? '',
+      doc.user?.toString() ?? '',
+      doc.content ?? '',
+      doc.likeCount ?? 0,
+      doc.commentCount ?? 0,
+      doc.userLiked ?? false,
+      doc.createdAt,
+      doc.updatedAt,
+      doc.image,
+      doc.mediaFiles ?? [],
+      userInfo,
+      doc.isOwner ?? false,
     );
   }
 }

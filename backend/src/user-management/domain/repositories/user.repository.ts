@@ -4,7 +4,8 @@ export abstract class UserRepository {
   abstract save(user: User): Promise<User>;
   abstract delete(id: string): Promise<User | null>;
   abstract update(id: string, updates: Partial<User>): Promise<User>;
-  //   abstract findById(id: string): Promise<User | null>;
+  abstract findById(id: string): Promise<User | null>;
+  abstract findByIds(ids: string[]): Promise<User[]>;
   //   abstract findByClerkUserId(clerkUserId: string): Promise<User | null>;
   //   abstract findByEmail(email: string): Promise<User | null>;
   //   abstract findByBusinessAccount(businessAccountId: string): Promise<User[]>;

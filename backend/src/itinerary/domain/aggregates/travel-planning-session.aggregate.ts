@@ -4,19 +4,25 @@ import { ConversationContext } from '../value-objects/conversation';
 import { Day } from '../value-objects/itinerary';
 
 export class TravelPlanningSession {
-  private conversation: Conversation;
-  private currentItinerary?: Itinerary;
+  public conversation: Conversation;
+  public currentItinerary?: Itinerary;
 
   constructor(
     public readonly id: string,
     conversation?: Conversation,
+    currentItinerary?: Itinerary,
   ) {
-    this.conversation = conversation || new Conversation(id);
+    this.conversation = conversation || new Conversation();
+    this.currentItinerary = currentItinerary;
   }
 
   // Conversation operations
   addUserMessage(message: string): void {
     this.conversation.addMessage('user', message);
+  }
+
+  getConversation(): Conversation {
+    return this.conversation;
   }
 
   getConversationMessages() {
@@ -83,6 +89,19 @@ export class TravelPlanningSession {
 
   getCurrentItinerary(): Itinerary | undefined {
     return this.currentItinerary;
+  }
+
+  /**
+   * Returns an object containing the current itinerary and the conversation .
+   */
+  getItineraryWithConversation(): {
+    itinerary: Itinerary;
+    conversation: Conversation;
+  } {
+    return {
+      itinerary: this.currentItinerary!,
+      conversation: this.conversation,
+    };
   }
 
   // Business logic methods

@@ -1,7 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ClientSession, Model, Types } from 'mongoose';
-import { Comment } from 'src/social/domain/entities/comment.entity';
+import {
+  Comment,
+  CommentWithUserInfo,
+} from 'src/social/domain/entities/comment.entity';
 import { CommentRepository } from 'src/social/domain/repositories/comment.repository';
 import { CommentDocument } from '../schemas/comment.schema';
 
@@ -31,6 +34,81 @@ export class CommentRepositoryImpl extends CommentRepository {
     );
 
     return docs.map((doc) => this.toDomainEntity(doc));
+  }
+
+  /**
+   * Aggregation: fetch comments for a post, join user info, add isOwner
+   * @param postId - The post to fetch comments for
+   * @param currentUserId - The current user's MongoDB ID
+   */
+
+  async findCommentsWithUserInfo(
+    postId: string,
+    currentUserId: string,
+  ): Promise<CommentWithUserInfo[]> {
+    this.logger.debug(
+      `[CommentRepositoryImpl.findCommentsWithUserInfo] Aggregating comments for post ${postId} with user info for user ${currentUserId}`,
+    );
+    this.logger.debug(
+      `[CommentRepositoryImpl.findCommentsWithUserInfo] userId type: ${typeof currentUserId}, length: ${currentUserId?.length}`,
+    );
+    const postObjectId = new Types.ObjectId(postId);
+    const userObjectId = new Types.ObjectId(currentUserId);
+    this.logger.debug(
+      `[CommentRepositoryImpl.findCommentsWithUserInfo] Converted to ObjectId: ${userObjectId}`,
+    );
+    const pipeline: any[] = [
+      { $match: { post: postObjectId } },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userInfoArr',
+        },
+      },
+      { $unwind: { path: '$userInfoArr', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          isOwner: { $eq: [{ $toString: '$user' }, currentUserId] }, // Use pre-converted ObjectId, exactly as in posts
+        },
+      },
+    ];
+    const results = await this.commentModel.aggregate(pipeline).exec();
+    // ===== FINAL COMMENT DEBUG =====
+    console.debug(
+      '[CommentRepositoryImpl.findCommentsWithUserInfo] Final comments with user info:',
+      results,
+    );
+    return results;
+  }
+
+  /**
+   * Converts aggregation result to CommentWithUserInfo DTO
+   */
+  toCommentWithUserInfoDomainEntity(doc: any) {
+    const userInfo = doc.userInfoArr
+      ? new (require('../../domain/entities/comment.entity').CommentUserInfo)(
+          doc.userInfoArr._id?.toString() ?? '',
+          `${doc.userInfoArr.firstName ?? ''} ${doc.userInfoArr.lastName ?? ''}`.trim(),
+          doc.userInfoArr.travelProfile?.profilePicture ?? undefined,
+        )
+      : new (require('../../domain/entities/comment.entity').CommentUserInfo)(
+          '',
+          '',
+          undefined,
+        );
+    return new (require('../../domain/entities/comment.entity').CommentWithUserInfo)(
+      doc._id?.toString() ?? '',
+      doc.user?.toString() ?? '',
+      doc.post?.toString() ?? '',
+      doc.content ?? '',
+      doc.createdAt?.toString?.() ?? doc.createdAt,
+      doc.updatedAt?.toString?.() ?? doc.updatedAt,
+      userInfo,
+      !!doc.isOwner,
+    );
   }
 
   async createWithTransaction<T>(
@@ -103,6 +181,40 @@ export class CommentRepositoryImpl extends CommentRepository {
     const saved = await doc.save(session ? { session } : {});
     // success log removed to reduce noise
     return this.toDomainEntity(saved);
+  }
+
+  async update(
+    commentId: string,
+    userId: string,
+    content: string,
+    session?: ClientSession,
+  ): Promise<Comment> {
+    this.logger.debug(
+      `[CommentRepositoryImpl.update] Updating comment ${commentId} by user ${userId}`,
+    );
+
+    const updated = await this.commentModel.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(commentId),
+        user: new Types.ObjectId(userId), // Ensure only owner can update
+      },
+      { content, updatedAt: new Date() },
+      { new: true, ...(session ? { session } : {}) },
+    );
+
+    if (!updated) {
+      this.logger.warn(
+        `[CommentRepositoryImpl.update] No comment found to update or user is not the owner`,
+      );
+      throw new Error(
+        'Comment not found or you do not have permission to update it',
+      );
+    }
+
+    this.logger.debug(
+      `[CommentRepositoryImpl.update] Successfully updated comment ${commentId}`,
+    );
+    return this.toDomainEntity(updated);
   }
 
   async delete(

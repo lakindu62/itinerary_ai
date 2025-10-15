@@ -48,25 +48,25 @@ const MapComponent: React.FC<MapComponentProps> = ({
     };
   }, []);
 
-  // Add resize observer to handle container size changes
-  useEffect(() => {
-    if (!mapContainer.current || !map.current) return;
+  // // Add resize observer to handle container size changes
+  // useEffect(() => {
+  //   if (!mapContainer.current || !map.current) return;
 
-    const resizeObserver = new ResizeObserver(() => {
-      if (map.current) {
-        // Small delay to ensure the DOM has updated
+  //   const resizeObserver = new ResizeObserver(() => {
+  //     if (map.current) {
+  //       // Small delay to ensure the DOM has updated
 
-        map.current?.resize();
+  //       map.current?.resize();
 
-      }
-    });
+  //     }
+  //   });
 
-    resizeObserver.observe(mapContainer.current);
+  //   resizeObserver.observe(mapContainer.current);
 
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
+  //   return () => {
+  //     resizeObserver.disconnect();
+  //   };
+  // }, []);
 
   useEffect(() => {
     if (!map.current || !itinerary) return;
@@ -116,7 +116,7 @@ const MapComponent: React.FC<MapComponentProps> = ({
         .setPopup(
           new mapboxgl.Popup({ offset: 25 })
             .setHTML(`
-              <div style="padding: 8px;">
+              <div style="padding: 8px; color: black;">
                 <h3 style="margin: 0 0 4px 0; font-weight: bold;">${place.name}</h3>
 
                 ${place.description ? `<p style="margin: 4px 0 0 0; font-size: 12px;">${place.description}</p>` : ''}

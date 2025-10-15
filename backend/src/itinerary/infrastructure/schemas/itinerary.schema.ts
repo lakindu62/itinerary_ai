@@ -1,8 +1,17 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
+import { ConversationDocument } from './conversation.schema';
+import { Conversation } from 'src/itinerary/domain/entities/conversation.entity';
 
 export type ItineraryDocument = Itinerary &
   Document & { _id: Types.ObjectId; createdAt: string; updatedAt: string };
+
+export type ItineraryDocumentPopulated = Omit<
+  ItineraryDocument,
+  'conversation'
+> & {
+  conversation: ConversationDocument;
+};
 
 @Schema({ _id: false })
 export class Activity {
@@ -45,6 +54,9 @@ export class Day {
   strict: 'throw',
 })
 export class Itinerary {
+  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  user: Types.ObjectId;
+
   @Prop({ required: true })
   title: string;
 
@@ -59,6 +71,9 @@ export class Itinerary {
 
   @Prop({ required: true, type: [String] })
   tips: string[];
+
+  @Prop({ required: true, type: Conversation })
+  conversation: Conversation;
 }
 
 export const ActivitySchema = SchemaFactory.createForClass(Activity);

@@ -8,6 +8,10 @@ export const store = configureStore({
     businessOnboarding: BusinessOnboardingSlice.reducer,
     [reducerBasePath]: rootApiSlice.reducer, // Add this line
   },
+  //Amzal added these two lines, check if they are correct
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(rootApiSlice.middleware), //
+  //End of two lines
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself

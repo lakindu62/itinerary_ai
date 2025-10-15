@@ -5,7 +5,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { User } from 'src/user-management/domain/user/user.entity';
 
-Injectable();
+@Injectable()
 export class UserRepositoryImpl extends UserRepository {
   private readonly logger = new Logger(UserRepositoryImpl.name);
   constructor(
@@ -39,6 +39,41 @@ export class UserRepositoryImpl extends UserRepository {
         .exec();
     }
     return deletedUser ? this.toDomain(deletedUser) : null;
+  }
+
+  async findById(id: string): Promise<User | null> {
+    this.logger.debug(
+      `[UserRepositoryImpl.findById] Finding user by ID: ${id}`,
+    );
+
+    try {
+      const userDoc = await this.userModel.findById(id).exec();
+      return userDoc ? this.toDomain(userDoc) : null;
+    } catch (error) {
+      this.logger.error(
+        `[UserRepositoryImpl.findById] Failed to find user by ID: ${id}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async findByIds(ids: string[]): Promise<User[]> {
+    this.logger.debug(
+      `[UserRepositoryImpl.findByIds] Finding users by IDs: ${ids.length} users`,
+    );
+
+    try {
+      const userDocs = await this.userModel.find({ _id: { $in: ids } }).exec();
+
+      return userDocs.map((doc) => this.toDomain(doc));
+    } catch (error) {
+      this.logger.error(
+        `[UserRepositoryImpl.findByIds] Failed to find users by IDs`,
+        error.stack,
+      );
+      throw error;
+    }
   }
   private toDomain(userDoc: UserDocument): User {
     return new User(

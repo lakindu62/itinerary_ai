@@ -1,20 +1,30 @@
+"use client";
 import CreatePost from "@frontend/features/social/components/posts/CreatePost";
 import Navbar from "@frontend/features/social/components/Navbar";
 import PostList from "@frontend/features/social/components/posts/PostList";
 import Sidebar from "@frontend/features/social/components/Sidebar";
-import React from "react";
+import React, { useEffect } from "react";
+// import { useAuth } from "@clerk/nextjs";
+// import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
+
+// function AuthSetup() {
+//   const { getToken } = useAuth();
+//   console.log("🚀 ~ AuthSetup ~ getToken:");
+//   useEffect(() => {
+//     setClerkGetTokenFunc(() => getToken());
+//   }, [getToken]);
+
+//   return null;
+// }
 
 type Props = {};
 
 const page = (props: Props) => {
   return (
-    // <ThemeProvider
-    //   attribute="class"
-    //   defaultTheme="system"
-    //   enableSystem
-    //   disableTransitionOnChange
-    // >
     <div className="min-h-screen">
+      <AuthSetup />
+
       {/* <Navbar /> */}
       <main className="py-8">
         {/*Container to center the content */}
@@ -45,7 +55,6 @@ const page = (props: Props) => {
         </div>
       </main>
     </div>
-    // </ThemeProvider>
   );
 };
 
