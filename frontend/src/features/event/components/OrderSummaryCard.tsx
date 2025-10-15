@@ -4,7 +4,16 @@ import React, { useState } from 'react';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { createRsvp } from '../lib/event-api';
-import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
+import { CheckCircle } from 'lucide-react';
 
 type OrderSummaryCardProps = {
   eventId: string;
@@ -17,6 +26,9 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ eventId, ticketPric
   const { user } = useUser();
   const [ticketCount, setTicketCount] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleIncrement = () => {
     setTicketCount(prev => prev + 1);
@@ -30,7 +42,8 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ eventId, ticketPric
 
   const handleGetTicket = async () => {
     if (!user || !user.id || !getToken) {
-      toast.error("You must be logged in to get tickets.");
+      setErrorMessage("You must be logged in to get tickets.");
+      setShowErrorDialog(true);
       return;
     }
 
@@ -43,11 +56,11 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ eventId, ticketPric
         guestCount: ticketCount,
       };
       await createRsvp(rsvpData, getToken);
-      toast.success(`Successfully booked ${ticketCount} ticket(s)!`);
-      // Optionally, refresh event data or redirect
+      setShowSuccessDialog(true);
     } catch (error: any) {
       console.error("Failed to create RSVP:", error);
-      toast.error(error.message || "Failed to book tickets. Please try again.");
+      setErrorMessage(error.message || "Failed to book tickets. Please try again.");
+      setShowErrorDialog(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -83,6 +96,45 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ eventId, ticketPric
       >
         {isSubmitting ? "Booking..." : "Get Ticket"}
       </Button>
+
+      {/* Success Dialog */}
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader className='items-center'>
+            <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
+            <DialogTitle className="text-2xl font-bold">Booking Confirmed!</DialogTitle>
+            <DialogDescription>
+              You have successfully booked {ticketCount} ticket(s) for this event.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+        <DialogContent className="sm:max-w-md text-center">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-red-600">Booking Failed</DialogTitle>
+            <DialogDescription>
+              {errorMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

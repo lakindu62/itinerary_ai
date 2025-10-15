@@ -9,6 +9,7 @@ export type SingleEventType = {
   endDate: string;
   startTime: string;
   endTime: string;
+  maxAttendees: number;
   imagesUrl?: string[];
   venue: { venueName: string; address: string; city: string; state: string; zipCode: string; };
   organizer: { organizerName: string; };
