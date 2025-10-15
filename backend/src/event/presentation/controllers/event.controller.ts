@@ -56,6 +56,13 @@ export class EventController {
 
   // ================= BUSINESS-SCOPED ROUTES =================
 
+  //analytics
+  @UseGuards(ClerkAuthGuard)
+  @Get('analytics')
+  getAnalytics(@Req() req: Request) {
+    return this.eventService.getAnalytics(req.user as AuthenticatedUser);
+  }
+
   // --- Hashtag Mapping (Specific route, must be before generic :id) ---
   @UseGuards(ClerkAuthGuard)
   @Get('/hashtag-mapping')
