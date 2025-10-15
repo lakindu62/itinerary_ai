@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs'; // Import useAuth hook
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { getEvents, deleteEvent } from '../lib/event-api';
+import { getBusinessEvents, deleteBusinessEvent } from '../lib/event-api';
 
 interface EventItem {
   id: string;
@@ -22,24 +23,29 @@ interface EventItem {
 }
 
 const EventList = () => {
+  const { getToken } = useAuth(); // Get getToken function from Clerk
   const [events, setEvents] = useState<EventItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchEvents = async () => {
+      if (!getToken) return; // Wait until getToken is available
+
       try {
-        const data = await getEvents();
+        const token = await getToken(); // This is just an example if you needed the token directly
+        const data = await getBusinessEvents(getToken); // Pass getToken to the API function
         setEvents(data);
       } catch (error) {
         console.error('Failed to fetch events:', error);
       }
     };
     fetchEvents();
-  }, []);
+  }, [getToken]);
 
   const handleDelete = async (id: string) => {
+    if (!getToken) return;
     try {
-      await deleteEvent(id);
+      await deleteBusinessEvent(id, getToken); // Pass getToken to the delete function
       setEvents(prev => prev.filter(e => e.id !== id));
     } catch (error) {
       console.error('Failed to delete event:', error);
@@ -109,5 +115,3 @@ const EventList = () => {
 };
 
 export default EventList;
-
-

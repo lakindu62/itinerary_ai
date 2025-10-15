@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -6,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { DateTime } from 'luxon';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { cn } from "@/lib/utils";
-import { getVenues, getOrganizers, getCategories, getHashtags, createEvent, updateEvent, getEventHashtagMappings } from '../lib/event-api';
+import { getBusinessVenues, getBusinessOrganizers, getBusinessCategories, getHashtags, createBusinessEvent, updateBusinessEvent, getEventHashtagMappings } from '../lib/event-api';
 import { getSignedGetUrl, getSignedUploadUrl, uploadFileToSignedUrl} from "src/lib/media.api";
 
 const formSchema = z.object({
@@ -46,7 +46,6 @@ const formSchema = z.object({
   categoryId: z.string(),
   hashtagIds: z.array(z.string()),
 })
-
 .refine((data) => {
   const start = DateTime.fromISO(`${data.startDate}T${data.startTime}`);
   const end = DateTime.fromISO(`${data.endDate}T${data.endTime}`);
@@ -78,6 +77,7 @@ type EventFormProps = {
 };
 
 const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
+  const { getToken } = useAuth();
   const [venues, setVenues] = useState<any[]>([]);
   const [organizers, setOrganizers] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -106,20 +106,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!getToken) return; // Ensure getToken is available
       try {
-        const promises = [
-          getVenues(),
-          getOrganizers(),
-          getCategories(),
-          getHashtags(),
-        ];
-        
-        if (initialValues?.id) {
-          promises.push(getEventHashtagMappings(initialValues.id));
-        }
-        
-        const results = await Promise.all(promises);
-        const [venuesData, organizersData, categoriesData, hashtagsData, hashtagMappings] = results;
+        const [venuesData, organizersData, categoriesData, hashtagsData] = await Promise.all([
+          getBusinessVenues(getToken),
+          getBusinessOrganizers(getToken),
+          getBusinessCategories(getToken),
+          getHashtags(getToken),
+        ]);
         
         setVenues(venuesData);
         setOrganizers(organizersData);
@@ -127,12 +121,13 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
         setHashtags(hashtagsData);
 
         if (initialValues) {
-          let hashtagIds = [];
-          
-          if (hashtagMappings && hashtagMappings.length > 0) {
-            hashtagIds = hashtagMappings.map(m => m.hashtag?._id || m.hashtag?.id || m.hashtagId || m.hashtag).filter(Boolean);
-          } 
-          else if (initialValues.hashtags) {
+          let hashtagIds: string[] = [];
+          if (initialValues.id) {
+            const hashtagMappings = await getEventHashtagMappings(initialValues.id, getToken);
+            if (hashtagMappings && hashtagMappings.length > 0) {
+              hashtagIds = hashtagMappings.map(m => m.hashtag?._id || m.hashtag?.id || m.hashtagId || m.hashtag).filter(Boolean);
+            }
+          } else if (initialValues.hashtags) {
             hashtagIds = initialValues.hashtags.map(tag => tag.id).filter(Boolean);
           }
 
@@ -152,7 +147,6 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
             hashtagIds: hashtagIds,
           });
 
-          // Load existing image for preview if in edit mode
           if (initialValues.imagesUrl?.[0]) {
             try {
               const existingImageUrl = await getSignedGetUrl(initialValues.imagesUrl[0]);
@@ -167,9 +161,10 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
       }
     };
     fetchData();
-  }, [initialValues?.id]);
+  }, [initialValues?.id, getToken, form.reset]);
 
   const onSubmit = async (values: FormValues) => {
+    if (!getToken) return;
     try {
       let imagesUrlToSend = initialValues?.imagesUrl ?? [];
 
@@ -178,26 +173,14 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
       }
 
       const eventPayload = {
-        eventName: values.eventName,
-        description: values.description,
-        startDate: values.startDate,
-        endDate: values.endDate,
-        startTime: values.startTime,
-        endTime: values.endTime,
-        maxAttendees: Number(values.maxAttendees) || 0,
-        ticketPrice: Number(values.ticketPrice) || 0,
-        eventStatus: values.eventStatus,
-        venueId: values.venueId,
-        organizerId: values.organizerId,
-        categoryId: values.categoryId,
+        ...values,
         imagesUrl: imagesUrlToSend,
-        hashtagIds: values.hashtagIds,
       };
 
       if (initialValues?.id) {
-        await updateEvent(initialValues.id, eventPayload);
+        await updateBusinessEvent(initialValues.id, eventPayload, getToken);
       } else {
-        await createEvent(eventPayload);
+        await createBusinessEvent(eventPayload, getToken);
       }
 
       alert('Event saved successfully!');
@@ -226,7 +209,6 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
     h.hashtagName?.toLowerCase().includes(hashtagSearch.toLowerCase())
   );
 
-  // Handle image upload
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imageKey, setImageKey] = useState("");
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -236,7 +218,7 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
     if (!files || files.length === 0) return;
     const file = files[0];
     setSelectedImage(file);
-    setImagePreviewUrl(URL.createObjectURL(file)); // Set instant preview
+    setImagePreviewUrl(URL.createObjectURL(file));
 
     const fileName = `event-${Date.now()}-${file.name}`;
     const bucket = "events";
@@ -251,8 +233,8 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
 
   return (
     <Form {...(form as any)}>
-      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-8">
-        {/* ... other form fields ... */}
+       <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-8">
+        {/* ... form fields ... */}
         <FormField
           control={form.control as any}
           name="eventName"
@@ -542,7 +524,6 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
 
         <input type="file" accept="image/*" onChange={handleImageChange} />
 
-        {/* Display the preview or existing image */}
         {imagePreviewUrl && (
           <div className="mt-4">
             <img src={imagePreviewUrl} alt="Event Preview" className="w-full max-w-sm rounded-lg object-cover" />

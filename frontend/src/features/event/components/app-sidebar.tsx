@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs"
 import {
   IconCamera,
   IconChartBar,
@@ -29,6 +30,7 @@ import {
   IconUserCheck,
   IconCheckbox,
   IconMail,
+  IconLogin,
   IconLayoutDashboard
 } from "@tabler/icons-react"
 
@@ -45,13 +47,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Button } from "@frontend/components/ui/button"
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
+  // user: {
+  //   name: "shadcn",
+  //   email: "m@example.com",
+  //   avatar: "/avatars/shadcn.jpg",
+  // },
   navMain: [
     {
       title: "Dashboard",
@@ -199,11 +202,34 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
+        {/* <NavDocuments items={data.documents} /> */}
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
+      <SidebarFooter className="mt-auto border-t p-2">
+        {/* <NavUser user={data.user} /> */}
+                <SignedIn>
+          {/* This is the simple UserButton styled to fit the sidebar */}
+          <UserButton
+            afterSignOutUrl="/"
+            appearance={{
+              elements: {
+                userButtonBox: "w-full", // Makes the container full-width
+                userButtonTrigger:
+                  "w-full flex items-center justify-start gap-3 p-2 hover:bg-muted rounded-md", // Styles the button itself
+                userButtonAvatarBox: "size-9", // Sets the avatar size
+                userButtonText: "text-sm font-semibold text-primary", // Styles the name
+              },
+            }}
+          />
+        </SignedIn>
+        <SignedOut>
+          <SignInButton mode="modal">
+            <Button variant="ghost" className="w-full justify-start gap-3 p-2">
+              <IconLogin />
+              <span className="text-base font-semibold">Sign In</span>
+            </Button>
+          </SignInButton>
+        </SignedOut>
       </SidebarFooter>
     </Sidebar>
   )

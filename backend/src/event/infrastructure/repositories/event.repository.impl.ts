@@ -25,68 +25,67 @@ export class EventRepositoryImpl extends EventRepository {
   }
 
   
-  async create(event: Event): Promise<any> {
-    // const newEvent = new this.eventModel(event);
+  async create(event: Event): Promise<Event> {
     const eventToSave = filterEventForDb(event);
     const newEvent = new this.eventModel(eventToSave);
     const savedEvent = await newEvent.save();
     return this.toDomainEntity(savedEvent);
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll(businessAccountId: string): Promise<Event[]> {
+    const docs = await this.eventModel.find({ businessAccountId }).exec();
+    return docs.map(doc => this.toDomainEntity(doc));
+  }
+
+  async findAllPublic(): Promise<Event[]> {
     const docs = await this.eventModel.find().exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  // async findById(id: string): Promise<any | null> {
-  //   const doc = await this.eventModel.findById(id).exec();
-  //   return doc ? this.toDomainEntity(doc) : null;
-  // }
+  async findById(id: string, businessAccountId: string): Promise<Event | null> {
+    const doc = await this.eventModel.findOne({ _id: id, businessAccountId }).exec();
+    if (!doc) return null;
 
-  async findById(id: string): Promise<any | null> {
-  const doc = await this.eventModel.findById(id).exec();
-  if (!doc) return null;
+    const mappings = await this.mappingRepository.findByEventId(id);
+    const hashtags = mappings.map((m: any) => m.hashtag);
 
-  // Fetch hashtag mappings for this event
-  const mappings = await this.mappingRepository.findByEventId(id);
-  // Extract hashtags from the mappings
-  const hashtags = mappings.map((m: any) => m.hashtag);
+    return this.toDomainEntity(doc, hashtags);
+  }
 
-  return this.toDomainEntity(doc, hashtags);
-}
+  async findPublicById(id: string): Promise<Event | null> {
+    const doc = await this.eventModel.findById(id).exec();
+    return doc ? this.toDomainEntity(doc) : null;
+  }
 
 
-  async update(event: Event): Promise<any | null> {
-    // const updatedDoc = await this.eventModel.findByIdAndUpdate(event.id, event, { new: true }).exec();
-    // return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
-    const eventToSave = filterEventForDb(event);
-    const updatedDoc = await this.eventModel.findByIdAndUpdate(event.id, eventToSave, { new: true }).exec();
+  async update(id: string, updates: Partial<Event>, businessAccountId: string): Promise<Event | null> {
+    const updatedDoc = await this.eventModel.findOneAndUpdate({ _id: id, businessAccountId }, updates, { new: true }).exec();
     return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.eventModel.findByIdAndDelete(id).exec();
+  async delete(id: string, businessAccountId: string): Promise<boolean> {
+    const result = await this.eventModel.deleteOne({ _id: id, businessAccountId }).exec();
+    return result.deletedCount > 0;
   }
 
-  private toDomainEntity(doc: EventDocument, hashtags: any[] = []): any {
-    return {
-      id: doc._id.toString(),
-      eventName: doc.eventName,
-      description: doc.description,
-      startDate: doc.startDate,
-      endDate: doc.endDate,
-      startTime: doc.startTime,
-      endTime: doc.endTime,
-      maxAttendees: doc.maxAttendees,
-      ticketPrice: doc.ticketPrice,
-      eventStatus: doc.eventStatus,
-      imagesUrl: doc.imagesUrl,
-      createdAt: (doc as any).createdAt,
-      updatedAt: (doc as any).updatedAt,
-      venue: doc.venue as any,
-      organizer: doc.organizer as any,
-      category: doc.category as any,
-      hashtags: hashtags,
-    };
+  private toDomainEntity(doc: EventDocument, hashtags: any[] = []): Event {
+    return new Event(
+      doc._id.toString(),
+      doc.businessAccountId,
+      doc.eventName,
+      doc.description,
+      doc.startDate,
+      doc.endDate,
+      doc.startTime,
+      doc.endTime,
+      doc.maxAttendees,
+      doc.ticketPrice,
+      doc.eventStatus,
+      doc.imagesUrl,
+      doc.venue as any,
+      doc.organizer as any,
+      doc.category as any,
+      hashtags,
+    );
   }
 }
