@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { PostHeaderProps } from "../../types/social.types";
 import { AuthSetup } from "@frontend/lib/AuthSetup";
 import { BasePdfTemplate, PdfDownloadButton } from "@frontend/components/pdf";
+import { PostPDFTemplate } from "@frontend/components/pdf/templates/PostPDFTemplate";
 
 const PostHeader: React.FC<PostHeaderProps> = ({
   post,
@@ -48,15 +49,25 @@ const PostHeader: React.FC<PostHeaderProps> = ({
         <div className="flex gap-2">
           <PdfDownloadButton
             document={
-              <BasePdfTemplate
+              <PostPDFTemplate
                 data={{
-                  title: "Title jim",
-                  content: "content jim",
+                  user: {
+                    displayName,
+                    profilePictureUrl,
+                  },
+                  post: {
+                    id: post.id,
+                    content: post.content,
+                    createdAt: post.createdAt,
+                    updatedAt: post.updatedAt,
+                    mediaFiles: post.mediaFiles || [], // adjust if your post object uses a different field
+                    likesCount: post.likeCount ?? 0, // adjust if your post object uses a different field
+                  },
                 }}
               />
             }
             fileName={`itinerary_ai_post_${post.id}_by_user_${post.user}`}
-            buttonText={<DownloadIcon className="h-4 w-4" />}
+            buttonDisplay={<DownloadIcon className="h-4 w-4" />}
             variant="ghost"
           />
 

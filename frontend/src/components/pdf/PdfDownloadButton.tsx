@@ -14,7 +14,7 @@ interface PdfDownloadButtonProps {
   fileName: string;
 
   /** Optional: Button text */
-  buttonText?: ReactNode;
+  buttonDisplay?: ReactNode;
 
   /** Optional: Button variant */
   variant?:
@@ -62,7 +62,7 @@ interface PdfDownloadButtonProps {
 export const PdfDownloadButton: React.FC<PdfDownloadButtonProps> = ({
   document,
   fileName,
-  buttonText = "Download PDF",
+  buttonDisplay = "Download PDF",
   variant = "default",
   size = "default",
   className,
@@ -110,7 +110,7 @@ export const PdfDownloadButton: React.FC<PdfDownloadButtonProps> = ({
         size={size}
         className={className}
       >
-        {isGenerating ? "Generating PDF..." : buttonText}
+        {isGenerating ? "Generating PDF..." : buttonDisplay}
       </Button>
 
       {error && <p className="text-sm text-red-600">Error: {error}</p>}
