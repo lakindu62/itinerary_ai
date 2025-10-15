@@ -58,7 +58,7 @@ interface AsyncPdfDownloadButtonProps {
  * @example
  * ```tsx
  * import { AsyncPdfDownloadButton } from '@/components/pdf';
- * import { MyPdfTemplate } from '@/components/pdf/templates/MyPdfTemplate';
+ * import { MyPdfTemplate } from '@/components/pdf/templates/MyPdfTemplate'; (Whatever your pdf template file is)
  *
  * <AsyncPdfDownloadButton
  *   preparePdfDocument={async () => {
