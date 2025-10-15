@@ -163,7 +163,7 @@ export default function RatingManagement() {
             type: 'rating',
             ...formData,
             createdAt: new Date().toISOString(),
-            isApproved: false,
+            isApproved: true, // Auto-approve all ratings
             isPublic: false,
             helpful: 0,
             id: Date.now().toString()
@@ -262,8 +262,8 @@ export default function RatingManagement() {
         comment: 'Had an amazing experience at this restaurant. The staff was friendly and the food was delicious. Will definitely come back!',
         category: 'Overall Experience',
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-        isApproved: false,
-        isPublic: false,
+        isApproved: true, // Auto-approve sample data
+        isPublic: true,
         helpful: 12,
         orderNumber: 'ORD001'
       },
@@ -276,8 +276,8 @@ export default function RatingManagement() {
         comment: 'Love the ambiance here. Perfect for a date night. Food was good but could be better.',
         category: 'Service',
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-        isApproved: false,
-        isPublic: false,
+        isApproved: true, // Auto-approve sample data
+        isPublic: true,
         helpful: 8,
         orderNumber: 'ORD002'
       }
@@ -466,8 +466,8 @@ export default function RatingManagement() {
             <div className="flex items-center space-x-2">
               <ThumbsUp className="h-8 w-8 text-green-500" />
               <div>
-                <div className="text-2xl font-bold">{ratings.filter(r => r.isApproved).length}</div>
-                <p className="text-xs text-muted-foreground">Approved</p>
+                <div className="text-2xl font-bold">{ratings.length}</div>
+                <p className="text-xs text-muted-foreground">Total Reviews</p>
               </div>
             </div>
           </CardContent>
@@ -621,19 +621,6 @@ export default function RatingManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Rating</Label>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor="isApproved">Approved</Label>
-                      <input type="checkbox" id="isApproved" />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Label htmlFor="isPublic">Public</Label>
-                      <input type="checkbox" id="isPublic" />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
                   <Label>Star Rating</Label>
                   <div className="flex space-x-1">
                     {renderStars(formData.rating, true, (rating) => setFormData({ ...formData, rating }))}
@@ -683,12 +670,6 @@ export default function RatingManagement() {
                     <Badge variant={rating.category === 'Overall Experience' ? 'default' : 'secondary'}>
                       {rating.category}
                     </Badge>
-                    <Badge variant={rating.isApproved ? 'default' : 'secondary'}>
-                      {rating.isApproved ? 'Approved' : 'Pending'}
-                    </Badge>
-                    <Badge variant={rating.isPublic ? 'default' : 'outline'}>
-                      {rating.isPublic ? 'Public' : 'Private'}
-                    </Badge>
                     {rating.orderNumber && (
                       <Badge variant="outline">Order: {rating.orderNumber}</Badge>
                     )}
@@ -707,14 +688,6 @@ export default function RatingManagement() {
                   )}
                 </div>
                 <div className="flex space-x-2">
-                  <Button
-                    variant={rating.isApproved ? "destructive" : "default"}
-                    size="sm"
-                    onClick={() => handleApprovalChange(rating.id, !rating.isApproved)}
-                    className={rating.isApproved ? "" : "bg-green-600 hover:bg-green-700 text-white"}
-                  >
-                    {rating.isApproved ? '❌ Disapprove' : '✅ Approve'}
-                  </Button>
                   <Button variant="outline" size="sm" onClick={() => handleEdit(rating)}>
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -745,7 +718,7 @@ export default function RatingManagement() {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No ratings found</h3>
             <p className="text-gray-600 mb-4">
               {ratings.length === 0 
-                ? "When customers submit reviews on your business profile, they will appear here for approval." 
+                ? "When customers submit reviews on your business profile, they will appear here automatically." 
                 : "No ratings match the current filters."}
             </p>
             {ratings.length === 0 && (
@@ -754,9 +727,9 @@ export default function RatingManagement() {
                 <ol className="text-sm text-blue-800 text-left space-y-1">
                   <li>1. Customers visit your business profile page</li>
                   <li>2. They submit reviews using the review form</li>
-                  <li>3. Reviews appear here as "Pending" for your approval</li>
-                  <li>4. Click "✅ Approve" or "❌ Disapprove" buttons</li>
-                  <li>5. Approved reviews show on your public profile</li>
+                  <li>3. Reviews appear here automatically and are published instantly</li>
+                  <li>4. All reviews are visible on your public profile</li>
+                  <li>5. You can reply to reviews to engage with customers</li>
                 </ol>
               </div>
             )}

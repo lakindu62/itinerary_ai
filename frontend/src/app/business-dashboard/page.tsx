@@ -237,16 +237,18 @@ export default function BusinessDashboard() {
       color: 'text-red-600'
     },
     {
-      title: 'Pending Reviews',
-      value: businessProfile?.ratings?.filter((r: any) => !r.isApproved)?.length || '0',
-      change: 'Need approval',
+      title: 'Total Reviews',
+      value: businessProfile?.ratings?.length || '0',
+      change: 'All reviews',
       icon: MessageSquare,
       color: 'text-yellow-600'
     },
     {
-      title: 'Published Reviews',
-      value: businessProfile?.ratings?.filter((r: any) => r.isApproved)?.length || '0',
-      change: 'Live reviews',
+      title: 'Average Rating',
+      value: businessProfile?.ratings?.length > 0 
+        ? (businessProfile.ratings.reduce((sum: number, r: any) => sum + r.rating, 0) / businessProfile.ratings.length).toFixed(1)
+        : '0',
+      change: 'Overall score',
       icon: Star,
       color: 'text-purple-600'
     }
@@ -257,22 +259,12 @@ export default function BusinessDashboard() {
     
     const activities = []
     
-    // Recent reviews (pending approval)
-    const pendingReviews = businessProfile.ratings?.filter((r: any) => !r.isApproved) || []
-    pendingReviews.slice(0, 2).forEach((review: any) => {
+    // Recent reviews (all reviews, no approval needed)
+    const recentReviews = businessProfile.ratings || []
+    recentReviews.slice(0, 3).forEach((review: any) => {
       activities.push({
         type: 'review',
-        message: `New ${review.rating}-star review from ${review.customerName} needs approval`,
-        time: new Date(review.createdAt).toLocaleDateString()
-      })
-    })
-    
-    // Recent approved reviews
-    const approvedReviews = businessProfile.ratings?.filter((r: any) => r.isApproved) || []
-    approvedReviews.slice(0, 1).forEach((review: any) => {
-      activities.push({
-        type: 'approved',
-        message: `Review from ${review.customerName} was approved and published`,
+        message: `New ${review.rating}-star review from ${review.customerName}`,
         time: new Date(review.createdAt).toLocaleDateString()
       })
     })
