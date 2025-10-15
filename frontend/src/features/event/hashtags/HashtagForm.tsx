@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { createHashtag, updateHashtag } from '../lib/event-api';
+import { useAuth } from '@clerk/nextjs';
 
 interface Hashtag {
   id: string;
   hashtagName: string;
 }
+
 
 const formSchema = z.object({
   hashtagName: z.string().min(2, { message: 'Hashtag must be at least 2 characters.' }),
@@ -25,6 +27,7 @@ interface HashtagFormProps {
 }
 
 const HashtagForm: React.FC<HashtagFormProps> = ({ hashtag, onSuccess }) => {
+  const { getToken } = useAuth();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -35,9 +38,9 @@ const HashtagForm: React.FC<HashtagFormProps> = ({ hashtag, onSuccess }) => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       if (hashtag) {
-        await updateHashtag(hashtag.id, values);
+        await updateHashtag(hashtag.id, values, getToken);
       } else {
-        await createHashtag(values);
+        await createHashtag(values, getToken);
       }
       onSuccess();
     } catch (error) {

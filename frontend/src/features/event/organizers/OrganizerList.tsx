@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { getOrganizers, deleteOrganizer } from '../lib/event-api';
+import { getBusinessOrganizers, deleteBusinessOrganizer } from '../lib/event-api';
 import Link from 'next/link';
 
 interface Organizer {
@@ -17,24 +18,27 @@ interface Organizer {
 }
 
 const OrganizerList = () => {
+  const { getToken } = useAuth();
   const [organizers, setOrganizers] = useState<Organizer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchOrganizers = async () => {
+      if (!getToken) return; // Ensure getToken is available
       try {
-        const data = await getOrganizers();
+        const data = await getBusinessOrganizers(getToken);
         setOrganizers(data);
       } catch (error) {
         console.error('Failed to fetch organizers:', error);
       }
     };
     fetchOrganizers();
-  }, []);
+  }, [getToken]);
 
   const handleDelete = async (id: string) => {
+    if (!getToken) return; // Ensure getToken is available
     try {
-      await deleteOrganizer(id);
+      await deleteBusinessOrganizer(id, getToken);
       setOrganizers(organizers.filter((organizer) => organizer.id !== id));
     } catch (error) {
       console.error('Failed to delete organizer:', error);

@@ -11,6 +11,9 @@ export type EventDocument = Event & Document & { _id: Types.ObjectId; createdAt:
   strict: 'throw',
 })
 export class Event {
+  @Prop({ required: true, index: true })
+  businessAccountId: string;
+
   @Prop({ required: true })
   eventName: string;
 

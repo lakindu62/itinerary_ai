@@ -1,6 +1,7 @@
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
 } from "@/components/ui/dialog"
 import { SignIn, SignUp } from "@clerk/nextjs";
 import { useUser } from "@clerk/nextjs";
@@ -42,6 +43,7 @@ const AuthModal = ({ isOpen, onOpenChange, mode }: AuthModalProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogTitle className="hidden">Sign In</DialogTitle>
             <DialogContent showCloseButton={false} className="w-fit p-0">
                 {isSignUp ? (
                     <SignUp />

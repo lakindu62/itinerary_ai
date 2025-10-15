@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import EventCard from '@/features/event/components/EventCard';
-import { getEvents } from '@/features/event/lib/event-api';
+import { getAllEventsPublic } from '@/features/event/lib/event-api';
 import { ChevronLeft } from 'lucide-react';
 
 // Define the type for a single event to be used in the component state
@@ -15,6 +15,8 @@ type Event = {
   description: string;
   startDate: string;
   startTime: string;
+  endDate: string;
+  endTime: string;
   imagesUrl?: string[];
   venue?: {
     venueName: string;
@@ -35,7 +37,7 @@ const EventsPage = () => {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const eventsData = await getEvents();
+        const eventsData = await getAllEventsPublic();
         setEvents(eventsData as Event[]);
         setError(null);
       } catch (err) {
@@ -48,6 +50,9 @@ const EventsPage = () => {
 
     fetchEvents();
   }, []);
+
+    const sortedEvents = [...events].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+
 
   return (
     <div className="bg-white min-h-screen font-sans">
@@ -69,7 +74,7 @@ const EventsPage = () => {
               {!loading && !error && events.length === 0 && (
                 <p className="text-center text-gray-500">No events found.</p>
               )}
-              {!loading && !error && events.map((event, index) => (
+              {!loading && !error && sortedEvents.map((event, index) => (
                 <React.Fragment key={event.id}>
                   <EventCard event={event} />
                   {index < events.length - 1 && (

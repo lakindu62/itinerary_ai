@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useState } from "react";
 import AuthModal from "../auth/AuthModal";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { ObjectId } from "bson";
 // import { currentUser } from "@clerk/nextjs/server";
 
 function Navbar() {
@@ -24,9 +25,10 @@ function Navbar() {
     };
 
 
+    const id = new ObjectId().toString()
     return (
 
-        <nav className="absolute px-7 py-3  rounded-full h-fit top-3  w-[calc(100%-12px)] xl:w-8/12 left-1/2 -translate-x-1/2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+        <nav className="absolute px-4 py-3  rounded-full h-fit top-3  w-[calc(100%-12px)] xl:w-8/12 left-1/2 -translate-x-1/2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
             <div className="max-w-7xl mx-auto ">
                 <div className="flex items-center justify-between ">
                     <div className="flex items-center">
@@ -34,7 +36,14 @@ function Navbar() {
                             href="/"
                             className="text-xl font-bold text-primary font-mono tracking-wider"
                         >
-                            Itinerary.ai
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-blue-900 rounded-full flex items-center justify-center">
+                                    <div className="w-4 h-4 bg-white rounded-full relative">
+                                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full"></div>
+                                    </div>
+                                </div>
+
+                            </div>
                         </Link>
                     </div>
 
@@ -63,14 +72,14 @@ function Navbar() {
                         <SignedIn>
                             <UserButton >
                                 <UserButton.MenuItems>
-                                <UserButton.Link
+                                    <UserButton.Link
                                         label="New Trip"
-                                        labelIcon={<PlusIcon strokeWidth={3}  className="text-gray-500 w-4 h-4"/>}
-                                        href="/new-trip"
+                                        labelIcon={<PlusIcon strokeWidth={3} className="text-gray-500 w-4 h-4" />}
+                                        href={`/`}
                                     />
                                     <UserButton.Link
                                         label="My Trips"
-                                        labelIcon={<MapIcon strokeWidth={3}  className="text-gray-500 w-4 h-4"/>}
+                                        labelIcon={<MapIcon strokeWidth={3} className="text-gray-500 w-4 h-4" />}
                                         href="/my-trips"
                                     />
                                 </UserButton.MenuItems>
