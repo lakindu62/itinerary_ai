@@ -1,6 +1,7 @@
 'use client'
 import { useAuth } from "@clerk/nextjs";
-import TravelChatbot from "@frontend/features/itinerary/components/TravelChatbot";
+import HomePage from "@frontend/components/common/traveller/home/HomePage";
+
 import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
 import React, { useEffect } from "react";
 
@@ -24,7 +25,7 @@ export default function Home() {
   return (
     <div>
       <AuthSetup />
-      <TravelChatbot />
+      <HomePage />
     </div>
 
   );

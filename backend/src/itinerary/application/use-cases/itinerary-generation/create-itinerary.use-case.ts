@@ -55,7 +55,6 @@ export class CreateItineraryUseCase {
         attractions: JSON.stringify(attractions),
         places: JSON.stringify(placesData),
       });
-      this.logger.log('Raw Ai Reponse Received -- ', result);
       // Use mapper to validate and transform AI response
       const itinerary = AiItineraryResponseMapper.validateAndTransform(
         result.content as string,

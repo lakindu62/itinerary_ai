@@ -64,7 +64,7 @@ export default function Page() {
                 // Reloads the user's data from the Clerk API
                 await user?.reload()
                 dispatch(resetForm())
-                router.push('/')
+                router.push('/admin/event')
             }
             if (res?.error) {
                 setError(res?.error)
