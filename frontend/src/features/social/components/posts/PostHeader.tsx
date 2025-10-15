@@ -2,10 +2,11 @@
 
 import { Avatar, AvatarImage } from "@frontend/components/ui/avatar";
 import { Button } from "@frontend/components/ui/button";
-import { PencilIcon, XIcon, TrashIcon } from "lucide-react";
+import { PencilIcon, XIcon, TrashIcon, DownloadIcon } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PostHeaderProps } from "../../types/social.types";
 import { AuthSetup } from "@frontend/lib/AuthSetup";
+import { BasePdfTemplate, PdfDownloadButton } from "@frontend/components/pdf";
 
 const PostHeader: React.FC<PostHeaderProps> = ({
   post,
@@ -45,6 +46,20 @@ const PostHeader: React.FC<PostHeaderProps> = ({
       </div>
       {post.isOwner && (
         <div className="flex gap-2">
+          <PdfDownloadButton
+            document={
+              <BasePdfTemplate
+                data={{
+                  title: "Title jim",
+                  content: "content jim",
+                }}
+              />
+            }
+            fileName={`itinerary_ai_post_${post.id}_by_user_${post.user}`}
+            buttonText={<DownloadIcon className="h-4 w-4" />}
+            variant="ghost"
+          />
+
           <Button
             variant="ghost"
             size="sm"

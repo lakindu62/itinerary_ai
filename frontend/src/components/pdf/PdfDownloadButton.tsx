@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { DocumentProps } from "@react-pdf/renderer";
 import { ReactElement } from "react";
 import { generatePdf } from "@/lib/pdf";
@@ -14,7 +14,7 @@ interface PdfDownloadButtonProps {
   fileName: string;
 
   /** Optional: Button text */
-  buttonText?: string;
+  buttonText?: ReactNode;
 
   /** Optional: Button variant */
   variant?:
