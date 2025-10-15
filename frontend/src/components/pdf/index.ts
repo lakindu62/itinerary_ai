@@ -18,6 +18,9 @@
 
 // Export UI components
 export { PdfDownloadButton } from "./PdfDownloadButton";
+export { AsyncPdfDownloadButton } from "./AsyncPdfDownloadButton";
 
 // Export templates
 export { BasePdfTemplate } from "./templates/BasePdfTemplate";
+export { PostPDFTemplate } from "./templates/PostPDFTemplate";
+export type { PostPDFData, ProcessedMedia } from "./templates/PostPDFTemplate";

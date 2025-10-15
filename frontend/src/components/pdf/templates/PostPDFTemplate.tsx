@@ -2,6 +2,12 @@ import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import { commonStyles } from "@/lib/pdf";
 
 // Define the expected data shape for the post
+export interface ProcessedMedia {
+  type: "image" | "video";
+  url: string;
+  originalPath: string;
+}
+
 export interface PostPDFData {
   user: {
     displayName: string;
@@ -12,7 +18,7 @@ export interface PostPDFData {
     content?: string;
     createdAt?: string;
     updatedAt?: string;
-    mediaFiles: string[]; // Array of file paths/URLs
+    processedMedia: ProcessedMedia[]; // Array of processed media with signed URLs
     likesCount: number;
   };
 }
@@ -56,11 +62,48 @@ export const PostPDFTemplate: React.FC<{ data: PostPDFData }> = ({ data }) => (
       {/* Media Files */}
       <View style={commonStyles.section}>
         <Text style={commonStyles.subheading}>Media Files</Text>
-        {data.post.mediaFiles.length > 0 ? (
-          data.post.mediaFiles.map((file, idx) => (
-            <Text key={idx} style={commonStyles.paragraph}>
-              {file}
-            </Text>
+        {data.post.processedMedia.length > 0 ? (
+          data.post.processedMedia.map((media, idx) => (
+            <View key={idx} style={{ marginBottom: 15 }}>
+              {media.type === "image" ? (
+                <>
+                  <Image
+                    src={media.url}
+                    style={{
+                      width: "100%",
+                      maxHeight: 300,
+                      objectFit: "contain",
+                      marginBottom: 5,
+                    }}
+                  />
+                  <Text style={commonStyles.small}>
+                    Path: {media.originalPath}
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <View
+                    style={{
+                      width: "100%",
+                      height: 150,
+                      backgroundColor: "#f0f0f0",
+                      border: "2px solid #ccc",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 5,
+                    }}
+                  >
+                    <Text style={commonStyles.small}>
+                      Video (not displayable in PDF)
+                    </Text>
+                  </View>
+                  <Text style={commonStyles.small}>
+                    Path: {media.originalPath}
+                  </Text>
+                </>
+              )}
+            </View>
           ))
         ) : (
           <Text style={commonStyles.paragraph}>No media files attached.</Text>
@@ -76,7 +119,7 @@ export const PostPDFTemplate: React.FC<{ data: PostPDFData }> = ({ data }) => (
       {/* Footer */}
       <View style={[commonStyles.section, commonStyles.mt20]}>
         <Text style={[commonStyles.small, commonStyles.center]}>
-          Generated on {new Date().toLocaleDateString()}
+          Generated on {new Date().toLocaleString()}
         </Text>
       </View>
     </Page>

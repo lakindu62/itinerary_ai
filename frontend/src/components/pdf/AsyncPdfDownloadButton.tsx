@@ -1,20 +1,25 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { useState, ReactNode } from "react";
 import { DocumentProps } from "@react-pdf/renderer";
 import { ReactElement } from "react";
 import { generatePdf } from "@/lib/pdf";
 import { Button } from "@/components/ui/button";
 
-interface PdfDownloadButtonProps {
-  /** The PDF document component to generate OR a function that returns it */
-  document: ReactElement<DocumentProps> | (() => Promise<ReactElement<DocumentProps>>);
+interface AsyncPdfDownloadButtonProps {
+  /** Function that prepares and returns the PDF document (can be async) */
+  preparePdfDocument: () =>
+    | Promise<ReactElement<DocumentProps>>
+    | ReactElement<DocumentProps>;
 
   /** Filename for the downloaded PDF (without .pdf extension) */
   fileName: string;
 
-  /** Optional: Button text */
-  buttonDisplay?: ReactNode;
+  /** Optional: Button text or icon */
+  buttonText?: ReactNode;
+
+  /** Optional: Loading text or icon */
+  loadingText?: ReactNode;
 
   /** Optional: Button variant */
   variant?:
@@ -31,7 +36,10 @@ interface PdfDownloadButtonProps {
   /** Optional: Custom className */
   className?: string;
 
-  /** Optional: Callback when download starts (before document preparation) */
+  /** Optional: Callback when preparation starts */
+  onPrepareStart?: () => void;
+
+  /** Optional: Callback when download starts */
   onDownloadStart?: () => void;
 
   /** Optional: Callback when download succeeds */
@@ -42,73 +50,62 @@ interface PdfDownloadButtonProps {
 }
 
 /**
- * PDF Download Button Component
+ * Async PDF Download Button Component
  *
- * A reusable button component that generates and downloads PDFs.
- * Handles loading states and errors automatically.
- * Supports async document preparation for cases where data needs to be fetched first.
+ * A reusable button that handles async data preparation before PDF generation.
+ * Perfect for scenarios where you need to fetch data (e.g., signed URLs) before creating the PDF.
  *
  * @example
- * Basic usage:
  * ```tsx
- * import { PdfDownloadButton } from '@/components/pdf';
+ * import { AsyncPdfDownloadButton } from '@/components/pdf';
  * import { MyPdfTemplate } from '@/components/pdf/templates/MyPdfTemplate';
  *
- * <PdfDownloadButton
- *   document={<MyPdfTemplate data={data} />}
- *   fileName="my-report"
- *   buttonText="Download Report"
- * />
- * ```
- * 
- * @example
- * With async data preparation:
- * ```tsx
- * <PdfDownloadButton
- *   document={async () => {
- *     const processedData = await fetchAndProcessData();
- *     return <MyPdfTemplate data={processedData} />;
+ * <AsyncPdfDownloadButton
+ *   preparePdfDocument={async () => {
+ *     const data = await fetchDataFromAPI();
+ *     return <MyPdfTemplate data={data} />;
  *   }}
  *   fileName="my-report"
- *   buttonText="Download Report"
+ *   buttonText={<DownloadIcon />}
  * />
  * ```
  */
-export const PdfDownloadButton: React.FC<PdfDownloadButtonProps> = ({
-  document,
+export const AsyncPdfDownloadButton: React.FC<AsyncPdfDownloadButtonProps> = ({
+  preparePdfDocument,
   fileName,
-  buttonDisplay = "Download PDF",
+  buttonText = "Download PDF",
+  loadingText = "Preparing...",
   variant = "default",
   size = "default",
   className,
+  onPrepareStart,
   onDownloadStart,
   onDownloadSuccess,
   onDownloadError,
 }) => {
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleDownload = async () => {
-    setIsGenerating(true);
+    setIsProcessing(true);
     setError(null);
 
     try {
+      // Step 1: Prepare the document (async data fetching)
+      onPrepareStart?.();
+      const document = await preparePdfDocument();
+
+      // Step 2: Generate and download the PDF
       onDownloadStart?.();
-
-      // Check if document is a function (async preparation needed)
-      const documentToGenerate = typeof document === 'function' 
-        ? await document() 
-        : document;
-
-      await generatePdf(documentToGenerate, {
+      await generatePdf(document, {
         fileName,
         onSuccess: () => {
-          setIsGenerating(false);
+          setIsProcessing(false);
           onDownloadSuccess?.();
         },
         onError: (err) => {
           setError(err.message);
-          setIsGenerating(false);
+          setIsProcessing(false);
           onDownloadError?.(err);
         },
       });
@@ -116,7 +113,7 @@ export const PdfDownloadButton: React.FC<PdfDownloadButtonProps> = ({
       const errorMessage =
         err instanceof Error ? err.message : "Failed to generate PDF";
       setError(errorMessage);
-      setIsGenerating(false);
+      setIsProcessing(false);
       onDownloadError?.(err instanceof Error ? err : new Error(errorMessage));
     }
   };
@@ -125,12 +122,12 @@ export const PdfDownloadButton: React.FC<PdfDownloadButtonProps> = ({
     <div className="flex flex-col gap-2">
       <Button
         onClick={handleDownload}
-        disabled={isGenerating}
+        disabled={isProcessing}
         variant={variant}
         size={size}
         className={className}
       >
-        {isGenerating ? "Generating PDF..." : buttonDisplay}
+        {isProcessing ? loadingText : buttonText}
       </Button>
 
       {error && <p className="text-sm text-red-600">Error: {error}</p>}
