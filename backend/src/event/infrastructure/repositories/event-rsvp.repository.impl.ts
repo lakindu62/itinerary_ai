@@ -14,7 +14,11 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
   }
 
   async create(eventRsvp: EventRsvp): Promise<EventRsvp> {
-    const newEventRsvp = new this.eventRsvpModel(eventRsvp);
+    const rsvpToSave = {
+      ...eventRsvp,
+      event: eventRsvp.event.id, // Ensure only the ID is saved
+    };
+    const newEventRsvp = new this.eventRsvpModel(rsvpToSave);
     const savedEventRsvp = await newEventRsvp.save();
     return this.toDomainEntity(savedEventRsvp);
   }
@@ -51,10 +55,12 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
   }
 
   async getTotalGuestCountForEvent(eventId: string): Promise<number> {
-    const result = await this.eventRsvpModel.aggregate([
-      { $match: { 'event._id': new Types.ObjectId(eventId) } },
-      { $group: { _id: null, totalGuests: { $sum: '$guestCount' } } },
-    ]).exec();
-    return result.length > 0 ? result[0].totalGuests : 0;
+    // Use a direct string comparison for the event ID, which is more robust.
+    const rsvps = await this.eventRsvpModel.find({ event: eventId }).exec();
+    console.log(`RSVPs for event ${eventId}:`, rsvps); // Added for debugging
+    if (!rsvps || rsvps.length === 0) {
+      return 0;
+    }
+    return rsvps.reduce((total, rsvp) => total + rsvp.guestCount, 0);
   }
 }

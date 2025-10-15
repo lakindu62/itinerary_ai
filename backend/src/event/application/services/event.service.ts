@@ -269,10 +269,15 @@ export class EventService {
   }
 
   async createRsvp(createRsvpDto: CreateEventRsvpDto, user: AuthenticatedUser): Promise<EventRsvp> {
+    console.log('--- Starting createRsvp ---');
+    console.log('Incoming DTO:', createRsvpDto);
+
     const event = await this.eventRepository.findPublicById(createRsvpDto.eventId);
     if (!event) {
+      console.error('Event not found!');
       throw new NotFoundException('Event not found');
     }
+    console.log('Found Event:', { id: event.id, maxAttendees: event.maxAttendees });
 
     // Capacity Check
     const currentBookedGuests = await this.eventRsvpRepository.getTotalGuestCountForEvent(event.id!);
