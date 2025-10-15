@@ -8,7 +8,8 @@ import { EventVenueDocument } from '../schemas/event-venue.schema';
 @Injectable()
 export class EventVenueRepositoryImpl extends EventVenueRepository {
   constructor(
-    @InjectModel(EventVenue.name) private readonly eventVenueModel: Model<EventVenueDocument>,
+    @InjectModel(EventVenue.name)
+    private readonly eventVenueModel: Model<EventVenueDocument>,
   ) {
     super();
   }
@@ -19,26 +20,38 @@ export class EventVenueRepositoryImpl extends EventVenueRepository {
     return this.toDomainEntity(savedEventVenue);
   }
 
-  async findById(id: string, businessAccountId: string): Promise<EventVenue | null> {
-    const doc = await this.eventVenueModel.findOne({ _id: id, businessAccountId }).exec();
+  async findById(
+    id: string,
+    businessAccountId: string,
+  ): Promise<EventVenue | null> {
+    const doc = await this.eventVenueModel
+      .findOne({ _id: id, businessAccountId })
+      .exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async update(id: string, updates: Partial<EventVenue>, businessAccountId: string): Promise<EventVenue | null> {
-    const updatedDoc = await this.eventVenueModel.findOneAndUpdate({ _id: id, businessAccountId }, updates, { new: true }).exec();
+  async update(
+    id: string,
+    updates: Partial<EventVenue>,
+    businessAccountId: string,
+  ): Promise<EventVenue | null> {
+    const updatedDoc = await this.eventVenueModel
+      .findOneAndUpdate({ _id: id, businessAccountId }, updates, { new: true })
+      .exec();
     return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
   }
 
   async delete(id: string, businessAccountId: string): Promise<boolean> {
-    const result = await this.eventVenueModel.deleteOne({ _id: id, businessAccountId }).exec();
+    const result = await this.eventVenueModel
+      .deleteOne({ _id: id, businessAccountId })
+      .exec();
     return result.deletedCount > 0;
   }
 
   async findAll(businessAccountId: string): Promise<EventVenue[]> {
     const docs = await this.eventVenueModel.find({ businessAccountId }).exec();
-    return docs.map(doc => this.toDomainEntity(doc));
+    return docs.map((doc) => this.toDomainEntity(doc));
   }
-
 
   private toDomainEntity(doc: EventVenueDocument): EventVenue {
     return new EventVenue(
@@ -50,6 +63,7 @@ export class EventVenueRepositoryImpl extends EventVenueRepository {
       doc.province,
       doc.postalCode,
       doc.country,
+      doc.coordinates,
       doc.capacity,
       doc.facilities,
     );
