@@ -17,6 +17,7 @@ import {
 import { Request } from 'express';
 import { SendFriendRequestDto } from 'src/social/application/dtos/send-friend-request.dto';
 import { RespondFriendRequestDto } from 'src/social/application/dtos/respond-friend-request.dto';
+import { FriendshipWithOtherUserDto } from 'src/social/application/dtos/friendship-response.dto';
 import { FriendshipService } from 'src/social/application/services/friendship.service';
 import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
 
@@ -201,10 +202,16 @@ export class FriendshipController {
 
     const friends = await this.friendshipService.getFriendsWithUserInfo(userId);
 
+    // Transform friendships to include otherUser field for frontend
+    const transformedFriends = FriendshipWithOtherUserDto.fromEntities(
+      friends,
+      userId,
+    );
+
     return {
       success: true,
-      data: friends,
-      count: friends.length,
+      data: transformedFriends,
+      count: transformedFriends.length,
     };
   }
 
@@ -231,10 +238,16 @@ export class FriendshipController {
         userId,
       );
 
+    // Transform requests to include otherUser field for frontend
+    const transformedRequests = FriendshipWithOtherUserDto.fromEntities(
+      requests,
+      userId,
+    );
+
     return {
       success: true,
-      data: requests,
-      count: requests.length,
+      data: transformedRequests,
+      count: transformedRequests.length,
     };
   }
 
@@ -259,10 +272,16 @@ export class FriendshipController {
     const requests =
       await this.friendshipService.getPendingSentRequestsWithUserInfo(userId);
 
+    // Transform requests to include otherUser field for frontend
+    const transformedRequests = FriendshipWithOtherUserDto.fromEntities(
+      requests,
+      userId,
+    );
+
     return {
       success: true,
-      data: requests,
-      count: requests.length,
+      data: transformedRequests,
+      count: transformedRequests.length,
     };
   }
 

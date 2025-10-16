@@ -51,6 +51,9 @@ const FriendsList: React.FC<FriendsListProps> = ({
 
     const query = searchQuery.toLowerCase();
     return friends.filter((friend: FriendshipWithUserInfo) => {
+      // Safety check: skip if otherUser is undefined
+      if (!friend.otherUser) return false;
+      
       const fullName =
         `${friend.otherUser.firstName} ${friend.otherUser.lastName}`.toLowerCase();
       return fullName.includes(query);
