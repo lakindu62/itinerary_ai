@@ -27,6 +27,9 @@ export class Post {
   @Prop({ type: Number, default: 0 })
   commentCount: number;
 
+  @Prop({ type: Boolean, default: false })
+  isArchived: boolean; // Privacy: archived posts only visible to owner (default: false for backward compatibility)
+
   // @Prop({ type: [Types.ObjectId], ref: 'Like', default: [] })
   // likes?: Types.ObjectId[];
 

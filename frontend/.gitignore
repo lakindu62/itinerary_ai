@@ -47,3 +47,5 @@ next-env.d.ts
 src/features/social/FRIENDSHIP_UI_GAME_PLAN.md
 src/features/social/FRIENDSHIP_IMPLEMENTATION_COMPLETE.md
 src/features/social/FRIENDSHIP_API_ENDPOINTS.md
+src/features/social/PRIVACY_*.md
+src/features/social/PHASE*.md

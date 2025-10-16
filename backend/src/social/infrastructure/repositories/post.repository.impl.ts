@@ -406,6 +406,281 @@ export class PostRepositoryImpl extends PostRepository {
   }
 
   /**
+   * Retrieves all posts with user info, like status, ownership, and privacy filtering.
+   * Uses MongoDB aggregation pipeline to implement privacy rules:
+   * 1. Owner sees all their posts (including archived)
+   * 2. Archived posts only visible to owner
+   * 3. Public accounts: everyone sees non-archived posts
+   * 4. Private accounts: only friends see non-archived posts
+   *
+   * @param userId - The current user's MongoDB ID (string format)
+   * @returns Promise resolving to an array of PostWithUserInfo entities with privacy filtering applied
+   */
+  async getAllWithUserInfoAndPrivacy(
+    userId: string,
+  ): Promise<PostWithUserInfo[]> {
+    this.logger.debug(
+      `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Fetching posts with privacy filtering for user: ${userId}`,
+    );
+
+    try {
+      // Convert userId string to ObjectId for MongoDB queries
+      const userObjectId = new Types.ObjectId(userId);
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Converted to ObjectId: ${userObjectId}`,
+      );
+
+      // Build MongoDB aggregation pipeline with privacy filtering
+      const pipeline = [
+        // Stage 1: Sort posts by creation date (most recent first)
+        {
+          $sort: { createdAt: -1 } as any,
+        },
+
+        // Stage 2: Lookup user information (post owner details + socialSettings)
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'postOwnerInfo',
+          },
+        },
+
+        // Stage 3: Unwind postOwnerInfo array (each post has one owner)
+        {
+          $unwind: {
+            path: '$postOwnerInfo',
+            preserveNullAndEmptyArrays: true, // Keep posts even if user not found
+          },
+        },
+
+        // Stage 4: Lookup friendships to check if current user is friends with post owner
+        // We need to check both directions: userId->postOwner OR postOwner->userId
+        {
+          $lookup: {
+            from: 'friendships',
+            let: { postUserId: '$user' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      {
+                        $eq: ['$status', 'ACCEPTED'], // Only accepted friendships
+                      },
+                      {
+                        $or: [
+                          // Case 1: Current user is requester, post owner is receiver
+                          {
+                            $and: [
+                              { $eq: ['$requesterId', userObjectId] },
+                              { $eq: ['$receiverId', '$$postUserId'] },
+                            ],
+                          },
+                          // Case 2: Post owner is requester, current user is receiver
+                          {
+                            $and: [
+                              { $eq: ['$requesterId', '$$postUserId'] },
+                              { $eq: ['$receiverId', userObjectId] },
+                            ],
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: 'friendshipInfo',
+          },
+        },
+
+        // Stage 5: Add computed fields for privacy logic
+        {
+          $addFields: {
+            // Convert both IDs to strings for reliable comparison (fixes ObjectId comparison issue)
+            userIdString: { $toString: '$user' },
+            currentUserIdString: userId, // Already a string
+            isOwner: { $eq: [{ $toString: '$user' }, userId] }, // Compare as strings
+            isFriend: { $gt: [{ $size: '$friendshipInfo' }, 0] }, // True if friendshipInfo array not empty
+            isPublicAccount: {
+              $ifNull: ['$postOwnerInfo.socialSettings.isPublic', false],
+            }, // Default to private
+            isArchivedPost: { $ifNull: ['$isArchived', false] }, // Default to not archived
+            // Debug fields
+            debugUserInfo: {
+              postUserId: { $toString: '$user' },
+              currentUserId: userId,
+              idsMatch: { $eq: [{ $toString: '$user' }, userId] },
+              hasPostOwnerInfo: {
+                $cond: [{ $ifNull: ['$postOwnerInfo', false] }, true, false],
+              },
+              socialSettingsIsPublic: '$postOwnerInfo.socialSettings.isPublic',
+              friendshipCount: { $size: '$friendshipInfo' },
+            },
+          },
+        },
+
+        // Stage 6: Privacy filtering - apply the 3 rules
+        {
+          $match: {
+            $or: [
+              // Rule 1: Owner sees all their posts (including archived)
+              { isOwner: true },
+
+              // Rule 2: Non-archived posts from public accounts (everyone can see)
+              {
+                $and: [{ isArchivedPost: false }, { isPublicAccount: true }],
+              },
+
+              // Rule 3: Non-archived posts from private accounts (only friends can see)
+              {
+                $and: [
+                  { isArchivedPost: false },
+                  { isPublicAccount: false },
+                  { isFriend: true },
+                ],
+              },
+            ],
+          },
+        },
+
+        // Stage 7: Lookup likes to check if current user liked this post
+        {
+          $lookup: {
+            from: 'likes',
+            let: { postId: '$_id' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ['$post', '$$postId'] },
+                      { $eq: ['$user', userObjectId] },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: 'userLikesArr',
+          },
+        },
+
+        // Stage 8: Add userLiked flag based on likes lookup
+        {
+          $addFields: {
+            userLiked: { $gt: [{ $size: '$userLikesArr' }, 0] },
+          },
+        },
+
+        // Stage 9: Project final shape (PostWithUserInfo structure)
+        // Note: Only use inclusion (field: 1) to avoid MongoDB projection errors
+        {
+          $project: {
+            _id: 1,
+            user: 1,
+            content: 1,
+            likeCount: 1,
+            commentCount: 1,
+            createdAt: 1,
+            updatedAt: 1,
+            image: 1,
+            mediaFiles: 1,
+            isArchived: '$isArchivedPost', // Use computed field
+            userLiked: 1,
+            isOwner: 1,
+            userInfoArr: {
+              _id: '$postOwnerInfo._id',
+              clerkUserId: '$postOwnerInfo.clerkUserId',
+              firstName: '$postOwnerInfo.firstName',
+              lastName: '$postOwnerInfo.lastName',
+              email: '$postOwnerInfo.email',
+              travelProfile: '$postOwnerInfo.travelProfile',
+            },
+            // Debug: Keep these temporarily to see values in final output
+            debugUserInfo: 1,
+            // Temporary fields (postOwnerInfo, friendshipInfo, etc.) automatically excluded by inclusion projection
+          },
+        },
+      ];
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Executing aggregation pipeline with ${pipeline.length} stages`,
+      );
+
+      // First, run aggregation WITHOUT privacy filter to see what's being computed
+      const debugPipeline = pipeline.slice(0, 5); // Only stages 1-5 (before privacy filter)
+      const debugDocs = await this.postModel.aggregate(debugPipeline).exec();
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] DEBUG: Found ${debugDocs.length} posts BEFORE privacy filtering`,
+      );
+
+      if (debugDocs.length > 0) {
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] DEBUG: First post computed values:`,
+          JSON.stringify(
+            {
+              postId: debugDocs[0]._id,
+              isOwner: debugDocs[0].isOwner,
+              isFriend: debugDocs[0].isFriend,
+              isPublicAccount: debugDocs[0].isPublicAccount,
+              isArchivedPost: debugDocs[0].isArchivedPost,
+              debugInfo: debugDocs[0].debugUserInfo,
+            },
+            null,
+            2,
+          ),
+        );
+      }
+
+      // Execute full aggregation with privacy filter
+      const docs = await this.postModel.aggregate(pipeline).exec();
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Found ${docs.length} posts after privacy filtering`,
+      );
+
+      // Log sample results for debugging (first 2 posts)
+      if (docs.length > 0) {
+        this.logger.debug(
+          `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Sample results (first ${Math.min(2, docs.length)} posts):`,
+          JSON.stringify(
+            docs.slice(0, 2).map((d) => ({
+              postId: d._id,
+              userId: d.user,
+              isOwner: d.isOwner,
+              isArchived: d.isArchived,
+              hasUserInfo: !!d.userInfoArr,
+              userLiked: d.userLiked,
+            })),
+            null,
+            2,
+          ),
+        );
+      }
+
+      // Convert aggregation results to domain entities
+      const result = docs.map((doc) =>
+        this.toPostWithUserInfoDomainEntity(doc),
+      );
+
+      this.logger.debug(
+        `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Successfully converted ${result.length} documents to domain entities`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        '[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] Failed to fetch posts with privacy filtering',
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Adds a like to a post by incrementing the like count and adding the like ID to the likes array.
    *
    * @param postId - The ID of the post to add the like to
@@ -652,6 +927,7 @@ export class PostRepositoryImpl extends PostRepository {
       doc.updatedAt,
       doc.image,
       doc.mediaFiles ?? [],
+      doc.isArchived ?? false, // Privacy: default false for backward compatibility
     );
   }
 
@@ -681,6 +957,7 @@ export class PostRepositoryImpl extends PostRepository {
       post.image,
       post.mediaFiles,
       isOwner,
+      post.isArchived, // Privacy: pass through from Post entity
     );
   }
 
@@ -704,6 +981,7 @@ export class PostRepositoryImpl extends PostRepository {
       doc.image,
       doc.mediaFiles ?? [],
       doc.isOwner ?? false,
+      doc.isArchived ?? false, // Privacy: default false for backward compatibility
     );
   }
 
@@ -738,6 +1016,7 @@ export class PostRepositoryImpl extends PostRepository {
       doc.mediaFiles ?? [],
       userInfo,
       doc.isOwner ?? false,
+      doc.isArchived ?? false, // Privacy: default false for backward compatibility
     );
   }
 }

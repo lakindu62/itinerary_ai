@@ -44,6 +44,23 @@ export abstract class PostRepository {
   abstract getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]>;
 
   /**
+   * Retrieves all posts with user info, like status, ownership, and privacy filtering.
+   * Uses MongoDB aggregation pipeline to:
+   * - Lookup user information (including socialSettings.isPublic)
+   * - Lookup friendships (check if users are friends)
+   * - Apply privacy filtering rules:
+   *   1. Owner sees all their posts (including archived)
+   *   2. Archived posts only visible to owner
+   *   3. Public accounts: everyone sees non-archived posts
+   *   4. Private accounts: only friends see non-archived posts
+   * @param userId - The current user's MongoDB ID
+   * @returns Promise resolving to an array of PostWithUserInfo entities with privacy filtering applied
+   */
+  abstract getAllWithUserInfoAndPrivacy(
+    userId: string,
+  ): Promise<PostWithUserInfo[]>;
+
+  /**
    * Adds a like to a post by incrementing the like count and adding the like ID to the likes array.
    *
    * @param postId - The ID of the post to add the like to
