@@ -1,6 +1,7 @@
 export interface EventPerformanceDto {
   id: string | null;
   eventName: string;
+  startDate: string; // Add this
   expectedRevenue: number;
   actualRevenue: number;
   capacity: number;

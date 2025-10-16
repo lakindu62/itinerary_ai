@@ -22,7 +22,8 @@ export default function DashboardPage() {
   const { getToken } = useAuth();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState("90d");
+  const [lineChartTimeRange, setLineChartTimeRange] = useState("90d");
+  const [barChartTimeRange, setBarChartTimeRange] = useState("all"); // New state for bar chart
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -45,26 +46,48 @@ export default function DashboardPage() {
 
     const getDaysAgo = (days: number) => {
         const date = new Date();
-        date.setHours(0, 0, 0, 0); // Normalize to the start of the day
+        date.setHours(0, 0, 0, 0);
         date.setDate(date.getDate() - days);
         return date;
     };
 
     let startDate;
-    if (timeRange === "7d") {
+    if (lineChartTimeRange === "7d") {
         startDate = getDaysAgo(7);
-    } else if (timeRange === "30d") {
+    } else if (lineChartTimeRange === "30d") {
         startDate = getDaysAgo(30);
     } else { // "90d"
         startDate = getDaysAgo(90);
     }
 
-    return analytics.revenueOverTime.filter(item => {
-        const itemDate = new Date(item.date);
-        itemDate.setHours(0, 0, 0, 0); // Normalize to the start of the day
-        return itemDate >= startDate;
-    });
-  }, [analytics, timeRange]);
+    return analytics.revenueOverTime.filter(item => new Date(item.date) >= startDate);
+  }, [analytics, lineChartTimeRange]);
+
+  // New memoized filter for the bar chart data
+  const filteredEventPerformanceData = useMemo(() => {
+    if (!analytics?.eventPerformance) return [];
+    if (barChartTimeRange === "all") {
+      return analytics.eventPerformance;
+    }
+    const now = new Date();
+    const getDaysAgo = (days: number) => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() - days);
+        return date;
+    };
+
+    let startDate;
+    if (barChartTimeRange === "7d") {
+        startDate = getDaysAgo(7);
+    } else if (barChartTimeRange === "30d") {
+        startDate = getDaysAgo(30);
+    } else { // "90d"
+        startDate = getDaysAgo(90);
+    }
+
+    return analytics.eventPerformance.filter(item => new Date(item.startDate) >= startDate);
+  }, [analytics, barChartTimeRange]);
 
   if (loading) {
     return <div className="p-4">Loading Dashboard...</div>;
@@ -85,11 +108,24 @@ export default function DashboardPage() {
             averageSellThrough={analytics.averageSellThrough}
           />
           
-          <RevenueBarChart data={analytics.eventPerformance} />
+          <div className="flex justify-end mb-4">
+              <Select value={barChartTimeRange} onValueChange={setBarChartTimeRange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select time range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Time</SelectItem>
+                  <SelectItem value="90d">Last 90 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          <RevenueBarChart data={filteredEventPerformanceData} />
           
           <div>
             <div className="flex justify-end mb-4">
-              <Select value={timeRange} onValueChange={setTimeRange}>
+              <Select value={lineChartTimeRange} onValueChange={setLineChartTimeRange}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Select time range" />
                 </SelectTrigger>
@@ -103,7 +139,7 @@ export default function DashboardPage() {
             <ChartAreaInteractive 
               data={filteredRevenueData} 
               title="Revenue Over Time"
-              description={`Showing revenue for the last ${timeRange === '90d' ? '90' : timeRange === '30d' ? '30' : '7'} days`}
+              description={`Showing revenue for the last ${lineChartTimeRange === '90d' ? '90' : lineChartTimeRange === '30d' ? '30' : '7'} days`}
             />
           </div>
 

@@ -113,16 +113,16 @@ async getAnalytics(user: AuthenticatedUser): Promise<AnalyticsDto> {
         const expectedRevenue = capacity * event.ticketPrice;
         const sellThrough = (booked / capacity) * 100;
 
-        return {
-          id: event.id,
-          eventName: event.eventName,
-          expectedRevenue,
-          actualRevenue,
-          capacity,
-          booked,
-          sellThrough,
-        };
-    });
+            return {
+              id: event.id,
+              eventName: event.eventName,
+              startDate: event.startDate, // Add this
+              expectedRevenue,
+              actualRevenue,
+              capacity,
+              booked,
+              sellThrough,
+            };    });
 
     const averageSellThrough = eventPerformance.length > 0
       ? eventPerformance.reduce((sum, ep) => sum + ep.sellThrough, 0) / eventPerformance.length
