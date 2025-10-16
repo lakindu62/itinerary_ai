@@ -31,9 +31,11 @@ const TravelChatbot = ({ id, initialQuery }: { id: string, initialQuery: string 
   const [session, setSession] = useState<ChatItineraryResponseDto>();
   const [isInitializing, setIsInitializing] = useState(false);
   const hasInitialized = useRef(false)
+  const mapPanelRef = useRef<HTMLDivElement | null>(null);
+  const [mapPanelWidth, setMapPanelWidth] = useState<number>(0);
   // All API queries centralized in parent
   const { data: sessionGot, isLoading: sessionLoading, isFetching } = useGetChatItineraryQuery(id);
-  const [chatItinerary, { isLoading: creatingItinerayLoading }] = useChatItineraryMutation();
+  const [chatItinerary] = useChatItineraryMutation();
 
   // Initialize session - runs once when component mounts or when sessionGot changes
   useEffect(() => {
@@ -88,6 +90,21 @@ const TravelChatbot = ({ id, initialQuery }: { id: string, initialQuery: string 
   }, [session]);
 
   console.log("🚀 ~ TravelChatbot ~ session:", session)
+
+  // Observe map panel width to size the Sheet to remaining viewport width
+  useEffect(() => {
+    if (!mapPanelRef.current) return;
+    const element = mapPanelRef.current;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        console.log("🚀 ~ TravelChatbot ~ width:", width)
+        setMapPanelWidth(width);
+      }
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   // Show initializing state when sending the first prompt
   if (isInitializing) {
@@ -172,11 +189,11 @@ const TravelChatbot = ({ id, initialQuery }: { id: string, initialQuery: string 
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-card">
-      <div className="h-[calc(100vh)] rounded-[30px] ">
-        <ResizablePanelGroup className='border rounded-[30px] pt-20' direction="horizontal">
+
+      <div className="h-[calc(100vh-69px)] rounded-[30px] white">
+        <ResizablePanelGroup className='border rounded-t-[30px] ' direction="horizontal">
           <ResizablePanel defaultSize={session?.currentItinerary ? 33 : 50} minSize={25}>
-            <div className="h-full flex flex-col">
+            <div className="h-full flex flex-col ">
               <ChatInterface
                 messages={messages}
                 isLoading={isLoading}
@@ -198,10 +215,11 @@ const TravelChatbot = ({ id, initialQuery }: { id: string, initialQuery: string 
               <ResizablePanel defaultSize={33} minSize={25}>
                 <div className="flex-1  h-full" style={{ minHeight: '300px' }}>
                   <ItineraryDisplay
-                    itinerary={session.currentItinerary}
+                    itinerary={session.currentItinerary!}
                     context={session.conversation?.context || { stage: 'initial' }}
                     onPlaceSelect={setSelectedPlace}
                     selectedPlace={selectedPlace}
+                    mapPanelWidth={mapPanelWidth}
                   />
                 </div>
               </ResizablePanel>
@@ -210,17 +228,19 @@ const TravelChatbot = ({ id, initialQuery }: { id: string, initialQuery: string 
           {session?.conversation.context.stage === 'modifying' && (
             <>
               <ResizableHandle />
-              <ResizablePanel defaultSize={session.currentItinerary ? 34 : 50} minSize={25}>
-                <MapComponent
-                  itinerary={session.currentItinerary}
-                  selectedPlace={selectedPlace}
-                  onPlaceSelect={setSelectedPlace}
-                />
+              <ResizablePanel onResize={(e)=>setMapPanelWidth(e)}  defaultSize={session.currentItinerary ? 34 : 50} minSize={25}>
+                <div className="h-full" ref={mapPanelRef}>
+                  <MapComponent
+                    itinerary={session.currentItinerary ?? null}
+                    selectedPlace={selectedPlace}
+                    onPlaceSelect={setSelectedPlace}
+                  />
+                </div>
               </ResizablePanel>
             </>)}
         </ResizablePanelGroup>
       </div>
-    </div>
+
   );
 };
 

@@ -68,9 +68,6 @@ export class GoogleMapsService {
         photos: place.photos,
       }));
 
-      this.logger.log(
-        `Found ${places.length} places for destination: ${destination}`,
-      );
       // this.logger.log(places);
       return places;
     } catch (error) {

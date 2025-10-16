@@ -1,16 +1,19 @@
 import { Day } from '../value-objects/itinerary/day.vo';
 
 export class Itinerary {
+  public readonly visibility: ItineraryVisibility;
   constructor(
     public readonly title: string,
     public readonly summary: string,
     public readonly days: Day[],
     public readonly accommodation: string,
     public readonly tips: string[],
+    public readonly slug?: string,
     public readonly id?: string,
   ) {
     this.id = id;
     this.validate();
+    this.visibility = ItineraryVisibility.PRIVATE;
   }
 
   private validate(): void {
@@ -91,4 +94,12 @@ export class Itinerary {
   toString(): string {
     return `Itinerary: ${this.title} (${this.getTotalDays()} days, ${this.getTotalActivities()} activities)`;
   }
+}
+
+export enum ItineraryVisibility {
+  PRIVATE = 'private',
+  LINK = 'link',
+  PUBLIC = 'public',
+  ALL_FRIENDS = 'all_friends',
+  SPECIFIC_FRIENDS = 'specific_friends',
 }
