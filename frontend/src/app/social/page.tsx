@@ -47,7 +47,7 @@ const page = (props: Props) => {
                   }
                 </div>
                 <div className="hidden lg:block lg:col-span-4 stciky top-20">
-                  Who to Follow
+                  Friend List goes here
                 </div>
               </div>
             </div>

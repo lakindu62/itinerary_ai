@@ -8,7 +8,10 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Friendship, FriendshipWithUserInfo } from 'src/social/domain/entities/friendship.entity';
+import {
+  Friendship,
+  FriendshipWithUserInfo,
+} from 'src/social/domain/entities/friendship.entity';
 import { FriendshipRepository } from 'src/social/domain/repositories/friendship.repository';
 import { FriendshipStatus } from 'src/social/domain/value-objects/friendship-status.vo';
 import { FriendshipStatusResponseDto } from '../dtos/friendship-status.dto';
@@ -22,9 +25,7 @@ import { FriendshipStatusResponseDto } from '../dtos/friendship-status.dto';
 export class FriendshipService {
   private readonly logger = new Logger(FriendshipService.name);
 
-  constructor(
-    private readonly friendshipRepository: FriendshipRepository,
-  ) {}
+  constructor(private readonly friendshipRepository: FriendshipRepository) {}
 
   /**
    * Sends a friend request from one user to another.
@@ -63,7 +64,7 @@ export class FriendshipService {
 
     if (existingFriendship) {
       const status = existingFriendship.status;
-      
+
       if (status === FriendshipStatus.PENDING) {
         // Check who sent the pending request
         if (existingFriendship.isRequester(requesterId)) {
@@ -78,11 +79,11 @@ export class FriendshipService {
       } else if (status === FriendshipStatus.ACCEPTED) {
         throw new ConflictException('You are already friends with this user');
       } else if (status === FriendshipStatus.REJECTED) {
-        // BUSINESS RULE: Allow re-sending after rejection (Option 1 - Permissive)
+        // BUSINESS RULE: Allow re-sending after rejection (Permissive)
         // The rejected record will be deleted and a new pending request created
         // This allows users to send requests again after being rejected
         //
-        // 🔧 TO RESTRICT RE-SENDING AFTER REJECTION (Option 2 - Stricter):
+        // TO RESTRICT RE-SENDING AFTER REJECTION ( Stricter):
         // Uncomment the following lines and comment out the delete + create logic below:
         //
         // this.logger.warn(
@@ -92,14 +93,14 @@ export class FriendshipService {
         //   'Cannot send friend request. Previous request was rejected.',
         // );
         //
-        // 🔧 FOR TIME-BASED COOLDOWN (Option 3 - Balanced):
+        // FOR TIME-BASED COOLDOWN (Balanced):
         // Check existingFriendship.updatedAt and compare with current date
         // Throw error if rejection was within last X days
 
         this.logger.log(
           `[FriendshipService.sendFriendRequest] Deleting rejected friendship to allow re-request`,
         );
-        
+
         // Delete the old rejected friendship
         await this.friendshipRepository.delete(existingFriendship.id);
       }
@@ -239,10 +240,7 @@ export class FriendshipService {
    * @throws NotFoundException if friendship doesn't exist
    * @throws ForbiddenException if user is not authorized to remove
    */
-  async removeFriendship(
-    friendshipId: string,
-    userId: string,
-  ): Promise<void> {
+  async removeFriendship(friendshipId: string, userId: string): Promise<void> {
     this.logger.log(
       `[FriendshipService.removeFriendship] User ${userId} removing friendship ${friendshipId}`,
     );

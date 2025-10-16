@@ -38,7 +38,7 @@ export const rootApiSlice = createApi({
   reducerPath: reducerBasePath,
   baseQuery,
 
-  tagTypes: ["Posts","Itinerary"], // Enable cache tags for automatic invalidation
+  tagTypes: ["Posts", "Itinerary", "Friendships", "FriendshipStatus", "FriendshipCount"], // Enable cache tags for automatic invalidation
 
   endpoints: () => ({}),
 });
