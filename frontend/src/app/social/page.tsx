@@ -3,6 +3,10 @@ import CreatePost from "@frontend/features/social/components/posts/CreatePost";
 import Navbar from "@frontend/features/social/components/Navbar";
 import PostList from "@frontend/features/social/components/posts/PostList";
 import Sidebar from "@frontend/features/social/components/Sidebar";
+import {
+  FriendsList,
+  FriendRequestsList,
+} from "@frontend/features/social/components/friends";
 import React, { useEffect } from "react";
 // import { useAuth } from "@clerk/nextjs";
 // import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
@@ -46,8 +50,22 @@ const page = (props: Props) => {
                     </>
                   }
                 </div>
-                <div className="hidden lg:block lg:col-span-4 stciky top-20">
-                  Friend List goes here
+                <div className="hidden lg:block lg:col-span-4 sticky top-20">
+                  {/* Friends List */}
+                  <FriendsList
+                    maxHeight="calc(100vh - 250px)"
+                    showSearch={true}
+                    showCount={true}
+                    showRemoveButton={false}
+                  />
+
+                  {/* Friend Requests */}
+                  <div className="mt-6">
+                    <FriendRequestsList
+                      maxHeight="300px"
+                      showCount={true}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
