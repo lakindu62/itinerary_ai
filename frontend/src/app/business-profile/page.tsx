@@ -307,16 +307,16 @@ export default function BusinessProfilesPage() {
         let allRatings = businessRatingsMap[ownerId] || []
         console.log('🔍 Ratings for', profile.businessName, ':', allRatings.length, 'total ratings (from file-based API)')
         
-        // Filter for approved ratings only
-        const approvedRatings = allRatings.filter((rating: any) => rating.isApproved === true)
-        console.log('✅ Approved ratings for', profile.businessName, ':', approvedRatings.length, 'approved ratings')
-        if (approvedRatings.length > 0) {
-          console.log('📝 Sample approved rating:', approvedRatings[0])
+        // Show all ratings without approval filter
+        const displayRatings = allRatings // Remove approval filter - show all ratings
+        console.log('✅ All ratings for', profile.businessName, ':', displayRatings.length, 'ratings (no approval needed)')
+        if (displayRatings.length > 0) {
+          console.log('📝 Sample rating:', displayRatings[0])
         }
         
-        // Calculate average rating from approved ratings
-        const rating = approvedRatings.length > 0 
-          ? approvedRatings.reduce((sum: number, rating: any) => sum + (rating.rating || 0), 0) / approvedRatings.length
+        // Calculate average rating from all ratings
+        const rating = displayRatings.length > 0 
+          ? displayRatings.reduce((sum: number, rating: any) => sum + (rating.rating || 0), 0) / displayRatings.length
           : 0
         
         return {
@@ -330,7 +330,7 @@ export default function BusinessProfilesPage() {
           website: profile.website,
           coverImage: profile.sliderImages?.[0]?.url || '/placeholder-business.jpg',
           rating: Math.round(rating * 10) / 10, // Round to 1 decimal
-          totalReviews: approvedRatings.length,
+          totalReviews: displayRatings.length,
           sliderImages: profile.sliderImages?.map((img: any, index: number) => ({
             id: img._id || img.id || `slider-${index}`,
             url: img.url || img.imageUrl || '/placeholder-image.jpg',
@@ -371,7 +371,7 @@ export default function BusinessProfilesPage() {
             likes: item.likes || [],
             likeCount: item.likes?.length || item.likeCount || 0
           })) || [],
-          reviews: approvedRatings.map((rating: any, index: number) => ({
+          reviews: displayRatings.map((rating: any, index: number) => ({
             id: rating.id || `review-${index}`,
             customerName: rating.customerName || 'Anonymous',
             rating: rating.rating || 0,
@@ -434,14 +434,14 @@ export default function BusinessProfilesPage() {
           title: reviewFormData.title,
           comment: reviewFormData.comment,
           category: reviewFormData.category,
-          isApproved: false,
+          isApproved: true,
           isPublic: true,
           helpful: 0
         })
       })
 
       if (response.ok) {
-        alert('Thank you for your review! It will be published after approval.')
+        alert('Thank you for your review! It has been published successfully.')
         setReviewFormOpen(false)
         resetReviewForm()
         loadBusinesses() // Reload to update review counts
@@ -896,15 +896,15 @@ export default function BusinessProfilesPage() {
                   <div className="space-y-4 max-h-64 overflow-y-auto">
                     {(() => {
                       const allReviews = currentBusiness.reviews || []
-                      const approvedReviews = allReviews.filter(review => review.isApproved !== false)
+                      const displayReviews = allReviews // Show all reviews without approval filter
                       console.log('🎯 Displaying reviews for', currentBusiness.businessName)
-                      console.log('📊 Total reviews:', allReviews.length, 'Approved:', approvedReviews.length)
+                      console.log('📊 Total reviews:', displayReviews.length, 'All reviews displayed')
                       
-                      if (approvedReviews.length === 0) {
-                        return <p className="text-gray-600 text-sm">No approved reviews yet</p>
+                      if (displayReviews.length === 0) {
+                        return <p className="text-gray-600 text-sm">No reviews yet</p>
                       }
                       
-                      return approvedReviews.slice(0, 4).map((review) => (
+                      return displayReviews.slice(0, 4).map((review) => (
                         <div key={review.id} className="border-b pb-3 last:border-b-0">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-2">
