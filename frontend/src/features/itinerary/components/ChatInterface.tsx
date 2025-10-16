@@ -76,7 +76,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   ];
 
   return (
-    <div className="h-full flex flex-col bg-card rounded-r-[30px] border">
+    <div className="h-full flex flex-col bg-card rounded-l-[30px] border">
       <div className="p-4 border-b bg-muted/20 rounded-[30px]">
         <div className="flex justify-between items-center rounded-[30px]">
           <h2 className="font-semibold text-card-foreground rounded-[30px]">Chat with AI Assistant</h2>

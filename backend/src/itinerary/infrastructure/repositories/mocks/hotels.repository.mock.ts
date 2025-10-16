@@ -34,6 +34,8 @@ export class HotelsRepository {
       rating: 4.8,
       address: 'Rangirigama, Sigiriya Road, Kandy',
       destination: 'Kandy',
+      imageUrl:
+        'https://images.unsplash.com/photo-1618773928121-c32242e63f39?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aG90ZWx8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&q=60&w=900',
       coordinates: [80.7207121909633, 7.930892027212704],
       amenities: ['pool', 'spa', 'wildlife', 'restaurant'],
       budgetLevel: 'luxury',

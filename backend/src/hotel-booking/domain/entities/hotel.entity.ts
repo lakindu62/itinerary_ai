@@ -22,7 +22,7 @@ export class Hotel {
     public readonly swimmingPool: boolean = false,
     public readonly coffeeShop: boolean = false,
     public readonly addedAt: Date = new Date(),
-    public readonly updatedAt: Date = new Date()
+    public readonly updatedAt: Date = new Date(),
   ) {}
 
   static create(data: {
@@ -68,7 +68,7 @@ export class Hotel {
       data.freeWifi ?? false,
       data.movieNights ?? false,
       data.swimmingPool ?? false,
-      data.coffeeShop ?? false
+      data.coffeeShop ?? false,
     );
   }
 
@@ -120,7 +120,7 @@ export class Hotel {
       updates.swimmingPool ?? this.swimmingPool,
       updates.coffeeShop ?? this.coffeeShop,
       this.addedAt,
-      new Date()
+      new Date(),
     );
   }
 }

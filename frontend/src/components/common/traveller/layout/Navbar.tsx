@@ -28,7 +28,8 @@ function Navbar() {
     const id = new ObjectId().toString()
     return (
 
-        <nav className="absolute px-4 py-3  rounded-full h-fit top-3  w-[calc(100%-12px)] xl:w-8/12 left-1/2 -translate-x-1/2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+        <nav className="sticky px-4 py-4 top-0   h-fit   w-full  border-b  backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 bg-slate-800/10 no-underline group cursor-pointer  shadow-2xl shadow-zinc-900 rounded-b-full p-px text-sm font-semibold leading-6 text-white inline-block">
+            <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-blue-400/0 via-blue-600/90 to-blue-400/0 transition-opacity duration-500 group-hover:opacity-40" />
             <div className="max-w-7xl mx-auto ">
                 <div className="flex items-center justify-between ">
                     <div className="flex items-center">
