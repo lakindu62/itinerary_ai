@@ -1,6 +1,7 @@
 // friendship.controller.ts
 
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -53,7 +54,13 @@ export class FriendshipController {
     this.logger.log(`POST /friendships/request`, {
       requesterId,
       receiverId: body.receiverId,
+      rawBody: body,
     });
+
+    // Validate receiverId is provided
+    if (!body.receiverId) {
+      throw new BadRequestException('receiverId is required');
+    }
 
     const friendship = await this.friendshipService.sendFriendRequest(
       requesterId,

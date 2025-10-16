@@ -78,12 +78,30 @@ export class FriendshipService {
       } else if (status === FriendshipStatus.ACCEPTED) {
         throw new ConflictException('You are already friends with this user');
       } else if (status === FriendshipStatus.REJECTED) {
-        this.logger.warn(
-          `[FriendshipService.sendFriendRequest] Attempting to send request after rejection`,
+        // BUSINESS RULE: Allow re-sending after rejection (Option 1 - Permissive)
+        // The rejected record will be deleted and a new pending request created
+        // This allows users to send requests again after being rejected
+        //
+        // 🔧 TO RESTRICT RE-SENDING AFTER REJECTION (Option 2 - Stricter):
+        // Uncomment the following lines and comment out the delete + create logic below:
+        //
+        // this.logger.warn(
+        //   `[FriendshipService.sendFriendRequest] Attempting to send request after rejection`,
+        // );
+        // throw new ConflictException(
+        //   'Cannot send friend request. Previous request was rejected.',
+        // );
+        //
+        // 🔧 FOR TIME-BASED COOLDOWN (Option 3 - Balanced):
+        // Check existingFriendship.updatedAt and compare with current date
+        // Throw error if rejection was within last X days
+
+        this.logger.log(
+          `[FriendshipService.sendFriendRequest] Deleting rejected friendship to allow re-request`,
         );
-        throw new ConflictException(
-          'Cannot send friend request. Previous request was rejected.',
-        );
+        
+        // Delete the old rejected friendship
+        await this.friendshipRepository.delete(existingFriendship.id);
       }
     }
 
