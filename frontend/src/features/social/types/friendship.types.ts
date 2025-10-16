@@ -3,7 +3,7 @@
 /**
  * Friendship status enum
  */
-export type FriendshipStatus = 'pending' | 'accepted' | 'rejected';
+export type FriendshipStatus = "pending" | "accepted" | "rejected";
 
 /**
  * User info that comes with friendship data
@@ -86,5 +86,5 @@ export type SendFriendRequestBody = {
  * Request body for responding to friend request
  */
 export type RespondFriendRequestBody = {
-  action: 'accept' | 'reject';
+  action: "accept" | "reject";
 };

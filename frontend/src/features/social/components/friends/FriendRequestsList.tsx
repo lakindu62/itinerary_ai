@@ -76,11 +76,7 @@ const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
               <UserPlus className="w-5 h-5" />
               Friend Requests
             </h3>
-            {showCount && (
-              <Badge variant="secondary">
-                {pendingCount}
-              </Badge>
-            )}
+            {showCount && <Badge variant="secondary">{pendingCount}</Badge>}
           </div>
 
           {/* Scrollable Requests List */}

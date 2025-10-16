@@ -193,11 +193,7 @@ export class FriendshipRepositoryImpl extends FriendshipRepository {
       const queryOptions = session ? { session, new: true } : { new: true };
 
       const doc = await this.friendshipModel
-        .findByIdAndUpdate(
-          friendshipId,
-          { status },
-          queryOptions,
-        )
+        .findByIdAndUpdate(friendshipId, { status }, queryOptions)
         .exec();
 
       if (!doc) {
@@ -221,10 +217,7 @@ export class FriendshipRepositoryImpl extends FriendshipRepository {
   /**
    * Deletes a friendship record.
    */
-  async delete(
-    friendshipId: string,
-    session?: ClientSession,
-  ): Promise<void> {
+  async delete(friendshipId: string, session?: ClientSession): Promise<void> {
     this.logger.debug(
       `[FriendshipRepositoryImpl.delete] Deleting friendship ${friendshipId}`,
     );

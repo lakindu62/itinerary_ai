@@ -57,9 +57,7 @@ const SentRequestsList: React.FC<SentRequestsListProps> = ({
               <Send className="w-5 h-5" />
               Sent Requests
             </h3>
-            {showCount && (
-              <Badge variant="secondary">{requests.length}</Badge>
-            )}
+            {showCount && <Badge variant="secondary">{requests.length}</Badge>}
           </div>
 
           {/* Scrollable Requests List */}
@@ -140,9 +138,7 @@ const SentRequestsList: React.FC<SentRequestsListProps> = ({
                             size="sm"
                             variant="outline"
                             onClick={() => handleCancelRequest(request.id)}
-                            disabled={
-                              cancelingId === request.id && isRemoving
-                            }
+                            disabled={cancelingId === request.id && isRemoving}
                           >
                             <X className="w-4 h-4" />
                           </Button>

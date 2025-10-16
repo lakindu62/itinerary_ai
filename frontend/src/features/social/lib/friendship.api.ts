@@ -96,10 +96,7 @@ export const friendshipApi = rootApiSlice.injectEndpoints({
     }),
 
     // Remove a friendship (unfriend) or cancel a pending request
-    removeFriendship: builder.mutation<
-      FriendshipApiResponse<void>,
-      string
-    >({
+    removeFriendship: builder.mutation<FriendshipApiResponse<void>, string>({
       query: (friendshipId) => ({
         url: `/social/friendships/${friendshipId}`,
         method: "DELETE",
@@ -211,8 +208,9 @@ export const friendshipApi = rootApiSlice.injectEndpoints({
         url: `/social/friendships/status/${userId}`,
         method: "GET",
       }),
-      transformResponse: (response: FriendshipApiResponse<FriendshipStatusResponse>) =>
-        response.data!,
+      transformResponse: (
+        response: FriendshipApiResponse<FriendshipStatusResponse>
+      ) => response.data!,
       providesTags: (result, error, userId) => [
         { type: "FriendshipStatus", id: userId },
         { type: "FriendshipStatus", id: "LIST" },
@@ -287,21 +285,21 @@ export const {
 
 /**
  * Usage in components:
- * 
+ *
  * // Send friend request
  * const [sendRequest] = useSendFriendRequestMutation();
  * await sendRequest({ receiverId: 'user123' });
- * 
+ *
  * // Get friends list
  * const { data: friends, isLoading } = useGetFriendsQuery();
- * 
+ *
  * // Check friendship status with specific user
  * const { data: status } = useGetFriendshipStatusQuery('user123');
- * 
+ *
  * // Accept friend request
  * const [acceptRequest] = useAcceptFriendRequestMutation();
  * await acceptRequest(friendshipId);
- * 
+ *
  * All endpoints use Clerk authentication automatically.
  * No need to pass current user ID - backend extracts from JWT.
  */

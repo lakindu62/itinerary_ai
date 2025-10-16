@@ -32,11 +32,7 @@ const FriendsList: React.FC<FriendsListProps> = ({
   const [searchQuery, setSearchQuery] = React.useState("");
 
   // Fetch friends data (no userId needed - uses current user from JWT)
-  const {
-    data: friends = [],
-    isLoading,
-    error,
-  } = useGetFriendsQuery();
+  const { data: friends = [], isLoading, error } = useGetFriendsQuery();
 
   // Fetch friends count
   const { data: friendsCount = 0 } = useGetFriendsCountQuery();
@@ -53,7 +49,7 @@ const FriendsList: React.FC<FriendsListProps> = ({
     return friends.filter((friend: FriendshipWithUserInfo) => {
       // Safety check: skip if otherUser is undefined
       if (!friend.otherUser) return false;
-      
+
       const fullName =
         `${friend.otherUser.firstName} ${friend.otherUser.lastName}`.toLowerCase();
       return fullName.includes(query);

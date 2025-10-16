@@ -1,7 +1,10 @@
 // friendship.repository.ts
 
 import { ClientSession } from 'mongoose';
-import { Friendship, FriendshipWithUserInfo } from '../entities/friendship.entity';
+import {
+  Friendship,
+  FriendshipWithUserInfo,
+} from '../entities/friendship.entity';
 import { FriendshipStatus } from '../value-objects/friendship-status.vo';
 
 /**
@@ -87,10 +90,7 @@ export abstract class FriendshipRepository {
    * @returns Promise resolving when the deletion completes
    * @throws Error if the friendship is not found or deletion fails
    */
-  abstract delete(
-    friendshipId: string,
-    session?: ClientSession,
-  ): Promise<void>;
+  abstract delete(friendshipId: string, session?: ClientSession): Promise<void>;
 
   /**
    * Retrieves all accepted friendships for a specific user.

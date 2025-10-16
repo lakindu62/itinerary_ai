@@ -19,7 +19,9 @@ interface UserCardProps {
 const UserCard: React.FC<UserCardProps> = ({ user }) => {
   const profilePic = user.travelProfile?.profilePicture;
   const name = `${user.firstName || "Unknown"} ${user.lastName || "User"}`;
-  const initials = `${user.firstName?.[0] || "U"}${user.lastName?.[0] || "U"}`.toUpperCase();
+  const initials = `${user.firstName?.[0] || "U"}${
+    user.lastName?.[0] || "U"
+  }`.toUpperCase();
   const bio = user.travelProfile?.bio || "No bio available";
 
   return (

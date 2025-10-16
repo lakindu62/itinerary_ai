@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { Card, CardContent } from "@frontend/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@frontend/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@frontend/components/ui/tabs";
 import { Badge } from "@frontend/components/ui/badge";
 import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 import {
@@ -40,13 +45,19 @@ const FriendsPage: React.FC = () => {
             {/* Tabs */}
             <Tabs defaultValue="friends" className="w-full">
               <TabsList className="grid w-full grid-cols-4 mb-6">
-                <TabsTrigger value="friends" className="flex items-center gap-2">
+                <TabsTrigger
+                  value="friends"
+                  className="flex items-center gap-2"
+                >
                   Friends
                   <Badge variant="secondary" className="ml-1">
                     {friendsCount}
                   </Badge>
                 </TabsTrigger>
-                <TabsTrigger value="received" className="flex items-center gap-2">
+                <TabsTrigger
+                  value="received"
+                  className="flex items-center gap-2"
+                >
                   Requests Received
                   {receivedCount > 0 && (
                     <Badge variant="destructive" className="ml-1">

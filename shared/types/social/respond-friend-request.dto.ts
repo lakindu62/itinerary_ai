@@ -10,5 +10,5 @@ export class RespondFriendRequestDto {
    * 'accept' - Accept the friend request
    * 'reject' - Reject the friend request
    */
-  action!: 'accept' | 'reject';
+  action!: "accept" | "reject";
 }

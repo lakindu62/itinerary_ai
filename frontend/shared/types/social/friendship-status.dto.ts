@@ -23,7 +23,7 @@ export class FriendshipStatusResponseDto {
    * 'accepted' - Users are friends
    * 'rejected' - Friend request was rejected
    */
-  status: 'pending' | 'accepted' | 'rejected' | null;
+  status: "pending" | "accepted" | "rejected" | null;
 
   /**
    * If status is 'pending', indicates whether the current user sent the request
