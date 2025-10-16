@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DateTime } from 'luxon';
+import Link from 'next/link';
 
 // Define the type for a single event based on expected data structure
 type Event = {
@@ -15,6 +16,8 @@ type Event = {
   description: string;
   startDate: string;
   startTime: string;
+  endDate: string;
+  endTime: string;
   imagesUrl?: string[];
   venue?: {
     venueName: string;
@@ -130,9 +133,11 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
             <p>{event.venue?.city || 'Online'}</p>
             <p className="font-semibold">{event.ticketPrice > 0 ? `From Rs.${event.ticketPrice}` : 'Free'}</p>
           </div>
+          <Link href={`/events/${event.id}`} passHref>
           <Button className="bg-[#5B30D6] hover:bg-[#4a26b3] text-white font-bold rounded-lg px-6">
             Get Ticket
           </Button>
+          </Link>
         </div>
       </div>
     </div>

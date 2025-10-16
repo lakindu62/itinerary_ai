@@ -18,14 +18,53 @@ export interface ConversationDto {
   messages: ConversationMessageDto[];
   context: ConversationContextDto;
 }
-export interface ActivityDto {
+
+/**
+ * Discriminated union to mirror the Zod schema in the mapper:
+ * - restaurant | attraction | other: no additionalDetails
+ * - hotel: additionalDetails { imageUrl?, id?, venueName? }
+ * - event: additionalDetails { startDate?, endDate?, startTime?, endTime?, imageUrl?, id?, venueName? }
+ */
+
+export type Coordinates = [number, number];
+
+type NonEventNonHotelType = "restaurant" | "attraction" | "other";
+
+interface BaseFields {
   time: string;
   name: string;
   description: string;
   address: string;
-  type: string;
-  coordinates: [number, number];
+  coordinates: Coordinates;
 }
+
+export interface POIActivityDto extends BaseFields {
+  type: NonEventNonHotelType;
+}
+
+export interface HotelActivityDto extends BaseFields {
+  type: "hotel";
+  additionalDetails: {
+    imageUrl?: string;
+    id?: string;
+    venueName?: string;
+  };
+}
+
+export interface EventActivityDto extends BaseFields {
+  type: "event";
+  additionalDetails: {
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+    imageUrl?: string;
+    id?: string;
+    venueName?: string;
+  };
+}
+
+export type ActivityDto = POIActivityDto | HotelActivityDto | EventActivityDto;
 
 export interface DayDto {
   dayNumber: number;
@@ -41,6 +80,7 @@ export interface ItineraryDto {
   accommodation: string;
   tips: string[];
   id?: string;
+  slug?: string;
 }
 
 export interface ChatItineraryResponseDto {
@@ -48,3 +88,9 @@ export interface ChatItineraryResponseDto {
   conversation: ConversationDto;
   currentItinerary: ItineraryDto | undefined;
 }
+
+/** Optional: narrowers for ergonomic UI code */
+export const isHotelActivity = (a: ActivityDto): a is HotelActivityDto => a.type === "hotel";
+export const isEventActivity = (a: ActivityDto): a is EventActivityDto => a.type === "event";
+export const isPOIActivity = (a: ActivityDto): a is POIActivityDto =>
+  a.type === "restaurant" || a.type === "attraction" || a.type === "other";

@@ -10,8 +10,10 @@ export class TravelPlanningSession {
   constructor(
     public readonly id: string,
     conversation?: Conversation,
+    currentItinerary?: Itinerary,
   ) {
-    this.conversation = conversation || new Conversation(id);
+    this.conversation = conversation || new Conversation();
+    this.currentItinerary = currentItinerary;
   }
 
   // Conversation operations
@@ -87,6 +89,19 @@ export class TravelPlanningSession {
 
   getCurrentItinerary(): Itinerary | undefined {
     return this.currentItinerary;
+  }
+
+  /**
+   * Returns an object containing the current itinerary and the conversation .
+   */
+  getItineraryWithConversation(): {
+    itinerary: Itinerary;
+    conversation: Conversation;
+  } {
+    return {
+      itinerary: this.currentItinerary!,
+      conversation: this.conversation,
+    };
   }
 
   // Business logic methods

@@ -1,7 +1,7 @@
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -23,25 +23,28 @@ interface Rsvp {
 }
 
 const RsvpList = () => {
+  const { getToken } = useAuth();
   const [rsvps, setRsvps] = useState<Rsvp[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('userId');
 
   useEffect(() => {
     const fetchRsvps = async () => {
+      if (!getToken) return; // Ensure getToken is available
       try {
-        const data = await getRsvps();
+        const data = await getRsvps(getToken);
         setRsvps(data);
       } catch (error) {
         console.error('Failed to fetch rsvps:', error);
       }
     };
     fetchRsvps();
-  }, []);
+  }, [getToken]);
 
   const handleDelete = async (id: string) => {
+    if (!getToken) return;
     try {
-      await deleteRsvp(id);
+      await deleteRsvp(id, getToken);
       setRsvps(rsvps.filter((rsvp) => rsvp.id !== id));
     } catch (error) {
       console.error('Failed to delete rsvp:', error);

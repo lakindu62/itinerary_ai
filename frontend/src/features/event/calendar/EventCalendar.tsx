@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, luxonLocalizer, Views } from 'react-big-calendar';
 import { DateTime } from 'luxon';
+import { useAuth } from '@clerk/nextjs';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { getEvents } from '../lib/event-api';
+import { getBusinessEvents } from '../lib/event-api';
 import EventForm from '../create/EventForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@frontend/components/ui/scroll-area';
@@ -17,6 +18,7 @@ type SlotInfoType = {
 };
 
 const EventCalendar = () => {
+   const { getToken } = useAuth(); 
   const [events, setEvents] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<SlotInfoType | null>(null);
@@ -24,7 +26,7 @@ const EventCalendar = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const eventData = await getEvents();
+        const eventData = await getBusinessEvents(getToken);
         // const formattedEvents = eventData.map(event => ({
         //   ...event,
         //   start: DateTime.fromISO(event.startDate).toJSDate(),
@@ -70,7 +72,7 @@ const EventCalendar = () => {
     // Refresh events
     const fetchEvents = async () => {
       try {
-        const eventData = await getEvents();
+        const eventData = await getBusinessEvents(getToken);
         const formattedEvents = eventData.map(event => ({
           ...event,
           start: DateTime.fromISO(event.startDate).toJSDate(),

@@ -1,76 +1,60 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
-
-import { ActivityDto, ConversationContextDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { MapPin, Calendar } from 'lucide-react';
 
 
-
+import { ActivityDto, ConversationContextDto, isEventActivity, isHotelActivity, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import Image from 'next/image';
+import ActivitySheet from './ActivitySheet';
 
 interface ItineraryDisplayProps {
   itinerary: ItineraryDto;
-  context: ConversationContextDto;
+  context?: ConversationContextDto;
   onPlaceSelect: (activity: ActivityDto | null) => void;
   selectedPlace: ActivityDto | null;
+  mapPanelWidth?: number;
 }
 
 const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
   itinerary,
   context,
   onPlaceSelect,
-  selectedPlace
+  selectedPlace,
+  mapPanelWidth
 }) => {
-  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1])); // First day expanded by default
+  const containerRef = useRef<HTMLDivElement>(null)
+  // Remove expandedDays, setExpandedDays, toggleDayExpansion
   const [showAllTips, setShowAllTips] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
-  const toggleDayExpansion = (dayNumber: number) => {
-    const newExpanded = new Set(expandedDays);
-    if (newExpanded.has(dayNumber)) {
-      newExpanded.delete(dayNumber);
-    } else {
-      newExpanded.add(dayNumber);
-    }
-    setExpandedDays(newExpanded);
-  };
-
-
-
-  // Convert activity to place for map selection
-  const convertActivityToPlace = (activity: ActivityDto, dayNumber: number, activityIndex: number): ActivityDto => ({
-    id: `${dayNumber}-${activityIndex}`,
-    name: activity.name,
-    type: activity.name,
-    coordinates: activity.coordinates,
-    description: activity.description,
-    address: activity.address,
-    time: activity.time,
-  });
-
-
-
+  // Convert activity to place for map selection (no shape change needed)
+  const convertActivityToPlace = (activity: ActivityDto): ActivityDto => activity;
 
   const handleActivityClick = (activity: ActivityDto, dayNumber: number, activityIndex: number) => {
-    const place = convertActivityToPlace(activity, dayNumber, activityIndex);
+    const place = convertActivityToPlace(activity);
     onPlaceSelect(place);
+    setSelectedKey(`${dayNumber}-${activityIndex}`);
+    setIsSheetOpen(true);
   };
 
   return (
-    <ScrollArea className="flex-1 h-full">
-      <div className="h-full flex flex-col bg-card">
-        <div className="p-4 border-b">
+    <ScrollArea ref={containerRef} className="flex-1 h-full relative ">
+      <div className="h-full flex flex-col bg-card border-none">
+        <div className="p-4 ">
           <div className="flex items-center space-x-2 mb-2">
             <Calendar className="w-4 h-4 text-primary" />
             <h2 className="font-semibold">{itinerary.title}</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-2">{itinerary.summary}</p>
 
-          {context.destination && (
+          {context?.destination && (
             <div className="flex items-center space-x-4 text-xs text-muted-foreground">
               <span>{context.destination}</span>
-              <span>•</span>
+              {/* <span>•</span> */}
               <span>{itinerary.days.length} days</span>
               <span>•</span>
               <span>{itinerary.days.reduce((acc, day) => acc + day.activities.length, 0)} activities</span>
@@ -80,13 +64,13 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
 
         <div className="p-4 space-y-4">
           {/* Accommodation */}
-          {itinerary.accommodation && (
-            <Card className="p-3 bg-blue-50/50">
-              <h4 className="font-medium text-sm text-gray-800 mb-1 flex items-center">
+          {itinerary.days.some(day => day.activities.some(activity => activity.type === 'hotel')) && (
+            <Card className="p-3 bg-blue-950">
+              <h4 className="font-medium text-sm text-gray-300 mb-1 flex items-center">
                 <MapPin className="w-3 h-3 mr-1" />
                 Accommodation
               </h4>
-              <p className="text-xs text-gray-600">{itinerary.accommodation}</p>
+              <p className="text-xs text-gray-400">{itinerary.accommodation}</p>
             </Card>
           )}
 
@@ -94,10 +78,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
           <div className="space-y-3">
             {itinerary.days.map((day) => (
               <Card key={day.dayNumber} className="overflow-hidden">
-                <div
-                  className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => toggleDayExpansion(day.dayNumber)}
-                >
+                <div className="p-3 bg-muted/50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
@@ -116,43 +97,44 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
                       <Badge variant="secondary" className="text-xs">
                         {day.activities.length} activities
                       </Badge>
-                      {expandedDays.has(day.dayNumber) ? (
-                        <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                      )}
                     </div>
                   </div>
                 </div>
 
-                {expandedDays.has(day.dayNumber) && (
-                  <div className="border-t bg-muted/20">
-                    <div className="p-3 space-y-2">
-                      {day.activities.map((activity, activityIndex) => (
-                        <Card
-                          key={activityIndex}
-                          className={`p-3 cursor-pointer transition-all hover:shadow-sm ${selectedPlace?.id === `${day.dayNumber}-${activityIndex}`
-                            ? 'ring-2 ring-primary bg-primary/5'
-                            : 'hover:bg-muted/50'
-                            }`}
-                          onClick={() => handleActivityClick(activity, day.dayNumber, activityIndex)}
-                        >
-                          <div className="flex items-start space-x-3">
+                <div className="border-t bg-muted/20">
+                  <div className="p-3 space-y-2">
+                    {day.activities.map((activity, activityIndex) => (
+                      <Card
+                        key={activityIndex}
+                        className={`p-3 cursor-pointer transition-all hover:shadow-sm ${selectedKey === `${day.dayNumber}-${activityIndex}`
+                          ? 'ring-2 ring-primary bg-primary/5'
+                          : 'hover:bg-muted/50'
+                          }`}
+                        onClick={() => handleActivityClick(activity, day.dayNumber, activityIndex)}
+                      >
+                        <div className="flex items-start space-x-3">
+                          {(isHotelActivity(activity) || isEventActivity(activity)) && (
                             <div className="flex-shrink-0 mt-1">
-                              <Clock className="w-3 h-3 text-muted-foreground" />
+                              <Image
+                                className="rounded-lg"
+                                width={100}
+                                height={100}
+                                alt={activity.name || 'activity image'}
+                                src={activity.additionalDetails.imageUrl || '/images/placeholder.svg'}
+                              />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between mb-1">
-                                <h5 className="font-medium text-sm line-clamp-1">
-                                  {activity.name}
-                                </h5>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-1">
+                              <h5 className="font-medium text-sm line-clamp-1">
+                                {activity.name}
+                              </h5>
+                            </div>
 
-                              </div>
-
-                              <p className="text-xs text-muted-foreground mb-2">
-                                {activity.description}
-                              </p>
-
+                            <p className="text-xs text-muted-foreground mb-2">
+                              {activity.description}
+                            </p>
+                            <div className='flex justify-between'>
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-1">
                                   <MapPin className="w-3 h-3 text-muted-foreground" />
@@ -160,15 +142,17 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
                                     {activity.address}
                                   </span>
                                 </div>
-
                               </div>
+                              <Badge variant="outline" className=" text-xs border border-blue-800 ">
+                                {activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
+                              </Badge>
                             </div>
                           </div>
-                        </Card>
-                      ))}
-                    </div>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
-                )}
+                </div>
               </Card>
             ))}
           </div>
@@ -202,7 +186,18 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
           )}
         </div>
       </div>
-    </ScrollArea>
+
+      {/* Minimal shadcn Sheet opened on activity click */}
+      <div className=''>
+        <ActivitySheet
+          containerRef={containerRef}
+          isSheetOpen={isSheetOpen}
+          setIsSheetOpen={setIsSheetOpen}
+          selectedPlace={selectedPlace!}
+          mapPanelWidth={mapPanelWidth}
+        />
+      </div>
+    </ScrollArea >
   );
 };
 

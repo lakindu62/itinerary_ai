@@ -1,11 +1,19 @@
 //useMediaManager.ts /Comet
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getSignedGetUrl } from "src/lib/media.api";
 
 export const useMediaManager = (mediaFiles?: string[], image?: string) => {
   const [signedMediaUrls, setSignedMediaUrls] = useState<string[]>([]);
   const [mediaLoading, setMediaLoading] = useState(false);
   const [mediaError, setMediaError] = useState(false);
+
+  // Create a stable key from media files for dependency tracking for media files
+  const mediaKey = useMemo(() => {
+    if (mediaFiles && mediaFiles.length > 0) {
+      return mediaFiles.join("|");
+    }
+    return image || "";
+  }, [mediaFiles, image]);
 
   useEffect(() => {
     const fetchSignedUrls = async () => {
@@ -16,8 +24,13 @@ export const useMediaManager = (mediaFiles?: string[], image?: string) => {
           ? [image] // fallback
           : [];
 
-      if (mediaKeys.length === 0) return;
+      if (mediaKeys.length === 0) {
+        // Clear signed URLs if no media files
+        setSignedMediaUrls([]);
+        return;
+      }
 
+      console.log("[useMediaManager] Fetching signed URLs for:", mediaKeys);
       setMediaLoading(true);
       setMediaError(false);
 
@@ -25,6 +38,7 @@ export const useMediaManager = (mediaFiles?: string[], image?: string) => {
         const urls = await Promise.all(
           mediaKeys.map((k) => getSignedGetUrl(k))
         );
+        console.log("[useMediaManager] Got signed URLs:", urls.length);
         setSignedMediaUrls(urls);
       } catch (err) {
         console.error("Error fetching signed media URLs", err);
@@ -35,7 +49,8 @@ export const useMediaManager = (mediaFiles?: string[], image?: string) => {
     };
 
     fetchSignedUrls();
-  }, [mediaFiles, image]);
+    // Depend on mediaKey which changes when media files change
+  }, [mediaKey, mediaFiles, image]);
 
   return {
     signedMediaUrls,

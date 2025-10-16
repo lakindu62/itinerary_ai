@@ -6,6 +6,7 @@ import {
   ConversationContext,
   ConversationMessage,
 } from '../../../domain/value-objects/conversation';
+import { mapItineraryToDto } from '../../mappers/itinerary-dto.mapper';
 
 export class ItineraryChatServiceMock {
   chatItinerary(): ChatItineraryResponseDto {
@@ -145,7 +146,7 @@ export class ItineraryChatServiceMock {
         context,
       },
 
-      currentItinerary,
+      currentItinerary: mapItineraryToDto(currentItinerary),
     };
   }
 }

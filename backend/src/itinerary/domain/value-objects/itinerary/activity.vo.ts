@@ -1,3 +1,14 @@
+export class AdditionalDetails {
+  constructor(
+    public readonly id?: string, // Can be hotelId, eventId, attractionId, etc.
+    public readonly imageUrl?: string,
+    public readonly startDate?: string,
+    public readonly endDate?: string,
+    public readonly startTime?: string,
+    public readonly endTime?: string,
+  ) {}
+}
+
 export class Activity {
   constructor(
     public readonly time: string,
@@ -6,6 +17,7 @@ export class Activity {
     public readonly address: string,
     public readonly type: string,
     public readonly coordinates: [number, number], // [longitude, latitude]
+    public readonly additionalDetails?: AdditionalDetails,
   ) {
     this.validate();
   }

@@ -8,47 +8,46 @@ import { EventHashtagDocument } from '../schemas/event-hashtag.schema';
 @Injectable()
 export class EventHashtagRepositoryImpl extends EventHashtagRepository {
   constructor(
-    @InjectModel(EventHashtag.name)
-    private readonly eventHashtagModel: Model<EventHashtagDocument>,
+    @InjectModel(EventHashtag.name) private readonly eventHashtagModel: Model<EventHashtagDocument>,
   ) {
     super();
   }
 
-  async create(eventHashtag: EventHashtag): Promise<any> {
+  async create(eventHashtag: EventHashtag): Promise<EventHashtag> {
     const newEventHashtag = new this.eventHashtagModel(eventHashtag);
     const savedEventHashtag = await newEventHashtag.save();
     return this.toDomainEntity(savedEventHashtag);
   }
 
-  async findAll(): Promise<any[]> {
+  async findAll(): Promise<EventHashtag[]> {
     const docs = await this.eventHashtagModel.find().exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
-  async findById(id: string): Promise<any | null> {
+  async findById(id: string): Promise<EventHashtag | null> {
     const doc = await this.eventHashtagModel.findById(id).exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async findByName(name: string): Promise<any | null> {
+  async findByName(name: string): Promise<EventHashtag | null> {
     const doc = await this.eventHashtagModel.findOne({ hashtagName: name }).exec();
     return doc ? this.toDomainEntity(doc) : null;
   }
 
-  async update(eventHashtag: EventHashtag): Promise<any | null> {
+  async update(eventHashtag: EventHashtag): Promise<EventHashtag | null> {
     const updatedDoc = await this.eventHashtagModel.findByIdAndUpdate(eventHashtag.id, eventHashtag, { new: true }).exec();
     return updatedDoc ? this.toDomainEntity(updatedDoc) : null;
   }
 
-  async delete(id: string): Promise<void> {
-    await this.eventHashtagModel.findByIdAndDelete(id).exec();
+  async delete(id: string): Promise<boolean> {
+    const result = await this.eventHashtagModel.deleteOne({ _id: id }).exec();
+    return result.deletedCount > 0;
   }
 
-  private toDomainEntity(doc: EventHashtagDocument): any {
-    return {
-      id: doc._id.toString(),
-      hashtagName: doc.hashtagName,
-      createdAt: (doc as any).createdAt,
-    };
+  private toDomainEntity(doc: EventHashtagDocument): EventHashtag {
+    return new EventHashtag(
+      doc._id.toString(),
+      doc.hashtagName,
+    );
   }
 }
