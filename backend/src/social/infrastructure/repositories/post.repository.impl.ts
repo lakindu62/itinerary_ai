@@ -438,11 +438,29 @@ export class PostRepositoryImpl extends PostRepository {
         },
 
         // Stage 2: Lookup user information (post owner details + socialSettings)
+        // Note: Using pipeline to ensure proper ObjectId conversion for lookup
         {
           $lookup: {
             from: 'users',
-            localField: 'user',
-            foreignField: '_id',
+            let: { postUserId: '$user' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $eq: [
+                      '$_id',
+                      {
+                        $cond: [
+                          { $eq: [{ $type: '$$postUserId' }, 'objectId'] },
+                          '$$postUserId',
+                          { $toObjectId: '$$postUserId' },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
             as: 'postOwnerInfo',
           },
         },
@@ -457,6 +475,7 @@ export class PostRepositoryImpl extends PostRepository {
 
         // Stage 4: Lookup friendships to check if current user is friends with post owner
         // We need to check both directions: userId->postOwner OR postOwner->userId
+        // NOTE: Using string comparison to avoid ObjectId type mismatch issues
         {
           $lookup: {
             from: 'friendships',
@@ -467,22 +486,32 @@ export class PostRepositoryImpl extends PostRepository {
                   $expr: {
                     $and: [
                       {
-                        $eq: ['$status', 'ACCEPTED'], // Only accepted friendships
+                        $eq: ['$status', 'accepted'], // Only accepted friendships (lowercase to match DB)
                       },
                       {
                         $or: [
                           // Case 1: Current user is requester, post owner is receiver
                           {
                             $and: [
-                              { $eq: ['$requesterId', userObjectId] },
-                              { $eq: ['$receiverId', '$$postUserId'] },
+                              { $eq: [{ $toString: '$requester_id' }, userId] }, // Compare as strings
+                              {
+                                $eq: [
+                                  { $toString: '$receiver_id' },
+                                  { $toString: '$$postUserId' },
+                                ],
+                              },
                             ],
                           },
                           // Case 2: Post owner is requester, current user is receiver
                           {
                             $and: [
-                              { $eq: ['$requesterId', '$$postUserId'] },
-                              { $eq: ['$receiverId', userObjectId] },
+                              {
+                                $eq: [
+                                  { $toString: '$requester_id' },
+                                  { $toString: '$$postUserId' },
+                                ],
+                              },
+                              { $eq: [{ $toString: '$receiver_id' }, userId] }, // Compare as strings
                             ],
                           },
                         ],
@@ -617,22 +646,36 @@ export class PostRepositoryImpl extends PostRepository {
         `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] DEBUG: Found ${debugDocs.length} posts BEFORE privacy filtering`,
       );
 
+      // Debug: Show computed values for FIRST 3 POSTS to see pattern
       if (debugDocs.length > 0) {
         this.logger.debug(
-          `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] DEBUG: First post computed values:`,
-          JSON.stringify(
-            {
-              postId: debugDocs[0]._id,
-              isOwner: debugDocs[0].isOwner,
-              isFriend: debugDocs[0].isFriend,
-              isPublicAccount: debugDocs[0].isPublicAccount,
-              isArchivedPost: debugDocs[0].isArchivedPost,
-              debugInfo: debugDocs[0].debugUserInfo,
-            },
-            null,
-            2,
-          ),
+          `[PostRepositoryImpl.getAllWithUserInfoAndPrivacy] DEBUG: First ${Math.min(3, debugDocs.length)} posts computed values:`,
         );
+        for (let i = 0; i < Math.min(3, debugDocs.length); i++) {
+          const doc = debugDocs[i];
+          this.logger.debug(
+            `[PostRepositoryImpl] Post #${i + 1}:`,
+            JSON.stringify(
+              {
+                postId: doc._id,
+                postUserId: doc.user?.toString(),
+                isOwner: doc.isOwner,
+                isFriend: doc.isFriend,
+                isPublicAccount: doc.isPublicAccount,
+                isArchivedPost: doc.isArchivedPost,
+                friendshipCount: doc.debugUserInfo?.friendshipCount,
+                socialSettingsIsPublic:
+                  doc.debugUserInfo?.socialSettingsIsPublic,
+                willPassFilter:
+                  doc.isOwner ||
+                  (doc.isPublicAccount && !doc.isArchivedPost) ||
+                  (doc.isFriend && !doc.isArchivedPost),
+              },
+              null,
+              2,
+            ),
+          );
+        }
       }
 
       // Execute full aggregation with privacy filter

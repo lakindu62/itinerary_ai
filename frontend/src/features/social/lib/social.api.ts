@@ -50,7 +50,12 @@ export const socialApi = rootApiSlice.injectEndpoints({
     // Create a new post
     createPost: builder.mutation<
       Post,
-      { content: string; mediaFiles?: string[]; image?: string }
+      {
+        content: string;
+        mediaFiles?: string[];
+        image?: string;
+        isArchived?: boolean;
+      }
     >({
       query: (body) => ({
         url: "/social/posts",
@@ -96,6 +101,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
           content?: string;
           mediaFilesToAdd?: string[];
           mediaFilesToRemove?: string[];
+          isArchived?: boolean;
         };
       }
     >({
