@@ -19,4 +19,6 @@ export abstract class ItineraryRepository {
     session: TravelPlanningSession,
   ): Promise<void>;
   abstract getMyItineraries(userId: string): Promise<Itinerary[]>;
+  abstract getPublicItineraries(): Promise<Itinerary[]>;
+  abstract getPublicItineraryBySlug(slug: string): Promise<Itinerary | null>;
 }

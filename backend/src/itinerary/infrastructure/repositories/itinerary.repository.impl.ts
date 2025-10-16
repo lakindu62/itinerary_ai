@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ItineraryRepository } from '../../domain/repositories/itinerary.repository';
-import { Itinerary } from '../../domain/entities/itinerary.entity';
+import {
+  Itinerary,
+  ItineraryVisibility,
+} from '../../domain/entities/itinerary.entity';
 import { ItineraryDocument } from '../schemas/itinerary.schema';
 import { Conversation } from 'src/itinerary/domain/entities/conversation.entity';
 import { TravelPlanningSession } from 'src/itinerary/domain/aggregates/travel-planning-session.aggregate';
@@ -145,36 +148,84 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
         ),
     );
   }
+  async getPublicItineraries(): Promise<Itinerary[]> {
+    const docs = await this.itineraryModel
+      .find({ visibility: ItineraryVisibility.PUBLIC })
+      .exec();
+    return docs.map(
+      (doc) =>
+        new Itinerary(
+          doc.title,
+          doc.summary,
+          doc.days.length > 0
+            ? [
+                new Day(
+                  doc.days[0].dayNumber,
+                  doc.days[0].date,
+                  doc.days[0].destination,
+                  doc.days[0].activities.map(
+                    (activity) =>
+                      new Activity(
+                        activity.time,
+                        activity.name,
+                        activity.description,
+                        activity.address,
+                        activity.type,
+                        activity.coordinates,
+                        activity.additionalDetails,
+                      ),
+                  ),
+                ),
+              ]
+            : [],
+          doc.accommodation,
+          doc.tips,
+          doc.slug,
+          doc._id.toString(),
+        ),
+    );
+  }
+  async getPublicItineraryBySlug(slug: string): Promise<Itinerary | null> {
+    const doc = await this.itineraryModel
+      .findOne({
+        slug,
+        visibility: ItineraryVisibility.PUBLIC,
+      })
+      .exec();
 
-  // private toDomainEntity(doc: ItineraryDocument): Itinerary {
-  //   // Reconstruct domain value objects from the saved document
-  //   const days = doc.days.map(
-  //     (dayDoc) =>
-  //       new Day(
-  //         dayDoc.dayNumber,
-  //         dayDoc.date,
-  //         dayDoc.destination,
-  //         dayDoc.activities.map(
-  //           (activityDoc) =>
-  //             new Activity(
-  //               activityDoc.time,
-  //               activityDoc.name,
-  //               activityDoc.description,
-  //               activityDoc.address,
-  //               activityDoc.type,
-  //               activityDoc.coordinates,
-  //             ),
-  //         ),
-  //       ),
-  //   );
+    if (!doc) {
+      return null;
+    }
 
-  //   return new Itinerary(
-  //     doc.title,
-  //     doc.summary,
-  //     days,
-  //     doc.accommodation,
-  //     doc.tips,
-  //     doc._id.toString(),
-  //   );
-  // }
+    return new Itinerary(
+      doc.title,
+      doc.summary,
+      doc.days.length > 0
+        ? doc.days.map(
+            (day) =>
+              new Day(
+                day.dayNumber,
+                day.date,
+                day.destination,
+                day.activities.map(
+                  (activity) =>
+                    new Activity(
+                      activity.time,
+                      activity.name,
+                      activity.description,
+                      activity.address,
+                      activity.type,
+                      activity.coordinates,
+                      activity.additionalDetails,
+                    ),
+                ),
+              ),
+          )
+        : [],
+      doc.accommodation,
+      doc.tips,
+      doc.slug,
+      doc._id.toString(),
+    );
+  }
 }

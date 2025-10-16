@@ -38,6 +38,15 @@ export class ItineraryController {
     return await this.itineraryService.getMyItineraries(userId);
   }
 
+  @Get('/public')
+  async getPublicItineraries() {
+    return await this.itineraryService.getPublicItineraries();
+  }
+
+  @Get('/public/:slug')
+  async getPublicItineraryBySlug(@Param('slug') slug: string) {
+    return await this.itineraryService.getPublicItineraryBySlug(slug);
+  }
   @Get('chat/:id')
   async getChatItinerary(@Param('id') id: string) {
     return await this.itineraryChatService.getChatItinerary(id);
