@@ -6,6 +6,7 @@ import { EventHashtag } from './event-hashtag.entity';
 export class Event {
   constructor(
     public id: string | null,
+    public readonly businessAccountId: string,
     public eventName: string,
     public description: string,
     public startDate: string,
@@ -20,7 +21,5 @@ export class Event {
     public organizer: EventOrganizer,
     public category: EventCategory,
     public hashtags?: EventHashtag[],
-    // public created_at?: string,
-    // public updated_at?: string,
   ) {}
 }

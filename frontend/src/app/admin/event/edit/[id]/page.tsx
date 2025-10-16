@@ -62,17 +62,18 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getEventById } from '@/features/event/lib/event-api';
+import { getBusinessEventById } from '@/features/event/lib/event-api';
 import EventForm from '@/features/event/create/EventForm';
+import { useAuth } from '@clerk/nextjs';
 
 const EditEventPage = () => {
   const router = useRouter();
   const { id } = useParams();
   const [event, setEvent] = useState(null);
-
+  const { getToken } = useAuth();
   useEffect(() => {
     if (!id) return;
-    getEventById(id as string)
+    getBusinessEventById(id as string, getToken)
       .then((data) => setEvent(data || null))
       .catch(() => setEvent(null));
   }, [id]);

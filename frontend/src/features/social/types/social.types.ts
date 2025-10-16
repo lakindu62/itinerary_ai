@@ -1,3 +1,27 @@
+// User profile type for Sidebar and CreatePost
+export type UserProfile = {
+  _id: string;
+  clerkUserId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  userType: string;
+  businessAccountId?: string;
+  branchId?: string;
+  role?: string;
+  travelProfile?: {
+    preferences?: string[];
+    loyaltyPoints?: number;
+    bio?: string;
+    profilePicture?: string;
+  };
+  socialSettings?: {
+    isPublic?: boolean;
+    allowMessages?: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+};
 // Types for social media components
 export type CommentUserInfo = {
   id: string;

@@ -1,9 +1,11 @@
 import { Event } from '../entities/event.entity';
 
 export abstract class EventRepository {
-  abstract create(event: Event): Promise<any>;
-  abstract findAll(): Promise<any[]>;
-  abstract findById(id: string): Promise<any | null>;
-  abstract update(event: Event): Promise<any | null>;
-  abstract delete(id: string): Promise<void>;
+  abstract create(event: Event): Promise<Event>;
+  abstract findAll(businessAccountId: string): Promise<Event[]>;
+  abstract findAllPublic(): Promise<Event[]>;
+  abstract findById(id: string, businessAccountId: string): Promise<Event | null>;
+  abstract findPublicById(id: string): Promise<Event | null>;
+  abstract update(id: string, updates: Partial<Event>, businessAccountId: string): Promise<Event | null>;
+  abstract delete(id: string, businessAccountId: string): Promise<boolean>;
 }

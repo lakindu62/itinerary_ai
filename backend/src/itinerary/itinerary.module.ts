@@ -16,10 +16,14 @@ import { HotelsRepository } from './infrastructure/repositories/mocks/hotels.rep
 import { AttractionsRepository } from './infrastructure/repositories/mocks/attraction.repository.mock';
 import { GoogleMapsService } from './infrastructure/integrations/google-maps-service';
 import { ItineraryChatServiceMock } from './application/services/mocks/itinerary-chat.service.mock';
+import { EVENT_READ_PORT } from './application/ports/event-read-port';
+import { EventReadAdapter } from './infrastructure/adapters/event-read.adapter';
+import { EventModule } from 'src/event/event.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Itinerary', schema: ItinerarySchema }]),
+    EventModule,
   ],
   controllers: [ItineraryController],
   providers: [
@@ -37,6 +41,7 @@ import { ItineraryChatServiceMock } from './application/services/mocks/itinerary
       provide: ItineraryRepository,
       useClass: ItineraryRepositoryImpl,
     },
+    { provide: EVENT_READ_PORT, useClass: EventReadAdapter },
   ],
   exports: [
     ItineraryService,

@@ -24,5 +24,3 @@ export class BusinessUserController {
     return this.businessUserService.completeOnboarding(user, body);
   }
 }
-
-

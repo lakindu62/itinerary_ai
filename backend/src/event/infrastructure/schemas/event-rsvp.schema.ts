@@ -9,6 +9,9 @@ export type EventRsvpDocument = EventRsvp & Document & { _id: Types.ObjectId };
   strict: 'throw',
 })
 export class EventRsvp {
+  @Prop({ required: true, index: true })
+  businessAccountId: string;
+
   @Prop({ type: Types.ObjectId, ref: 'Event', required: true })
   event: Event;
 

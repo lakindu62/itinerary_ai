@@ -1,7 +1,7 @@
 // frontend/src/features/social/api/social.api.ts
 
 import { rootApiSlice } from "@frontend/store/api/rootApiSlice";
-import type { Post, Comment } from "../types/social.types";
+import type { Post, Comment, UserProfile } from "../types/social.types";
 
 // RTK Query slice for social features (posts, comments, likes)
 export const socialApi = rootApiSlice.injectEndpoints({
@@ -14,6 +14,16 @@ export const socialApi = rootApiSlice.injectEndpoints({
           : "/social/posts";
         return { url, method: "GET" };
       },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((post) => ({
+                type: "Posts" as const,
+                id: post.id,
+              })),
+              { type: "Posts", id: "LIST" },
+            ]
+          : [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] getPosts called with:", arg);
         try {
@@ -47,6 +57,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "POST",
         body,
       }),
+      invalidatesTags: [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] createPost called with:", arg);
         try {
@@ -64,6 +75,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
         url: `/social/posts/${postId}`,
         method: "DELETE",
       }),
+      invalidatesTags: [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] deletePost called with:", arg);
         try {
@@ -92,6 +104,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
         method: "PATCH",
         body: updates,
       }),
+      invalidatesTags: [{ type: "Posts", id: "LIST" }],
       async onQueryStarted(arg, { queryFulfilled }) {
         console.log("[RTK] updatePost called with:", arg);
         try {
@@ -232,12 +245,28 @@ export const socialApi = rootApiSlice.injectEndpoints({
         }
       },
     }),
+    // Get current user profile
+    getCurrentUserProfile: builder.query<UserProfile, void>({
+      query: () => ({
+        url: "/users/me",
+        method: "GET",
+      }),
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] getCurrentUserProfile called");
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          console.error("[RTK] getCurrentUserProfile error:", error);
+        }
+      },
+    }),
   }),
   overrideExisting: true,
 });
 
 // Export hooks for use in components
 export const {
+  useGetCurrentUserProfileQuery,
   useGetPostsQuery,
   useCreatePostMutation,
   useDeletePostMutation,

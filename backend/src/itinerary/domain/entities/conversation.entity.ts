@@ -5,7 +5,6 @@ import {
 
 export class Conversation {
   constructor(
-    public readonly id: string,
     public messages: ConversationMessage[] = [],
     public context: ConversationContext = new ConversationContext('initial'),
   ) {}
