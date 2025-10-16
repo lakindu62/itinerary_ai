@@ -79,7 +79,7 @@ export interface ItineraryDto {
   days: DayDto[];
   accommodation: string;
   tips: string[];
-  id: string;
+  id?: string;
   slug?: string;
 }
 
