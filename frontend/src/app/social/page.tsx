@@ -38,6 +38,10 @@ const page = (props: Props) => {
             {/*Sidebar on the left */}
             <div className="hidden lg:block lg:col-span-3">
               <Sidebar />
+              {/* Friend Requests */}
+              <div className="mt-6">
+                <FriendRequestsList maxHeight="300px" showCount={true} />
+              </div>
             </div>
             {/*Main content */}
             <div className="lg:col-span-9">
@@ -58,14 +62,6 @@ const page = (props: Props) => {
                     showCount={true}
                     showRemoveButton={false}
                   />
-
-                  {/* Friend Requests */}
-                  <div className="mt-6">
-                    <FriendRequestsList
-                      maxHeight="300px"
-                      showCount={true}
-                    />
-                  </div>
                 </div>
               </div>
             </div>

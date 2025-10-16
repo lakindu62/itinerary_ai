@@ -10,6 +10,7 @@ import {
   FriendRequestsList,
   SentRequestsList,
 } from "@frontend/features/social/components/friends";
+import { BrowseUsersList } from "@frontend/features/social/components/browse";
 import {
   useGetFriendsCountQuery,
   useGetPendingRequestsCountQuery,
@@ -38,7 +39,7 @@ const FriendsPage: React.FC = () => {
 
             {/* Tabs */}
             <Tabs defaultValue="friends" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-4 mb-6">
                 <TabsTrigger value="friends" className="flex items-center gap-2">
                   Friends
                   <Badge variant="secondary" className="ml-1">
@@ -63,6 +64,9 @@ const FriendsPage: React.FC = () => {
                   <Badge variant="secondary" className="ml-1">
                     {sentCount}
                   </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="browse" className="flex items-center gap-2">
+                  Browse Users
                 </TabsTrigger>
               </TabsList>
 
@@ -89,6 +93,11 @@ const FriendsPage: React.FC = () => {
                   showCount={false}
                   maxHeight="calc(100vh - 350px)"
                 />
+              </TabsContent>
+
+              {/* Browse Users Tab */}
+              <TabsContent value="browse" className="mt-0">
+                <BrowseUsersList maxHeight="calc(100vh - 350px)" />
               </TabsContent>
             </Tabs>
           </CardContent>

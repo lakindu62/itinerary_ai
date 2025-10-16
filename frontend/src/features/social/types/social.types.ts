@@ -1,6 +1,7 @@
 // User profile type for Sidebar and CreatePost
 export type UserProfile = {
   _id: string;
+  id?: string; // Added for API compatibility (backend returns 'id' instead of '_id')
   clerkUserId: string;
   email: string;
   firstName: string;
