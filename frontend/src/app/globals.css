@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -213,27 +216,4 @@ input[data-slot="input"] {
   input[type="number"] {
     -moz-appearance: textfield;
   }
-}
-
-/* Custom scrollbar styles */
-.scrollbar-thin {
-  scrollbar-width: thin;
-}
-
-.scrollbar-thumb-gray-300::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thumb-gray-300::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
 }
