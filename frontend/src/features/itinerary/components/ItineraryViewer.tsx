@@ -3,19 +3,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@frontend/components/ui/resizable';
 import ItineraryDisplay from './ItineraryDisplay';
 import MapComponent from './MapComponent';
-import { ActivityDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
-import { useGetPublicItineraryBySlugQuery } from '../api/itinerary.api';
+import { ActivityDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+
 
 interface ItineraryViewerProps {
-    itinerarySlug: string;
+    itinerary: ItineraryDto
 
 }
 
 const ItineraryViewer: React.FC<ItineraryViewerProps> = ({
-    itinerarySlug,
+    itinerary,
 
 }) => {
-    const { data: itinerary, error, isLoading } = useGetPublicItineraryBySlugQuery(itinerarySlug);
+
+    // const { data: itinerary, error, isLoading } = useGetPublicItineraryBySlugQuery(itinerarySlug);
+    console.log("🚀 ~ ItineraryViewer ~ itinerary:", itinerary)
 
 
     const [selectedPlace, setSelectedPlace] = useState<ActivityDto | null>(null);
@@ -35,9 +37,9 @@ const ItineraryViewer: React.FC<ItineraryViewerProps> = ({
         observer.observe(element);
         return () => observer.disconnect();
     }, []);
-    if (isLoading) return <div>Loading itinerary...</div>;
-    if (error) return <div>Error loading itinerary.</div>;
-    if (!itinerary) return <div>No itinerary found for slug: {itinerarySlug}</div>;
+    // if (isLoading) return <div>Loading itinerary...</div>;
+    // if (error) return <div>Error loading itinerary.</div>;
+    if (!itinerary) return <div>No itinerary</div>;
     return (
         <div className={`h-full bg-card pt-2 rounded-t-3xl`}>
             <div className="h-full bg-card rounded-[30px]">

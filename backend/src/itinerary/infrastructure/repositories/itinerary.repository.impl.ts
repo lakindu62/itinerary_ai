@@ -15,6 +15,7 @@ import {
 } from 'src/itinerary/domain/value-objects/conversation';
 import { ItineraryMapper } from './mappers/itinerary-mapper';
 import { ItineraryVisibilityEnum } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class ItineraryRepositoryImpl extends ItineraryRepository {
@@ -28,6 +29,7 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
     id: string,
     visibility: ItineraryVisibilityEnum,
   ): Promise<Itinerary | null> {
+    console.log('🚀 ~ ItineraryRepositoryImpl ~ updateVisibility ~ id:', id);
     const doc = await this.itineraryModel
       .findByIdAndUpdate(id, {
         visibility: visibility,
@@ -131,6 +133,27 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
       return null;
     }
 
+    return ItineraryMapper.toDomainEntity(doc);
+  }
+
+  async ensureShareToken(itineraryId: string): Promise<string> {
+    const doc = await this.itineraryModel.findById(itineraryId).exec();
+    if (!doc) {
+      throw new Error('Itinerary not found');
+    }
+    if (doc.shareToken) {
+      return doc.shareToken;
+    }
+    // Generate a stable random token once; keep it immutable thereafter
+    const token = randomBytes(16).toString('hex');
+    doc.shareToken = token;
+    await doc.save();
+    return token;
+  }
+
+  async findByShareToken(token: string): Promise<Itinerary | null> {
+    const doc = await this.itineraryModel.findOne({ shareToken: token }).exec();
+    if (!doc) return null;
     return ItineraryMapper.toDomainEntity(doc);
   }
 }

@@ -17,12 +17,14 @@ import { ChatItineraryRequestDto } from 'src/itinerary/application/dtos/requests
 import { ItineraryChatServiceMock } from 'src/itinerary/application/services/mocks/itinerary-chat.service.mock';
 import {
   ChatItineraryResponseDto,
+  ItineraryDto,
   ItineraryVisibilityDto,
 } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
 import { UserRole } from '@shared/types/user-management';
 import { Roles } from 'src/shared/decorators/roles.decorator';
 import { Request } from 'express';
+import { AuthenticatedUser } from '@shared/types/user-management';
 @UsePipes(
   new ValidationPipe({
     whitelist: true,
@@ -115,5 +117,31 @@ export class ItineraryController {
       message,
       conversationId,
     );
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
+  @Post(':id/share-token')
+  async getShareToken(
+    @Param('id') itineraryId: string,
+    @Req() req: Request & { user?: AuthenticatedUser },
+  ): Promise<{ token: string }> {
+    console.log(itineraryId);
+    const user: AuthenticatedUser | undefined = req.user;
+    const userId: string | undefined = user?._id;
+    if (!userId || userId.length === 0) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const result = await this.itineraryService.getOrCreateShareToken(
+      userId,
+      itineraryId,
+    );
+    return { token: result.token };
+  }
+
+  @Get('share/:token')
+  async getByShareToken(@Param('token') token: string): Promise<ItineraryDto> {
+    const dto = await this.itineraryService.getItineraryByToken(token);
+    return dto;
   }
 }

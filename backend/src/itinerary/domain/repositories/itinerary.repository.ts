@@ -27,4 +27,6 @@ export abstract class ItineraryRepository {
   abstract getMyItineraries(userId: string): Promise<Itinerary[]>;
   abstract getPublicItineraries(): Promise<Itinerary[]>;
   abstract getPublicItineraryBySlug(slug: string): Promise<Itinerary | null>;
+  abstract ensureShareToken(itineraryId: string): Promise<string>;
+  abstract findByShareToken(token: string): Promise<Itinerary | null>;
 }

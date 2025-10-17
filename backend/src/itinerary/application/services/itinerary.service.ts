@@ -53,4 +53,22 @@ export class ItineraryService {
     }
     return mapItineraryToDto(itinerary);
   }
+
+  async getOrCreateShareToken(
+    userId: string,
+    itineraryId: string,
+  ): Promise<{ token: string }> {
+    const itin = await this.itineraryRepository.findById(itineraryId);
+    if (!itin) throw new NotFoundException('Itinerary not found');
+    if (itin.user.toString() !== userId.toString())
+      throw new ForbiddenException();
+    const token = await this.itineraryRepository.ensureShareToken(itineraryId);
+    return { token };
+  }
+
+  async getItineraryByToken(token: string): Promise<ItineraryDto> {
+    const itinerary = await this.itineraryRepository.findByShareToken(token);
+    if (!itinerary) throw new NotFoundException('Itinerary not found');
+    return mapItineraryToDto(itinerary);
+  }
 }

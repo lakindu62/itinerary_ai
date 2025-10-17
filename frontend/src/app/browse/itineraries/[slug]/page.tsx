@@ -1,7 +1,6 @@
 
 import React from "react";
-import { useGetPublicItineraryBySlugQuery } from "@/features/itinerary/api/itinerary.api";
-import ItineraryViewer from "@frontend/features/itinerary/components/ItineraryViewer";
+import PublicItinerary from "@frontend/features/itinerary/components/PublicItinerary";
 
 interface PageProps {
     params: { slug: string };
@@ -9,11 +8,11 @@ interface PageProps {
 
 const Page = async ({ params }: PageProps) => {
     const { slug } = await params;
-    
+
 
     return (
         <div className="h-[calc(100vh-70px)]">
-            <ItineraryViewer itinerarySlug={slug} />
+            <PublicItinerary slug={slug} />
         </div>
     );
 };

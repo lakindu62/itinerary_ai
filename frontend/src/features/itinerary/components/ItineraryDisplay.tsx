@@ -3,13 +3,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Calendar, Download, Settings, Share2 } from 'lucide-react';
+import { MapPin, Calendar, Download, Share2 } from 'lucide-react';
 
 
 import { ActivityDto, ConversationContextDto, isEventActivity, isHotelActivity, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import Image from 'next/image';
 import ActivitySheet from './ActivitySheet';
 import { ItinerarySettings } from './ItinerarySettings';
+import { useGetShareTokenMutation } from '../api/itinerary.api';
 
 interface ItineraryDisplayProps {
   itinerary: ItineraryDto;
@@ -31,6 +32,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
   const [showAllTips, setShowAllTips] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [getShareToken, { isLoading: isSharing }] = useGetShareTokenMutation();
 
   // Convert activity to place for map selection (no shape change needed)
   const convertActivityToPlace = (activity: ActivityDto): ActivityDto => activity;
@@ -42,6 +44,26 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
     setIsSheetOpen(true);
   };
 
+  const handleShare = async () => {
+    if (!itinerary.id) return;
+    try {
+      const { token } = await getShareToken({ itineraryId: itinerary.id }).unwrap();
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+      const url = `${baseUrl}/share/itinerary/${token}`;
+      if (navigator.share) {
+        await navigator.share({
+          title: `Itinerary: ${itinerary.title}`,
+          text: itinerary.summary,
+          url,
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      // silently fail per requirements (no toast)
+    }
+  };
+
   return (
     <ScrollArea ref={containerRef} className="flex-1 h-full relative ">
       <div className="h-full flex flex-col bg-background border-none">
@@ -50,13 +72,13 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
             <div></div>
             {/* Icons for Share, Download, and Settings */}
             <div className="flex items-center gap-3 mb-4">
-              <Button className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Share">
+              <Button onClick={handleShare} disabled={isSharing} className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Share">
                 <Share2 className="w-5 h-5" />
               </Button>
               <Button className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Download">
                 <Download className="w-5 h-5" />
               </Button>
-              <ItinerarySettings />
+              <ItinerarySettings itineraryId={itinerary.id!} visibility={itinerary.visibility} />
             </div>
           </div>
           <div className="flex items-center space-x-2 mb-2">
