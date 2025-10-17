@@ -4,7 +4,8 @@ import { EventVenue } from './event-venue.schema';
 import { EventOrganizer } from './event-organizer.schema';
 import { EventCategory } from './event-category.schema';
 
-export type EventDocument = Event & Document & { _id: Types.ObjectId; createdAt: string; updatedAt: string };
+export type EventDocument = Event &
+  Document & { _id: Types.ObjectId; createdAt: string; updatedAt: string };
 
 @Schema({
   timestamps: true,

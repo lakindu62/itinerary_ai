@@ -1,7 +1,8 @@
 'use client'
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Paperclip, Send, Mic, Upload, Sparkles, UserIcon, LogOut, PlusIcon, MapIcon, User } from 'lucide-react'
+import { GradientButton } from '@/components/ui/gradient-button'
+import { Paperclip, Send, UserIcon, LogOut, MapIcon, User } from 'lucide-react'
 import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import AuthModal from "../auth/AuthModal"
@@ -10,7 +11,7 @@ import { ObjectId } from 'bson'
 
 const HomePage = () => {
     const user = useUser()
-    const [inputValue, setInputValue] = useState('Tokyo in 6 days: food, culture & bucket-list stops')
+    const [inputValue, setInputValue] = useState('I want to travel to kandy for a 2 day trip on  startDate "2025-10-16" endDate "2025-10-19" with 2 people for adventure')
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
     const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -62,7 +63,20 @@ const HomePage = () => {
                         </div>
                         <span className="text-2xl font-bold text-primary">Itinerary.ai</span>
                     </div>
-
+                    <div className="flex flex-wrap absolute top-10 left-1/2 -translate-x-1/2 gap-4 mb-8">
+                        <GradientButton href="/browse/itineraries">
+                            Browse Itineraries
+                        </GradientButton>
+                        <GradientButton href="/events">
+                            View Events
+                        </GradientButton>
+                        <GradientButton href="/hotels">
+                            Hotels
+                        </GradientButton>
+                        <GradientButton href="/social">
+                            My Socials
+                        </GradientButton>
+                    </div>
                     {/* Top Right Controls - Clerk Auth */}
                     <div className="flex items-center gap-4">
                         <SignedIn>
@@ -116,13 +130,13 @@ const HomePage = () => {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 flex flex-col mx-auto  max-w-4xl justify-center px-6 ">
+                <main className="flex-1 flex flex-col mx-auto  max-w-4xl justify-center text-center px-6 ">
                     {/* Welcome Text */}
                     <div className="mb-12">
                         <h1 className="text-2xl md:text-6xl font-medium text-white mb-4">
                             Hey {`${user.user?.firstName ? user.user?.firstName : 'there'}`}, where are we going today?
                         </h1>
-                        <p className="text-xl text-white/90 max-w-2xl ">
+                        <p className="text-xl text-white/90  ">
                             Tell me your style and budget, and I&apos;ll design a trip for you.
                         </p>
                     </div>
@@ -156,35 +170,7 @@ const HomePage = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap   gap-4 mb-8">
-                        <Button
-                            variant="outline"
-                            className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 px-6 py-3 rounded-xl"
-                        >
-                            <Sparkles className="w-5 h-5 mr-2" />
-                            Create a new trip
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 px-6 py-3 rounded-xl"
-                        >
-                            Inspire me where to go
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 px-6 py-3 rounded-xl"
-                        >
-                            <Mic className="w-5 h-5 mr-2" />
-                            Speak with voice
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 px-6 py-3 rounded-xl"
-                        >
-                            <Upload className="w-5 h-5 mr-2" />
-                            Upload documents
-                        </Button>
-                    </div>
+
 
                     {/* Help Text */}
                     <p className="text-white/70 text-md text-center mx-auto flex items-center gap-2">

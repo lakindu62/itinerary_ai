@@ -8,6 +8,7 @@ import {
 } from '../use-cases/itinerary-generation';
 import { ItineraryRepository } from 'src/itinerary/domain/repositories/itinerary.repository';
 import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { mapItineraryToDto } from '../mappers/itinerary-dto.mapper';
 
 @Injectable()
 export class ItineraryChatService {
@@ -51,7 +52,9 @@ export class ItineraryChatService {
           session.getConversation().messages.length - 1
         ].content,
       conversation: session.getConversation(),
-      currentItinerary: session.getCurrentItinerary(),
+      currentItinerary: session.getCurrentItinerary()
+        ? mapItineraryToDto(session.getCurrentItinerary()!)
+        : undefined,
     };
   }
 
@@ -106,7 +109,9 @@ export class ItineraryChatService {
     return {
       response,
       conversation: session.getConversation(),
-      currentItinerary: session.getCurrentItinerary(),
+      currentItinerary: session.getCurrentItinerary()
+        ? mapItineraryToDto(session.getCurrentItinerary()!)
+        : undefined,
     };
   }
 
