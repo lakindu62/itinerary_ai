@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card, CardContent } from "@frontend/components/ui/card";
 import { Input } from "@frontend/components/ui/input";
 import { Search, Users } from "lucide-react";
+import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 import { useGetAllUsersQuery } from "../../lib/social.api";
 import { useGetCurrentUserProfileQuery } from "../../lib/social.api";
 import UserCard from "./UserCard";
@@ -11,10 +12,14 @@ import BrowseUsersListSkeleton from "./BrowseUsersListSkeleton";
 
 interface BrowseUsersListProps {
   maxHeight?: string;
+  layout?: "grid" | "row";
+  showCard?: boolean;
 }
 
 const BrowseUsersList: React.FC<BrowseUsersListProps> = ({
   maxHeight = "calc(100vh - 300px)",
+  layout = "grid",
+  showCard = false,
 }) => {
   const { data: allUsers = [], isLoading, error } = useGetAllUsersQuery();
   const { data: currentUser } = useGetCurrentUserProfileQuery();
@@ -47,21 +52,21 @@ const BrowseUsersList: React.FC<BrowseUsersListProps> = ({
   }, [allUsers, currentUser, searchQuery]);
 
   if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-center text-muted-foreground">
-            Failed to load users. Please try again.
-          </p>
-        </CardContent>
-      </Card>
+    const errorContent = (
+      <CardContent className="p-6">
+        <p className="text-center text-muted-foreground">
+          Failed to load users. Please try again.
+        </p>
+      </CardContent>
     );
+
+    return showCard ? <Card>{errorContent}</Card> : errorContent;
   }
 
-  return (
-    <div className="space-y-4">
+  const content = (
+    <div className={showCard ? "p-4 h-full flex flex-col" : "space-y-4"}>
       {/* Search Bar */}
-      <div className="relative">
+      <div className="relative shrink-0">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
@@ -73,7 +78,7 @@ const BrowseUsersList: React.FC<BrowseUsersListProps> = ({
       </div>
 
       {/* User Count */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
         <Users className="h-4 w-4" />
         <span>
           {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}{" "}
@@ -81,33 +86,45 @@ const BrowseUsersList: React.FC<BrowseUsersListProps> = ({
         </span>
       </div>
 
-      {/* Users Grid */}
+      {/* Users List/Grid - fills remaining space when in card */}
       {isLoading ? (
         <BrowseUsersListSkeleton />
       ) : filteredUsers.length === 0 ? (
-        <Card>
-          <CardContent className="p-12">
-            <div className="text-center space-y-2">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground/50" />
-              <p className="text-muted-foreground">
-                {searchQuery
-                  ? "No users found matching your search"
-                  : "No users available"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center py-8">
+          <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+          <p className="text-sm text-muted-foreground">
+            {searchQuery
+              ? "No users found matching your search"
+              : "No users available"}
+          </p>
+        </div>
       ) : (
         <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2"
-          style={{ maxHeight }}
+          className={
+            showCard
+              ? layout === "row"
+                ? "flex-1 overflow-y-auto space-y-2 pr-2"
+                : "flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pr-2"
+              : layout === "row"
+              ? "space-y-2 overflow-y-auto pr-2"
+              : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pr-2"
+          }
+          style={!showCard ? { maxHeight } : undefined}
         >
           {filteredUsers.map((user) => (
-            <UserCard key={user.id || user._id} user={user} />
+            <UserCard key={user.id || user._id} user={user} layout={layout} />
           ))}
         </div>
       )}
     </div>
+  );
+
+  return showCard ? (
+    <SpotlightWrapper enableVerticalFade={false} className="rounded-xl h-full flex flex-col">
+      <Card className="h-full flex flex-col">{content}</Card>
+    </SpotlightWrapper>
+  ) : (
+    content
   );
 };
 

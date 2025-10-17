@@ -7,6 +7,7 @@ import {
   FriendsList,
   FriendRequestsList,
 } from "@frontend/features/social/components/friends";
+import { BrowseUsersList } from "@frontend/features/social/components/browse";
 import React, { useEffect } from "react";
 // import { useAuth } from "@clerk/nextjs";
 // import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
@@ -26,43 +27,39 @@ type Props = {};
 
 const page = (props: Props) => {
   return (
-    <div className="min-h-screen">
+    <div className="h-screen flex flex-col overflow-hidden">
       <AuthSetup />
 
-      {/* <Navbar /> */}
-      <main className="py-8 mt-12">
-        {/*Container to center the content */}
-        <div className="max-w-7xl mx-auto px-4">
-          {/*Grid container */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/*Sidebar on the left */}
-            <div className="hidden lg:block lg:col-span-3">
+      {/* Main content area - fixed height below navbar */}
+      <main className="flex-1 overflow-hidden pt-4">
+        <div className="h-full max-w-7xl mx-auto px-4">
+          {/* 3-column grid layout */}
+          <div className="h-full grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* LEFT COLUMN - Fixed, no scroll */}
+            <div className="hidden lg:flex lg:col-span-3 flex-col gap-4 h-full overflow-y-auto">
               <Sidebar />
-              {/* Friend Requests */}
-              <div className="mt-6">
-                <FriendRequestsList maxHeight="300px" showCount={true} />
+              <BrowseUsersList layout="row" showCard={true} />
+            </div>
+
+            {/* CENTER COLUMN - Scrollable feed */}
+            <div className="lg:col-span-6 overflow-y-auto">
+              <div className="space-y-4">
+                <CreatePost />
+                <PostList />
               </div>
             </div>
-            {/*Main content */}
-            <div className="lg:col-span-9">
-              <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-                <div className="lg:col-span-6">
-                  {
-                    <>
-                      <CreatePost />
-                      <PostList />
-                    </>
-                  }
-                </div>
-                <div className="hidden lg:block lg:col-span-4 sticky top-20">
-                  {/* Friends List */}
-                  <FriendsList
-                    maxHeight="calc(100vh - 250px)"
-                    showSearch={true}
-                    showCount={true}
-                    showRemoveButton={false}
-                  />
-                </div>
+
+            {/* RIGHT COLUMN - Fixed, no scroll */}
+            <div className="hidden lg:flex lg:col-span-3 flex-col gap-4 h-full">
+              <div className="flex-[3] min-h-0">
+                <FriendsList
+                  showSearch={true}
+                  showCount={true}
+                  showRemoveButton={false}
+                />
+              </div>
+              <div className="flex-[2] min-h-0">
+                <FriendRequestsList showCount={true} />
               </div>
             </div>
           </div>

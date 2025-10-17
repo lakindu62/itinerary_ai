@@ -65,11 +65,11 @@ const FriendsList: React.FC<FriendsListProps> = ({
   };
 
   return (
-    <SpotlightWrapper enableVerticalFade={false} className="rounded-xl">
-      <Card>
-        <CardContent className="p-4">
+    <SpotlightWrapper enableVerticalFade={false} className="rounded-xl h-full flex flex-col">
+      <Card className="h-full flex flex-col">
+        <CardContent className="p-4 flex flex-col h-full">
           {/* Header: Search + Count */}
-          <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
             {showSearch && (
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -89,42 +89,44 @@ const FriendsList: React.FC<FriendsListProps> = ({
             )}
           </div>
 
-          {/* Scrollable Friends List */}
-          <ScrollArea style={{ height: maxHeight }}>
-            {isLoading ? (
-              <FriendsListSkeleton count={5} />
-            ) : error ? (
-              <div className="text-center py-8">
-                <p className="text-sm text-muted-foreground">
-                  Failed to load friends
-                </p>
-              </div>
-            ) : filteredFriends.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  {searchQuery
-                    ? "No friends found matching your search"
-                    : "No friends yet"}
-                </p>
-                {!searchQuery && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Start connecting with other travelers!
+          {/* Scrollable Friends List - fills remaining space */}
+          <div className="flex-1 overflow-hidden">
+            <ScrollArea className="h-full">
+              {isLoading ? (
+                <FriendsListSkeleton count={5} />
+              ) : error ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">
+                    Failed to load friends
                   </p>
-                )}
-              </div>
-            ) : (
-              filteredFriends.map((friend: FriendshipWithUserInfo) => (
-                <FriendCard
-                  key={friend.id}
-                  friend={friend}
-                  onRemove={handleRemoveFriend}
-                  showRemoveButton={showRemoveButton}
-                  isRemoving={isRemoving}
-                />
-              ))
-            )}
-          </ScrollArea>
+                </div>
+              ) : filteredFriends.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery
+                      ? "No friends found matching your search"
+                      : "No friends yet"}
+                  </p>
+                  {!searchQuery && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Start connecting with other travelers!
+                    </p>
+                  )}
+                </div>
+              ) : (
+                filteredFriends.map((friend: FriendshipWithUserInfo) => (
+                  <FriendCard
+                    key={friend.id}
+                    friend={friend}
+                    onRemove={handleRemoveFriend}
+                    showRemoveButton={showRemoveButton}
+                    isRemoving={isRemoving}
+                  />
+                ))
+              )}
+            </ScrollArea>
+          </div>
         </CardContent>
       </Card>
     </SpotlightWrapper>

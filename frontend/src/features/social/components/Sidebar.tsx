@@ -9,10 +9,12 @@ import { Separator } from "@frontend/components/ui/separator";
 import { MapPinIcon, LinkIcon, User as UserIcon } from "lucide-react";
 import { Skeleton } from "@frontend/components/ui/skeleton";
 import { useGetCurrentUserProfileQuery } from "@frontend/features/social/lib/social.api";
+import { useGetFriendsCountQuery } from "@frontend/features/social/lib/friendship.api";
 import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 
 export default function Sidebar() {
   const { data: user, isLoading, error } = useGetCurrentUserProfileQuery();
+  const { data: friendsCount = 0, isLoading: isLoadingFriends } = useGetFriendsCountQuery();
   // Fallbacks
   const fallbackProfilePic = "/alien-profile-pic-1.jpg";
   const fallbackName = "Amzal Foumi";
@@ -26,59 +28,62 @@ export default function Sidebar() {
   const username = fallbackUsername;
 
   return (
-    <div className="sticky top-20">
-      <SpotlightWrapper enableVerticalFade={false} className="mb-6  rounded-xl">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center text-center">
+    <SpotlightWrapper enableVerticalFade={false} className="rounded-xl h-fit">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center text-center">
+            {isLoading ? (
+              <Skeleton className="w-20 h-20 rounded-full mb-4" />
+            ) : (
+              <Avatar className="w-20 h-20 border-2">
+                {profilePic ? (
+                  <AvatarImage src={profilePic} />
+                ) : (
+                  <UserIcon className="w-20 h-20 text-muted-foreground" />
+                )}
+              </Avatar>
+            )}
+
+            <div className="mt-4 space-y-1">
               {isLoading ? (
-                <Skeleton className="w-20 h-20 rounded-full mb-4" />
+                <Skeleton className="h-6 w-32 mx-auto" />
               ) : (
-                <Avatar className="w-20 h-20 border-2">
-                  {profilePic ? (
-                    <AvatarImage src={profilePic} />
-                  ) : (
-                    <UserIcon className="w-20 h-20 text-muted-foreground" />
-                  )}
-                </Avatar>
+                <h3 className="font-semibold">{name}</h3>
               )}
+              {/* Username placeholder, update if you have username */}
+              <p className="text-sm text-muted-foreground">{username}</p>
+            </div>
 
-              <div className="mt-4 space-y-1">
-                {isLoading ? (
-                  <Skeleton className="h-6 w-32 mx-auto" />
-                ) : (
-                  <h3 className="font-semibold">{name}</h3>
-                )}
-                {/* Username placeholder, update if you have username */}
-                <p className="text-sm text-muted-foreground">{username}</p>
-              </div>
+            <div className="mt-3">
+              {isLoading ? (
+                <Skeleton className="h-4 w-40 mx-auto" />
+              ) : (
+                <p className="text-sm text-muted-foreground">{bio}</p>
+              )}
+            </div>
 
-              <div className="mt-3">
-                {isLoading ? (
-                  <Skeleton className="h-4 w-40 mx-auto" />
-                ) : (
-                  <p className="text-sm text-muted-foreground">{bio}</p>
-                )}
-              </div>
-
-              {/* Other details (Friends, Posts, Location, Website) remain static for now */}
-              <div className="w-full">
-                <Separator className="my-4" />
-                <div className="flex justify-around">
-                  <div>
-                    <p className="font-medium">0</p>
-                    <p className="text-xs text-muted-foreground">Friends</p>
-                  </div>
-                  <Separator orientation="vertical" />
-                  <div>
-                    <p className="font-medium">0</p>
-                    <p className="text-xs text-muted-foreground">Posts</p>
-                  </div>
+            {/* Friends and Posts counts */}
+            <div className="w-full">
+              <Separator className="my-4" />
+              <div className="flex justify-around">
+                <div>
+                  {isLoadingFriends ? (
+                    <Skeleton className="h-6 w-8 mx-auto mb-1" />
+                  ) : (
+                    <p className="font-medium">{friendsCount}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">Friends</p>
                 </div>
-                <Separator className="my-4" />
+                <Separator orientation="vertical" />
+                <div>
+                  <p className="font-medium">0</p>
+                  <p className="text-xs text-muted-foreground">Posts</p>
+                </div>
               </div>
+              <Separator className="my-4" />
+            </div>
 
-              <div className="w-full space-y-2 text-sm">
+            {/* <div className="w-full space-y-2 text-sm">
                 <div className="flex items-center text-muted-foreground">
                   <MapPinIcon className="w-4 h-4 mr-2" />
                   <span>Location</span>
@@ -94,12 +99,11 @@ export default function Sidebar() {
                     example.com
                   </a>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </SpotlightWrapper>
-    </div>
+              </div> */}
+          </div>
+        </CardContent>
+      </Card>
+    </SpotlightWrapper>
   );
 }
 

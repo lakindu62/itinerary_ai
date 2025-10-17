@@ -108,7 +108,10 @@ const FriendsPage: React.FC = () => {
 
               {/* Browse Users Tab */}
               <TabsContent value="browse" className="mt-0">
-                <BrowseUsersList maxHeight="calc(100vh - 350px)" />
+                <BrowseUsersList
+                  maxHeight="calc(100vh - 350px)"
+                  layout="grid"
+                />
               </TabsContent>
             </Tabs>
           </CardContent>

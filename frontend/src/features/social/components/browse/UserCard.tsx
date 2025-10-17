@@ -14,9 +14,10 @@ import { FriendRequestButton } from "../friends";
 
 interface UserCardProps {
   user: UserProfile;
+  layout?: "grid" | "row";
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user }) => {
+const UserCard: React.FC<UserCardProps> = ({ user, layout = "grid" }) => {
   const profilePic = user.travelProfile?.profilePicture;
   const name = `${user.firstName || "Unknown"} ${user.lastName || "User"}`;
   const initials = `${user.firstName?.[0] || "U"}${
@@ -24,6 +25,43 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
   }`.toUpperCase();
   const bio = user.travelProfile?.bio || "No bio available";
 
+  // Row layout - compact horizontal display
+  if (layout === "row") {
+    return (
+      <Card className="hover:bg-accent/50 transition-colors">
+        <CardContent className="p-3">
+          <div className="flex items-center gap-3">
+            {/* Avatar */}
+            <Avatar className="w-10 h-10 border shrink-0">
+              {profilePic ? (
+                <AvatarImage src={profilePic} alt={name} />
+              ) : (
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {initials}
+                </AvatarFallback>
+              )}
+            </Avatar>
+
+            {/* User Info */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-sm truncate">{name}</h3>
+              <p className="text-xs text-muted-foreground truncate">{bio}</p>
+            </div>
+
+            {/* Friend Request Button */}
+            <div className="shrink-0">
+              <FriendRequestButton
+                userId={user.id || user._id}
+                className="h-8 px-3 text-xs"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Grid layout - original card display
   return (
     <SpotlightWrapper enableVerticalFade={false} className="h-full rounded-lg">
       <Card className="h-full">
