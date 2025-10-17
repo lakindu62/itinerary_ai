@@ -14,7 +14,7 @@ export type SingleEventType = {
   venue: { venueName: string; address: string; city: string; state: string; zipCode: string; };
   organizer: { organizerName: string; };
   category: { categoryName: string; };
-  hashtags: { hashtag: { name:string } }[];
+  hashtags: { id: string; hashtagName: string; }[]; // Corrected this line
   ticketPrice: number;
   eventStatus: 'active' | 'inactive' | 'completed';
 };
