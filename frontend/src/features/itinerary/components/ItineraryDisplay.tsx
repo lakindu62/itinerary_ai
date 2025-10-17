@@ -3,12 +3,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Calendar } from 'lucide-react';
+import { MapPin, Calendar, Download, Settings, Share2 } from 'lucide-react';
 
 
 import { ActivityDto, ConversationContextDto, isEventActivity, isHotelActivity, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import Image from 'next/image';
 import ActivitySheet from './ActivitySheet';
+import { ItinerarySettings } from './ItinerarySettings';
 
 interface ItineraryDisplayProps {
   itinerary: ItineraryDto;
@@ -43,11 +44,24 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
 
   return (
     <ScrollArea ref={containerRef} className="flex-1 h-full relative ">
-      <div className="h-full flex flex-col bg-card border-none">
-        <div className="p-4 ">
+      <div className="h-full flex flex-col bg-background border-none">
+        <div className="p-4 border  m-4 pt-4 pb-10 pl-6 pr-4 rounded-3xl">
+          <div className='flex justify-between '>
+            <div></div>
+            {/* Icons for Share, Download, and Settings */}
+            <div className="flex items-center gap-3 mb-4">
+              <Button className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Share">
+                <Share2 className="w-5 h-5" />
+              </Button>
+              <Button className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Download">
+                <Download className="w-5 h-5" />
+              </Button>
+              <ItinerarySettings />
+            </div>
+          </div>
           <div className="flex items-center space-x-2 mb-2">
             <Calendar className="w-4 h-4 text-primary" />
-            <h2 className="font-semibold">{itinerary.title}</h2>
+            <h2 className="font-semibold text-xl">{itinerary.title}</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-2">{itinerary.summary}</p>
 
@@ -77,7 +91,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
           {/* Days */}
           <div className="space-y-3">
             {itinerary.days.map((day) => (
-              <Card key={day.dayNumber} className="overflow-hidden">
+              <Card key={day.dayNumber} className="overflow-hidden rounded-3xl">
                 <div className="p-3 bg-muted/50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">

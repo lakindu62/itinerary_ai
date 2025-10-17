@@ -159,7 +159,7 @@ const HomePage = () => {
                                 {/* Send Button */}
                                 <Button
                                     onClick={handlePlanTrip}
-                                    className="bg-background absolute right-6 bottom-6 hover:bg-background/90 text-white px-6 py-2 rounded-xl flex items-center gap-2"
+                                    className=" absolute right-6 bottom-6  px-6 py-2 rounded-xl flex items-center gap-2"
                                     size="lg"
                                 >
                                     <Send className="w-5 h-5" />
