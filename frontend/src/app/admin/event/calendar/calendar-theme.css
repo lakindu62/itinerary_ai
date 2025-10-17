@@ -1,0 +1,92 @@
+/* Dark Mode Overrides for React Big Calendar */
+@media (prefers-color-scheme: dark) {
+  /* Main background */
+  .rbc-calendar {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+  }
+
+  /* Toolbar (header with navigation) */
+  .rbc-toolbar {
+    background-color: hsl(var(--muted));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .rbc-toolbar button {
+    color: hsl(var(--foreground));
+  }
+
+  .rbc-toolbar button:hover, .rbc-toolbar button:focus {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  .rbc-toolbar .rbc-active button {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .rbc-toolbar-label {
+    color: hsl(var(--foreground));
+  }
+
+  /* Calendar grid */
+  .rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+    border-color: hsl(var(--border));
+  }
+
+  .rbc-header {
+    border-bottom: 1px solid hsl(var(--border));
+    color: hsl(var(--muted-foreground));
+  }
+
+  .rbc-day-bg {
+    border-left: 1px solid hsl(var(--border));
+  }
+
+  .rbc-month-row + .rbc-month-row {
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .rbc-time-header-content, .rbc-time-content {
+    border-top: 1px solid hsl(var(--border));
+  }
+
+  .rbc-time-header-gutter, .rbc-time-gutter {
+    border-right: 1px solid hsl(var(--border));
+  }
+
+  /* Day cells */
+  .rbc-off-range-bg {
+    background-color: hsl(var(--muted) / 0.5);
+  }
+
+  .rbc-today {
+    background-color: hsl(var(--primary) / 0.1);
+  }
+
+  /* Events */
+  .rbc-event {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1px solid hsl(var(--primary-foreground) / 0.5);
+  }
+
+  .rbc-event.rbc-selected {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  /* Agenda View */
+  .rbc-agenda-table {
+    border-color: hsl(var(--border));
+  }
+
+  .rbc-agenda-table thead th {
+    border-bottom-color: hsl(var(--border));
+  }
+
+  .rbc-agenda-table tbody tr td {
+    border-top-color: hsl(var(--border));
+  }
+}
