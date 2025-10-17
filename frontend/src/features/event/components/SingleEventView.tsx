@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CalendarIcon, MapPinIcon, User, Building } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, User, Building, Mail, Phone } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { getSignedGetUrl } from '@/lib/media.api';
 import { SingleEventType } from '../lib/event-api';
@@ -37,6 +37,12 @@ const SingleEventView: React.FC<SingleEventViewProps> = ({ event }) => {
 
   const formattedDate = DateTime.fromISO(event.startDate).toFormat('MMMM d, yyyy');
   const formattedTime = `${DateTime.fromISO(event.startTime).toFormat('h:mm a')} - ${DateTime.fromISO(event.endTime).toFormat('h:mm a')}`;
+
+  // Construct Google Maps URL using coordinates
+  const mapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || 'YOUR_API_KEY';
+  const mapSrc = event.venue.coordinates
+    ? `https://www.google.com/maps/embed/v1/view?key=${mapsApiKey}&center=${event.venue.coordinates.lat},${event.venue.coordinates.lng}&zoom=15`
+    : `https://www.google.com/maps/embed/v1/place?key=${mapsApiKey}&q=${encodeURIComponent(event.venue.address)}`;
 
   return (
     <div className="bg-card text-card-foreground rounded-xl shadow-lg p-4 sm:p-6 md:p-8">
@@ -76,31 +82,48 @@ const SingleEventView: React.FC<SingleEventViewProps> = ({ event }) => {
           <p className="text-muted-foreground mb-6 leading-relaxed">{event.description}</p>
           
           {/* Event Details Section */}
-          <div className="space-y-4 text-muted-foreground border-t border-border pt-6">
-            <div className="flex items-start gap-3">
-              <CalendarIcon className="w-5 h-5 text-primary mt-1" />
+          <div className="space-y-6 text-muted-foreground border-t border-border pt-6">
+            <div className="flex items-start gap-4">
+              <CalendarIcon className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
               <div>
                 <span className="text-foreground font-semibold">Date and Time</span>
                 <p>{formattedDate} at {formattedTime}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <MapPinIcon className="w-5 h-5 text-primary mt-1" />
+            <div className="flex items-start gap-4">
+              <MapPinIcon className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
               <div>
                 <span className="text-foreground font-semibold">Location</span>
                 <p>{event.venue.venueName}, {event.venue.city}</p>
                 <p className="text-sm">{event.venue.address}</p>
-                <p className="text-sm">Capacity: {event.venue.capacity} people</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-primary mt-1" />
+            <div className="flex items-start gap-4">
+              <User className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
               <div>
-                <span className="text-foreground font-semibold">Organized by</span>
-                <p>{event.organizer.organizerName}</p>
+                <span className="text-foreground font-semibold">About the Organizer</span>
+                <p className="flex items-center gap-2"><Building className="w-4 h-4" /> {event.organizer.organization || event.organizer.organizerName}</p>
+                <p className="flex items-center gap-2"><Mail className="w-4 h-4" /> {event.organizer.contactEmail}</p>
+                <p className="flex items-center gap-2"><Phone className="w-4 h-4" /> {event.organizer.contactPhone}</p>
               </div>
             </div>
           </div>
+
+          {/* Location Map Section */}
+          {/* <div className="mt-8">
+            <h2 className="text-2xl font-bold text-foreground mb-4">Location Map</h2>
+            <div className="rounded-lg overflow-hidden border">
+                <iframe
+                    width="100%"
+                    height="350"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    src={mapSrc}>
+                </iframe>
+            </div>
+          </div> */}
+
         </div>
 
         {/* Right Column */}
