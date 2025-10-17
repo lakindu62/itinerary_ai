@@ -15,6 +15,7 @@
     "start:dev:log:ngrok": "concurrently \"npm run start:dev:log\" \"npm run ngrok:port\"",
     "start:debug": "nest  --debug --watch",
     "start:prod": "node dist/main",
+    "ngrok:port": "dotenv -- ngrok http $PORT",
     "ngrok": "ngrok start server",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
