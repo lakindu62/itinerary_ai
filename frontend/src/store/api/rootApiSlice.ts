@@ -25,7 +25,7 @@ const baseQuery = fetchBaseQuery({
     }
 
     const token = await getClerkGetTokenFunc();
-    console.log("🚀 ~ token:", token);
+    console.log("🚀 ~ token:", token)
     console.log("🚀 ~ token:", token);
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -38,13 +38,7 @@ export const rootApiSlice = createApi({
   reducerPath: reducerBasePath,
   baseQuery,
 
-  tagTypes: [
-    "Posts",
-    "Itinerary",
-    "Friendships",
-    "FriendshipStatus",
-    "FriendshipCount",
-  ], // Enable cache tags for automatic invalidation
+  tagTypes: ["Posts","Itinerary"], // Enable cache tags for automatic invalidation
 
   endpoints: () => ({}),
 });

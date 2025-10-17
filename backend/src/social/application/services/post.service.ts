@@ -48,7 +48,7 @@ export class PostService {
    */
   async create(createPostDto: CreatePostDto): Promise<Post> {
     this.logger.log(
-      `[PostService.create] Creating post for user ${createPostDto.user}${createPostDto.isArchived ? ' (archived)' : ''}`,
+      `[PostService.create] Creating post for user ${createPostDto.user}`,
     );
 
     const post = new Post(
@@ -61,7 +61,6 @@ export class PostService {
       undefined, // updatedAt
       createPostDto.image ?? undefined, //kept for backwards compatibility
       createPostDto.mediaFiles ?? [],
-      createPostDto.isArchived ?? false, // Privacy: archived posts only visible to owner
     );
 
     // content: dto?.content || "",   // fallback to blank string
@@ -82,59 +81,101 @@ export class PostService {
   }
 
   /**
-   * Retrieves all posts with user info, like status, ownership, and privacy filtering.
-   * Now delegates to repository's aggregation pipeline which handles:
-   * - User information lookup
-   * - Friendship checking
-   * - Privacy filtering (archived, public/private accounts)
-   * - Like status and ownership flags
-   *
-   * Privacy Rules Applied:
-   * 1. Owner sees all their posts (including archived)
-   * 2. Archived posts only visible to owner
-   * 3. Public accounts: everyone sees non-archived posts
-   * 4. Private accounts: only friends see non-archived posts
+   * Retrieves all posts with user info, like status, and ownership for a specific user.
+   * Uses separate queries following DDD principles: PostRepository handles Post aggregate,
+   * UserRepository handles User aggregate, and this service orchestrates them.
    *
    * @param userId - The current user's MongoDB ID
-   * @returns Promise resolving to an array of PostWithUserInfo entities with privacy filtering applied
+   * @returns Promise resolving to an array of PostWithUserInfo entities
    * @throws Error if the retrieval operation fails
    */
   async getAllWithUserInfo(userId: string): Promise<PostWithUserInfo[]> {
     this.logger.log(
-      `[PostService.getAllWithUserInfo] Fetching posts with user info and privacy filtering for user: ${userId}`,
+      `[PostService.getAllWithUserInfo] Fetching posts with user info for user: ${userId}`,
     );
 
-    try {
-      // Delegate to repository's aggregation pipeline (single query with privacy filtering)
-      const result =
-        await this.postRepository.getAllWithUserInfoAndPrivacy(userId);
+    // Step 1: Get posts with like status and ownership (Post aggregate only)
+    const postsWithLikeStatus =
+      await this.postRepository.getAllWithLikeStatus(userId);
 
-      this.logger.log(
-        `[PostService.getAllWithUserInfo] Successfully retrieved ${result.length} posts with privacy filtering`,
-      );
+    // Debug logging
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Posts with like status:`,
+      postsWithLikeStatus.map((p) => ({
+        id: p.id,
+        user: p.user,
+        isOwner: p.isOwner,
+        userLiked: p.userLiked,
+      })),
+    );
 
-      // Debug final result
-      this.logger.debug(
-        `[PostService.getAllWithUserInfo] Final result summary:`,
-        result.slice(0, 3).map((p) => ({
-          id: p.id,
-          user: p.user,
-          isOwner: p.isOwner,
-          isArchived: p.isArchived,
-          userInfo: p.userInfo
-            ? `${p.userInfo.firstName} ${p.userInfo.lastName}`
-            : 'No user info',
-        })),
-      );
-
-      return result;
-    } catch (error) {
-      this.logger.error(
-        '[PostService.getAllWithUserInfo] Failed to fetch posts with user info',
-        error.stack,
-      );
-      throw error;
+    if (postsWithLikeStatus.length === 0) {
+      this.logger.debug('[PostService.getAllWithUserInfo] No posts found');
+      return [];
     }
+
+    // Step 2: Extract unique user IDs from posts
+    const userIds = [...new Set(postsWithLikeStatus.map((post) => post.user))];
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Found ${userIds.length} unique users to fetch`,
+    );
+
+    // Step 3: Batch fetch users (single query for all users)
+    const users = await this.userRepository.findByIds(userIds);
+
+    // Step 4: Create user lookup map for O(1) access
+    const userMap = new Map<string, User>(
+      users.map((user) => [user.id!, user]),
+    );
+
+    // Step 5: Combine posts with user info in application layer
+    const result = postsWithLikeStatus.map((post) => {
+      const user = userMap.get(post.user);
+      const userInfo = user
+        ? {
+            _id: user.id!,
+            clerkUserId: user.clerkUserId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            profilePicture: user.travelProfile?.profilePicture, // Extract from travelProfile
+          }
+        : undefined;
+
+      return new PostWithUserInfo(
+        post.id,
+        post.user,
+        post.content,
+        post.likeCount,
+        post.commentCount,
+        post.userLiked,
+        post.createdAt,
+        post.updatedAt,
+        post.image,
+        post.mediaFiles,
+        userInfo,
+        post.isOwner,
+      );
+    });
+
+    this.logger.log(
+      `[PostService.getAllWithUserInfo] Successfully combined ${result.length} posts with user info`,
+    );
+
+    // Debug final result
+    this.logger.debug(
+      `[PostService.getAllWithUserInfo] Final result:`,
+      result.map((p) => ({
+        id: p.id,
+        user: p.user,
+        isOwner: p.isOwner,
+        userInfo: p.userInfo
+          ? `${p.userInfo.firstName} ${p.userInfo.lastName}`
+          : 'No user info',
+      })),
+    );
+
+    return result;
   }
 
   /**
@@ -425,14 +466,6 @@ export class PostService {
         // Update content if provided (even if empty string - allows clearing content)
         if (updateData.content !== undefined) {
           postUpdateData.content = updateData.content;
-        }
-
-        // Update archive status if provided (Privacy: toggle post visibility)
-        if (updateData.isArchived !== undefined) {
-          postUpdateData.isArchived = updateData.isArchived;
-          this.logger.debug(
-            `[PostService.update] ${updateData.isArchived ? 'Archiving' : 'Unarchiving'} post ${postId}`,
-          );
         }
 
         // Always update media files array (even if no changes to ensure consistency)

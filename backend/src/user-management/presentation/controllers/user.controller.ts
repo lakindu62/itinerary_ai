@@ -30,11 +30,4 @@ export class UserController {
     }
     return await this.userService.getUserById(req.user._id);
   }
-
-  // GET /users - get all users
-  @UseGuards(ClerkAuthGuard)
-  @Get()
-  async getAllUsers() {
-    return await this.userService.getAllUsers();
-  }
 }

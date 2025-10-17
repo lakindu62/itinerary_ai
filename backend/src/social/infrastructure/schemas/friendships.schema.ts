@@ -2,17 +2,16 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
 export type HasFriendshipDocument = HasFriendship &
-  Document & { _id: Types.ObjectId; createdAt: Date; updatedAt: Date };
+  Document & { _id: Types.ObjectId };
 
 @Schema({
-  timestamps: true,
   collection: 'friendships',
 })
 export class HasFriendship {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Traveler', required: true })
   requester_id: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Traveler', required: true })
   receiver_id: Types.ObjectId;
 
   @Prop({
@@ -25,11 +24,9 @@ export class HasFriendship {
 
 export const HasFriendshipSchema = SchemaFactory.createForClass(HasFriendship);
 
-// Indexes for efficient queries
+// Indexes
 HasFriendshipSchema.index(
   { requester_id: 1, receiver_id: 1 },
   { unique: true },
 );
 HasFriendshipSchema.index({ status: 1 });
-HasFriendshipSchema.index({ requester_id: 1, status: 1 });
-HasFriendshipSchema.index({ receiver_id: 1, status: 1 });

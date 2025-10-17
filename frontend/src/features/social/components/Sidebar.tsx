@@ -9,12 +9,10 @@ import { Separator } from "@frontend/components/ui/separator";
 import { MapPinIcon, LinkIcon, User as UserIcon } from "lucide-react";
 import { Skeleton } from "@frontend/components/ui/skeleton";
 import { useGetCurrentUserProfileQuery } from "@frontend/features/social/lib/social.api";
-import { useGetFriendsCountQuery } from "@frontend/features/social/lib/friendship.api";
 import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 
 export default function Sidebar() {
   const { data: user, isLoading, error } = useGetCurrentUserProfileQuery();
-  const { data: friendsCount = 0 } = useGetFriendsCountQuery();
   // Fallbacks
   const fallbackProfilePic = "/alien-profile-pic-1.jpg";
   const fallbackName = "Amzal Foumi";
@@ -63,11 +61,12 @@ export default function Sidebar() {
                 )}
               </div>
 
+              {/* Other details (Friends, Posts, Location, Website) remain static for now */}
               <div className="w-full">
                 <Separator className="my-4" />
                 <div className="flex justify-around">
                   <div>
-                    <p className="font-medium">{friendsCount}</p>
+                    <p className="font-medium">0</p>
                     <p className="text-xs text-muted-foreground">Friends</p>
                   </div>
                   <Separator orientation="vertical" />
