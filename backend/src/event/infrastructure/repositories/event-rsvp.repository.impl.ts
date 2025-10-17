@@ -24,7 +24,7 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
   }
 
   async findAll(businessAccountId: string): Promise<EventRsvp[]> {
-    const docs = await this.eventRsvpModel.find({ businessAccountId }).populate('event').exec(); 
+    const docs = await this.eventRsvpModel.find({ businessAccountId }).populate('event').exec();
     return docs.map(doc => this.toDomainEntity(doc));
   }
 
