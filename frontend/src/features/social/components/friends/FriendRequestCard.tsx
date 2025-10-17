@@ -14,6 +14,7 @@ interface FriendRequestCardProps {
   onReject: (friendshipId: string) => void;
   isAccepting?: boolean;
   isRejecting?: boolean;
+  compact?: boolean;
 }
 
 const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
@@ -22,6 +23,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
   onReject,
   isAccepting = false,
   isRejecting = false,
+  compact = false,
 }) => {
   const userInfo = request.otherUser;
   const profilePic = userInfo?.profilePicture;
@@ -35,39 +37,41 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
   return (
     <SpotlightWrapper enableVerticalFade={false} className="mb-2 rounded-lg">
       <Card>
-        <CardContent className="p-3">
+        <CardContent className={compact ? "p-2" : "p-3"}>
           <div className="flex items-center gap-3">
-            {/* Avatar */}
-            <Avatar className="w-12 h-12 border-2">
+            {/* Avatar - smaller in compact mode */}
+            <Avatar className={compact ? "w-10 h-10 border-2" : "w-12 h-12 border-2"}>
               {profilePic ? (
                 <AvatarImage src={profilePic} alt={name} />
               ) : (
-                <UserIcon className="w-12 h-12 text-muted-foreground" />
+                <UserIcon className={compact ? "w-10 h-10 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
               )}
             </Avatar>
 
-            {/* User Info */}
-            <div className="flex-1 min-w-0">
-              <h4 className="font-semibold truncate">{name}</h4>
-              <p className="text-sm text-muted-foreground truncate">{bio}</p>
+            {/* User Info - max-w to force truncation in compact mode */}
+            <div className={compact ? "flex-1 min-w-0 max-w-[120px]" : "flex-1 min-w-0"}>
+              <h4 className="font-medium text-sm truncate">{name}</h4>
+              <p className="text-xs text-muted-foreground truncate">{bio}</p>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 shrink-0">
+            {/* Action Buttons - Compact for narrow space */}
+            <div className="flex gap-1 shrink-0">
               <Button
                 size="sm"
                 onClick={() => onAccept(request.id)}
                 disabled={isProcessing}
+                className="h-7 w-7 p-0"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-3.5 h-3.5" />
               </Button>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => onReject(request.id)}
                 disabled={isProcessing}
+                className="h-7 w-7 p-0"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>

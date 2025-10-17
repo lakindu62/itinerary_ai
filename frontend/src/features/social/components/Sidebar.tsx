@@ -51,8 +51,7 @@ export default function Sidebar() {
               ) : (
                 <h3 className="font-semibold">{name}</h3>
               )}
-              {/* Username placeholder, update if you have username */}
-              <p className="text-sm text-muted-foreground">{username}</p>
+              {/* <p className="text-sm text-muted-foreground">{username}</p> */}
             </div>
 
             <div className="mt-3">
@@ -75,13 +74,13 @@ export default function Sidebar() {
                   )}
                   <p className="text-xs text-muted-foreground">Friends</p>
                 </div>
-                <Separator orientation="vertical" />
+                {/* <Separator orientation="vertical" />
                 <div>
                   <p className="font-medium">0</p>
                   <p className="text-xs text-muted-foreground">Posts</p>
-                </div>
+                </div> */}
               </div>
-              <Separator className="my-4" />
+              <Separator className="my-16" />
             </div>
 
             {/* <div className="w-full space-y-2 text-sm">

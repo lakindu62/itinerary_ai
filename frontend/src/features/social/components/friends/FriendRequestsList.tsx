@@ -19,11 +19,13 @@ import { FriendshipWithUserInfo } from "../../types/friendship.types";
 interface FriendRequestsListProps {
   maxHeight?: string;
   showCount?: boolean;
+  compact?: boolean;
 }
 
 const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
   maxHeight = "400px",
   showCount = true,
+  compact = false,
 }) => {
   // Track which request is being processed
   const [processingId, setProcessingId] = React.useState<string | null>(null);
@@ -112,6 +114,7 @@ const FriendRequestsList: React.FC<FriendRequestsListProps> = ({
                     onReject={handleReject}
                     isAccepting={processingId === request.id && isAccepting}
                     isRejecting={processingId === request.id && isRejecting}
+                    compact={compact}
                   />
                 ))
               )}

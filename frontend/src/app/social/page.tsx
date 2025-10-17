@@ -87,7 +87,7 @@ const page = (props: Props) => {
                   />
                 </div>
                 <div className="flex-[2] min-h-0">
-                  <FriendRequestsList showCount={true} />
+                  <FriendRequestsList showCount={true} compact={true} />
                 </div>
               </div>
             </div>
