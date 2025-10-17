@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CalendarIcon, MapPinIcon } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, User, Building } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { getSignedGetUrl } from '@/lib/media.api';
 import { SingleEventType } from '../lib/event-api';
 import OrderSummaryCard from './OrderSummaryCard';
 import { Badge } from '@/components/ui/badge';
+
 
 type SingleEventViewProps = {
   event: SingleEventType;
@@ -54,7 +55,16 @@ const SingleEventView: React.FC<SingleEventViewProps> = ({ event }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column */}
         <div className="lg:col-span-2">
+          {/* Category Badge */}
+          {event.category && 
+            <Badge variant="default" className="mb-2 bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/50 dark:text-purple-300">
+              {event.category.categoryName}
+            </Badge>
+          }
+          
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">{event.eventName}</h1>
+          
+          {/* Hashtags */}
           <div className="flex flex-wrap gap-2 mb-6">
             {event.hashtags?.map((hashtag) => (
               hashtag && (
@@ -62,16 +72,33 @@ const SingleEventView: React.FC<SingleEventViewProps> = ({ event }) => {
               )
             ))}
           </div>
+
           <p className="text-muted-foreground mb-6 leading-relaxed">{event.description}</p>
           
-          <div className="space-y-4 text-muted-foreground">
-            <div className="flex items-center gap-3">
-              <CalendarIcon className="w-5 h-5 text-primary" />
-              <span className="text-foreground">{formattedDate} at {formattedTime}</span>
+          {/* Event Details Section */}
+          <div className="space-y-4 text-muted-foreground border-t border-border pt-6">
+            <div className="flex items-start gap-3">
+              <CalendarIcon className="w-5 h-5 text-primary mt-1" />
+              <div>
+                <span className="text-foreground font-semibold">Date and Time</span>
+                <p>{formattedDate} at {formattedTime}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <MapPinIcon className="w-5 h-5 text-primary" />
-              <span className="text-foreground">{event.venue.venueName}, {event.venue.city}</span>
+            <div className="flex items-start gap-3">
+              <MapPinIcon className="w-5 h-5 text-primary mt-1" />
+              <div>
+                <span className="text-foreground font-semibold">Location</span>
+                <p>{event.venue.venueName}, {event.venue.city}</p>
+                <p className="text-sm">{event.venue.address}</p>
+                <p className="text-sm">Capacity: {event.venue.capacity} people</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <User className="w-5 h-5 text-primary mt-1" />
+              <div>
+                <span className="text-foreground font-semibold">Organized by</span>
+                <p>{event.organizer.organizerName}</p>
+              </div>
             </div>
           </div>
         </div>
