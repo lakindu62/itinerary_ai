@@ -97,7 +97,9 @@ const EventList = () => {
                   {e.endTime ? ` → ${e.endTime}` : ''}
                 </TableCell>
                 <TableCell>{e.eventStatus || '-'}</TableCell>
-                <TableCell>{e.venue?.venueName || '-'}</TableCell>
+                <TableCell className="max-w-[120px] whitespace-nowrap overflow-hidden text-ellipsis"
+                title={e.venue?.venueName}>
+                  {e.venue?.venueName || '-'}</TableCell>
                 <TableCell>{e.organizer?.organizerName || '-'}</TableCell>
                 <TableCell>{e.category?.categoryName || '-'}</TableCell>
                 <TableCell>
