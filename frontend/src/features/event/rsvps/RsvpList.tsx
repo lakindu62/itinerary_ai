@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getRsvps, deleteRsvp } from '../lib/event-api';
+import { Trash2 } from 'lucide-react';
 
 interface Event {
   id: string;
@@ -106,7 +107,8 @@ const RsvpList = () => {
                     size="sm"
                     onClick={() => handleDelete(rsvp.id)}
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" /> 
+
                   </Button>
                 </TableCell>
               </TableRow>

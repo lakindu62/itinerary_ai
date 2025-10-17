@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getBusinessEvents, deleteBusinessEvent } from '../lib/event-api';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface EventItem {
   id: string;
@@ -101,9 +102,10 @@ const EventList = () => {
                 <TableCell>{e.category?.categoryName || '-'}</TableCell>
                 <TableCell>
                   <Link href={`/admin/event/edit/${e.id}`} passHref>
-                    <Button variant="outline" size="sm" className="mr-2">Edit</Button>
+                    <Button variant="outline" size="sm" className="mr-2"><Pencil className="h-4 w-4" />
+                    </Button>
                   </Link>
-                  <Button variant="destructive" size="sm" onClick={() => handleDelete(e.id)}>Delete</Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDelete(e.id)}><Trash2 className="h-4 w-4" /> </Button>
                 </TableCell>
               </TableRow>
             ))}

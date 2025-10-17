@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { getBusinessVenues, deleteBusinessVenue } from '../lib/event-api';
 import Link from 'next/link';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface Venue {
   id: string;
@@ -109,7 +110,7 @@ const VenueList = () => {
                 <TableCell>
              <Link href={`/admin/event/venues/edit/${venue.id}`} passHref>
                 <Button variant="outline" size="sm" className="mr-2">
-                  Edit
+                  <Pencil className="h-4 w-4" />  
                 </Button>
               </Link>
                   <Button
@@ -117,7 +118,7 @@ const VenueList = () => {
                     size="sm"
                     onClick={() => handleDelete(venue.id)}
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" /> 
                   </Button>
                 </TableCell>
               </TableRow>
