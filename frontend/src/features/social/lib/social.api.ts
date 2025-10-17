@@ -50,7 +50,12 @@ export const socialApi = rootApiSlice.injectEndpoints({
     // Create a new post
     createPost: builder.mutation<
       Post,
-      { content: string; mediaFiles?: string[]; image?: string }
+      {
+        content: string;
+        mediaFiles?: string[];
+        image?: string;
+        isArchived?: boolean;
+      }
     >({
       query: (body) => ({
         url: "/social/posts",
@@ -96,6 +101,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
           content?: string;
           mediaFilesToAdd?: string[];
           mediaFilesToRemove?: string[];
+          isArchived?: boolean;
         };
       }
     >({
@@ -260,6 +266,24 @@ export const socialApi = rootApiSlice.injectEndpoints({
         }
       },
     }),
+
+    // Get all users (for browsing/discovery)
+    getAllUsers: builder.query<UserProfile[], void>({
+      query: () => ({
+        url: "/users",
+        method: "GET",
+      }),
+      providesTags: [{ type: "Posts", id: "USERS_LIST" }],
+      async onQueryStarted(arg, { queryFulfilled }) {
+        console.log("[RTK] getAllUsers called");
+        try {
+          const { data } = await queryFulfilled;
+          console.log("[RTK] getAllUsers response:", data.length, "users");
+        } catch (error) {
+          console.error("[RTK] getAllUsers error:", error);
+        }
+      },
+    }),
   }),
   overrideExisting: true,
 });
@@ -267,6 +291,7 @@ export const socialApi = rootApiSlice.injectEndpoints({
 // Export hooks for use in components
 export const {
   useGetCurrentUserProfileQuery,
+  useGetAllUsersQuery,
   useGetPostsQuery,
   useCreatePostMutation,
   useDeletePostMutation,

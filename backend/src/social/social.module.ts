@@ -24,13 +24,21 @@ import { CommentService } from './application/services/comment.service';
 import { CommentRepository } from './domain/repositories/comment.repository';
 import { CommentRepositoryImpl } from './infrastructure/repositories/comment.repository.impl';
 
-//
+//Friendships
 import { HasFriendshipSchema } from './infrastructure/schemas/friendships.schema';
+import { FriendshipController } from './presentation/controllers/friendship.controller';
+import { FriendshipService } from './application/services/friendship.service';
+import { FriendshipRepository } from './domain/repositories/friendship.repository';
+import { FriendshipRepositoryImpl } from './infrastructure/repositories/friendship.repository.impl';
 
 //Media
 import { PostMediaController } from './presentation/controllers/post-media.controller';
 import { StorageModule } from 'src/shared/kernel/storage/storage.module';
+
+//Shared (for auth and othe infra)
 import { SharedModule } from 'src/shared/shared.module';
+
+//User
 import { UserManagementModule } from 'src/user-management/user-management.module';
 
 @Module({
@@ -50,15 +58,18 @@ import { UserManagementModule } from 'src/user-management/user-management.module
     LikeController,
     CommentController,
     PostMediaController,
+    FriendshipController,
   ],
   providers: [
     PostService,
     LikeService,
     CommentService,
+    FriendshipService,
     { provide: PostRepository, useClass: PostRepositoryImpl },
     { provide: LikeRepository, useClass: LikeRepositoryImpl },
     { provide: CommentRepository, useClass: CommentRepositoryImpl },
+    { provide: FriendshipRepository, useClass: FriendshipRepositoryImpl },
   ],
-  exports: [PostService, LikeService, CommentService],
+  exports: [PostService, LikeService, CommentService, FriendshipService],
 })
 export class SocialModule {}

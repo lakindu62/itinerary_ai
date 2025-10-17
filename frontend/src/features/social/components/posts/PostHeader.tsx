@@ -14,6 +14,8 @@ import {
   TrashIcon, // Delete icon
   DownloadIcon, // PDF download icon
   Loader, // Loading spinner icon
+  ArchiveIcon, // Archive icon
+  ArchiveRestoreIcon, // Unarchive icon
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PostHeaderProps } from "../../types/social.types";
@@ -25,8 +27,10 @@ const PostHeader: React.FC<PostHeaderProps> = ({
   currentUserId,
   onEdit,
   onDelete,
+  onToggleArchive,
   isDeleting,
   isEditing,
+  isTogglingArchive = false,
 }) => {
   // Debug: log post data for troubleshooting
   console.log("[PostHeader] Post data:", {
@@ -71,8 +75,18 @@ const PostHeader: React.FC<PostHeaderProps> = ({
       {/* User name and post timestamp */}
       <div className="flex-grow">
         <div className="font-semibold">{displayName}</div>
-        <div className="text-xs text-gray-500">
-          {post.createdAt && formatDistanceToNow(new Date(post.createdAt))} ago
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-gray-500">
+            {post.createdAt && formatDistanceToNow(new Date(post.createdAt))}{" "}
+            ago
+          </div>
+          {/* Archive badge */}
+          {post.isArchived && (
+            <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs rounded-full">
+              <ArchiveIcon className="h-3 w-3" />
+              <span>Archived</span>
+            </div>
+          )}
         </div>
       </div>
       {/* Owner actions: PDF download, edit, delete */}
@@ -88,6 +102,26 @@ const PostHeader: React.FC<PostHeaderProps> = ({
             size="sm"
             className="h-8 w-8 p-0"
           />
+
+          {/* Archive/Unarchive toggle button */}
+          {onToggleArchive && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onToggleArchive}
+              disabled={isDeleting || isTogglingArchive}
+              className="h-8 w-8 p-0"
+              title={post.isArchived ? "Unarchive post" : "Archive post"}
+            >
+              {isTogglingArchive ? (
+                <Loader className="h-4 w-4 animate-spin" />
+              ) : post.isArchived ? (
+                <ArchiveRestoreIcon className="h-4 w-4" />
+              ) : (
+                <ArchiveIcon className="h-4 w-4" />
+              )}
+            </Button>
+          )}
 
           {/* Edit button (toggles between edit/cancel) */}
           <Button

@@ -4,10 +4,13 @@ import { Button } from "@frontend/components/ui/button";
 import { Card, CardContent } from "@frontend/components/ui/card";
 import { Textarea } from "@frontend/components/ui/textarea";
 import { Avatar, AvatarImage } from "@frontend/components/ui/avatar";
+import { Switch } from "@frontend/components/ui/switch";
+import { Label } from "@frontend/components/ui/label";
 // import { useUser } from "@clerk/nextjs";
 // import { SetStateAction, useState } from "react";
 
 import {
+  ArchiveIcon,
   ImageIcon,
   Loader2Icon,
   PlayIcon,
@@ -40,6 +43,7 @@ const CreatePost = () => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showMediaUpload, setShowMediaUpload] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [isArchived, setIsArchived] = useState(false);
   const [createPost, { isLoading: isMutationLoading }] =
     useCreatePostMutation();
   const { sessionClaims, isLoaded } = useAuth();
@@ -88,10 +92,11 @@ const CreatePost = () => {
         uploadedMediaUrls = await Promise.all(uploadPromises);
         setIsUploadingMedia(false); // ← End loading state for uploads
       }
-      await createPost({ content, mediaFiles: uploadedMediaUrls });
+      await createPost({ content, mediaFiles: uploadedMediaUrls, isArchived });
       setContent("");
       setSelectedFiles([]);
       setShowMediaUpload(false);
+      setIsArchived(false);
     } catch (error: any) {
       alert("Error posting: " + error.message);
       setIsUploadingMedia(false); // ← Reset loading state on error
@@ -230,25 +235,52 @@ const CreatePost = () => {
                   Media
                 </Button>
               </div>
-              <Button
-                className="flex items-center"
-                onClick={handleSubmit}
-                disabled={
-                  (!content.trim() && selectedFiles.length === 0) || isLoading
-                }
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2Icon className="size-4 mr-2 animate-spin" />
-                    Posting...
-                  </>
-                ) : (
-                  <>
-                    <SendIcon className="size-4 mr-2" />
-                    Post
-                  </>
-                )}
-              </Button>
+
+              <div className="flex items-center gap-4">
+                {/* Archive Toggle */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="archive-toggle"
+                      checked={isArchived}
+                      onCheckedChange={setIsArchived}
+                      disabled={isLoading}
+                    />
+                    <Label
+                      htmlFor="archive-toggle"
+                      className="text-sm font-medium cursor-pointer flex items-center gap-1"
+                    >
+                      <ArchiveIcon className="size-4" />
+                      Archive
+                    </Label>
+                  </div>
+                  {isArchived && (
+                    <p className="text-xs text-muted-foreground pl-10">
+                      Only you can see this post
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  className="flex items-center"
+                  onClick={handleSubmit}
+                  disabled={
+                    (!content.trim() && selectedFiles.length === 0) || isLoading
+                  }
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2Icon className="size-4 mr-2 animate-spin" />
+                      Posting...
+                    </>
+                  ) : (
+                    <>
+                      <SendIcon className="size-4 mr-2" />
+                      Post
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
