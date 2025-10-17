@@ -66,6 +66,12 @@ export class UserService {
     this.logger.debug(`Fetching user by id: ${id}`);
     return await this.userRepository.findById(id);
   }
+
+  // Get all users
+  async getAllUsers(): Promise<User[]> {
+    this.logger.debug('Fetching all users');
+    return await this.userRepository.findAll();
+  }
   async deleteUser(id: string): Promise<User | null> {
     this.logger.debug(`Deleting user ${id}`);
     const deletedUser = await this.userRepository.delete(id);

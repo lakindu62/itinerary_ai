@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent } from "@frontend/components/ui/card";
+import { useState } from "react";
 
 // Import types
 import { PostCardProps } from "../../types/social.types";
@@ -18,10 +19,15 @@ import CommentForm from "../comments/CommentForm";
 import { usePostInteractions } from "../../hooks/usePostInteractions";
 import { usePostEdit } from "../../hooks/usePostEdit";
 import { useMediaManager } from "../../hooks/useMediaManager";
+import { useUpdatePostMutation } from "../../lib/social.api";
 import { AuthSetup } from "@frontend/lib/AuthSetup";
 import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 
 const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
+  // Archive toggle state and mutation
+  const [isTogglingArchive, setIsTogglingArchive] = useState(false);
+  const [updatePost] = useUpdatePostMutation();
+
   // Custom hooks for different concerns
   const {
     hasLiked,
@@ -57,6 +63,25 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
 
   const { signedMediaUrls } = useMediaManager(post.mediaFiles, post.image);
 
+  // Handle archive toggle
+  const handleToggleArchive = async () => {
+    try {
+      setIsTogglingArchive(true);
+      await updatePost({
+        postId: post.id,
+        updates: {
+          isArchived: !post.isArchived, // Toggle the current state
+        },
+      }).unwrap();
+      // The post will be refetched automatically by RTK Query
+    } catch (error) {
+      console.error("[PostCard] Failed to toggle archive status:", error);
+      alert("Failed to update archive status. Please try again.");
+    } finally {
+      setIsTogglingArchive(false);
+    }
+  };
+
   return (
     <SpotlightWrapper enableVerticalFade={false} className="mb-4  rounded-xl">
       <Card>
@@ -67,8 +92,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
             post={post}
             onEdit={handleEditToggle}
             onDelete={handleDeletePost}
+            onToggleArchive={handleToggleArchive}
             isDeleting={isDeleting}
             isEditing={isEditing}
+            isTogglingArchive={isTogglingArchive}
           />
 
           {/* Content section - conditional rendering for edit mode */}
