@@ -11,6 +11,7 @@ export const TripCard: React.FC<TripCardProps> = ({ itinerary }) => {
   const router = useRouter();
 
   const handleClick = () => {
+    console.log("🚀 ~ handleClick ~ itinerary:", itinerary)
     if (itinerary.id) {
       router.push(`/chat/${itinerary.id}`);
     }

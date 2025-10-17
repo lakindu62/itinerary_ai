@@ -54,6 +54,7 @@ export class TravelPlanningSession {
     tips: string[],
   ): void {
     this.currentItinerary = new Itinerary(
+      'will be added',
       title,
       summary,
       days,
@@ -79,6 +80,7 @@ export class TravelPlanningSession {
     }
 
     this.currentItinerary = new Itinerary(
+      'will be added',
       title,
       summary,
       days,

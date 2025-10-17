@@ -3,6 +3,7 @@ import { Day } from '../value-objects/itinerary/day.vo';
 export class Itinerary {
   public readonly visibility: ItineraryVisibility;
   constructor(
+    public readonly user: string,
     public readonly title: string,
     public readonly summary: string,
     public readonly days: Day[],
@@ -69,6 +70,7 @@ export class Itinerary {
 
   updateAccommodation(newAccommodation: string): Itinerary {
     return new Itinerary(
+      this.user,
       this.title,
       this.summary,
       this.days,
@@ -79,6 +81,7 @@ export class Itinerary {
 
   addTip(newTip: string): Itinerary {
     return new Itinerary(
+      this.user,
       this.title,
       this.summary,
       this.days,
@@ -98,7 +101,6 @@ export class Itinerary {
 
 export enum ItineraryVisibility {
   PRIVATE = 'private',
-  LINK = 'link',
   PUBLIC = 'public',
   ALL_FRIENDS = 'all_friends',
   SPECIFIC_FRIENDS = 'specific_friends',
