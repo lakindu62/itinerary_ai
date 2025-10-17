@@ -15,7 +15,10 @@ export class MinioService implements StorageService {
   ) {
     this.defaultBucket =
       this.configService.get<string>('minio.bucketName') || 'app-storage';
-    this.initializeBucket();
+    // Initialize bucket asynchronously without blocking constructor
+    this.initializeBucket().catch(error => {
+      this.logger.error('Failed to initialize MinIO during startup', error);
+    });
     console.log(
       'MINIO PORT number from config:',
       configService.get<string>('minio.port'),
@@ -31,7 +34,9 @@ export class MinioService implements StorageService {
       }
     } catch (error) {
       this.logger.error('Failed to initialize bucket', error);
-      throw error;
+      this.logger.warn('MinIO storage service is unavailable - continuing without file upload capabilities');
+      // Don't throw error to prevent app from crashing
+      // throw error;
     }
   }
 
@@ -148,7 +153,8 @@ export class MinioService implements StorageService {
     } catch (error) {
       this.logger.error(`Failed to create bucket: ${bucketName}`, error);
       console.error('Minio bucket creation error details:', error);
-      throw error;
+      // Don't throw error to prevent app crash - log and continue
+      this.logger.warn(`Continuing without bucket: ${bucketName}`);
     }
   }
 
@@ -160,8 +166,8 @@ export class MinioService implements StorageService {
         `Failed to check bucket existence: ${bucketName}`,
         error,
       );
-      throw error;
-      // return false;
+      // Return false instead of throwing to allow graceful degradation
+      return false;
     }
   }
 }
