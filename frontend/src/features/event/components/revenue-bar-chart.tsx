@@ -4,9 +4,11 @@ import React from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle
-} from '@/components/ui/card';
+import { DownloadIcon } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PdfDownloadButton } from '@/components/pdf';
+import { RevenueReportTemplate } from '../pdf/RevenueReportTemplate';
 
 interface RevenueData {
   eventName: string;
@@ -21,9 +23,18 @@ interface RevenueBarChartProps {
 export function RevenueBarChart({ data }: RevenueBarChartProps) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Expected vs. Actual Revenue</CardTitle>
-        <CardDescription>A comparison of revenue for each event.</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Expected vs. Actual Revenue</CardTitle>
+          <CardDescription>A comparison of revenue for each event.</CardDescription>
+        </div>
+        <PdfDownloadButton
+          document={<RevenueReportTemplate data={data} />}
+          fileName={`Revenue_Report_${new Date().toISOString().split('T')[0]}`}
+          buttonDisplay={<DownloadIcon className="h-4 w-4" />}
+          variant="outline"
+          size="sm"
+        />
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={350}>

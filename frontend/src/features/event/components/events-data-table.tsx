@@ -10,8 +10,11 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table';
+import { DownloadIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { PdfDownloadButton } from '@/components/pdf';
+import { EventReportTemplate } from '../pdf/EventReportTemplate';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
@@ -84,6 +87,16 @@ export function EventsDataTable({ data }: EventsDataTableProps) {
 
   return (
     <div className="rounded-md border">
+      <div className="flex items-center justify-between p-4">
+        <h3 className="font-semibold">Event Performance</h3>
+        <PdfDownloadButton
+          document={<EventReportTemplate data={table.getRowModel().rows.map(row => row.original)} />}
+          fileName={`Event_Performance_Report_${new Date().toISOString().split('T')[0]}`}
+          buttonDisplay={<DownloadIcon className="h-4 w-4" />}
+          variant="outline"
+          size="sm"
+        />
+      </div>
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (

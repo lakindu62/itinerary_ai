@@ -2,10 +2,11 @@
 
 import * as React from 'react';
 import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts';
+import { DownloadIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-
-// This component is now simpler. It just receives data and renders it.
+import { PdfDownloadButton } from '@/components/pdf';
+import { RevenueOverTimeReportTemplate } from '../pdf/RevenueOverTimeReportTemplate';
 
 const chartConfig = {
   revenue: {
@@ -18,9 +19,18 @@ export function ChartAreaInteractive({ data, title, description }: { data: { dat
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </div>
+        <PdfDownloadButton
+          document={<RevenueOverTimeReportTemplate data={data} />}
+          fileName={`Revenue_Over_Time_Report_${new Date().toISOString().split('T')[0]}`}
+          buttonDisplay={<DownloadIcon className="h-4 w-4" />}
+          variant="outline"
+          size="sm"
+        />
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer
