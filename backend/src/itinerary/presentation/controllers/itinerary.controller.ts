@@ -8,16 +8,28 @@ import {
   Logger,
   Param,
   Get,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common';
 import { ItineraryService } from 'src/itinerary/application/services/itinerary.service';
 import { ItineraryChatService } from 'src/itinerary/application/services/itinerary-chat.service';
 import { ChatItineraryRequestDto } from 'src/itinerary/application/dtos/requests/chatItinerary.dto';
 import { ItineraryChatServiceMock } from 'src/itinerary/application/services/mocks/itinerary-chat.service.mock';
-import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import {
+  ChatItineraryResponseDto,
+  ItineraryVisibilityDto,
+} from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
 import { UserRole } from '@shared/types/user-management';
 import { Roles } from 'src/shared/decorators/roles.decorator';
 import { Request } from 'express';
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 @Controller('itineraries')
 export class ItineraryController {
   private readonly logger = new Logger(ItineraryController.name);
@@ -50,6 +62,29 @@ export class ItineraryController {
   @Get('chat/:id')
   async getChatItinerary(@Param('id') id: string) {
     return await this.itineraryChatService.getChatItinerary(id);
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
+  @Post(':id/visibility')
+  async updateVisibility(
+    @Param('id') itineraryId: string,
+    @Body() visibility: ItineraryVisibilityDto,
+    @Req() req: Request,
+  ) {
+    const userId = req.user?._id;
+    console.log(
+      '🚀 ~ ItineraryController ~ updateVisibility ~ userId:',
+      userId,
+    );
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return await this.itineraryService.setVisibility(
+      userId,
+      itineraryId,
+      visibility,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)

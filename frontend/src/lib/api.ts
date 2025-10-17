@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Remove /api prefix since your backend doesn't use it
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+// Backend runs on port 3000 with /api prefix
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 console.log('🔧 API Base URL:', API_BASE_URL);
 

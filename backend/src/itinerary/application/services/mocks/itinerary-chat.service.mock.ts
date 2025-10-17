@@ -125,6 +125,7 @@ export class ItineraryChatServiceMock {
     ]);
 
     const currentItinerary = new Itinerary(
+      'will be added',
       'Kandy Adventure Itinerary - 2 Days',
       'A 2-day adventure-focused trip to Kandy, Sri Lanka, exploring natural beauty and thrilling activities.',
       [day1, day2],

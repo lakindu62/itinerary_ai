@@ -9,12 +9,12 @@ import {
 import { ItineraryDocument } from '../schemas/itinerary.schema';
 import { Conversation } from 'src/itinerary/domain/entities/conversation.entity';
 import { TravelPlanningSession } from 'src/itinerary/domain/aggregates/travel-planning-session.aggregate';
-import { Day } from '../../domain/value-objects/itinerary/day.vo';
-import { Activity } from '../../domain/value-objects/itinerary/activity.vo';
 import {
   ConversationContext,
   ConversationMessage,
 } from 'src/itinerary/domain/value-objects/conversation';
+import { ItineraryMapper } from './mappers/itinerary-mapper';
+import { ItineraryVisibilityEnum } from '@shared/types/itinerary/chat-itinerary.response.dto';
 
 @Injectable()
 export class ItineraryRepositoryImpl extends ItineraryRepository {
@@ -24,7 +24,19 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
   ) {
     super();
   }
+  async updateVisibility(
+    id: string,
+    visibility: ItineraryVisibilityEnum,
+  ): Promise<Itinerary | null> {
+    const doc = await this.itineraryModel
+      .findByIdAndUpdate(id, {
+        visibility: visibility,
+      })
+      .exec();
 
+    if (!doc) return null;
+    return ItineraryMapper.toDomainEntity(doc);
+  }
   async create(
     sessionId: string,
     userId: string,
@@ -66,32 +78,7 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
           doc.conversation.context.travelers,
         ),
       ),
-      new Itinerary(
-        doc.title,
-        doc.summary,
-        doc.days.map(
-          (day) =>
-            new Day(
-              day.dayNumber,
-              day.date,
-              day.destination,
-              day.activities.map(
-                (activity) =>
-                  new Activity(
-                    activity.time,
-                    activity.name,
-                    activity.description,
-                    activity.address,
-                    activity.type,
-                    activity.coordinates,
-                  ),
-              ),
-            ),
-        ),
-        doc.accommodation,
-        doc.tips,
-        doc._id.toString(),
-      ),
+      ItineraryMapper.toDomainEntity(doc),
     );
   }
   async updateTravelPlanningSession(
@@ -115,75 +102,22 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
       },
     );
   }
+
+  async findById(id: string) {
+    const i = await this.itineraryModel.findById(id);
+    if (!i) return null;
+    return ItineraryMapper.toDomainEntity(i);
+  }
+
   async getMyItineraries(userId: string): Promise<Itinerary[]> {
     const docs = await this.itineraryModel.find({ user: userId }).exec();
-    return docs.map(
-      (doc) =>
-        new Itinerary(
-          doc.title,
-          doc.summary,
-          doc.days.length > 0
-            ? [
-                new Day(
-                  doc.days[0].dayNumber,
-                  doc.days[0].date,
-                  doc.days[0].destination,
-                  doc.days[0].activities.map(
-                    (activity) =>
-                      new Activity(
-                        activity.time,
-                        activity.name,
-                        activity.description,
-                        activity.address,
-                        activity.type,
-                        activity.coordinates,
-                      ),
-                  ),
-                ),
-              ]
-            : [],
-          doc.accommodation,
-          doc.tips,
-          doc._id.toString(),
-        ),
-    );
+    return docs.map((doc) => ItineraryMapper.toDomainEntityWithFirstDay(doc));
   }
   async getPublicItineraries(): Promise<Itinerary[]> {
     const docs = await this.itineraryModel
       .find({ visibility: ItineraryVisibility.PUBLIC })
       .exec();
-    return docs.map(
-      (doc) =>
-        new Itinerary(
-          doc.title,
-          doc.summary,
-          doc.days.length > 0
-            ? [
-                new Day(
-                  doc.days[0].dayNumber,
-                  doc.days[0].date,
-                  doc.days[0].destination,
-                  doc.days[0].activities.map(
-                    (activity) =>
-                      new Activity(
-                        activity.time,
-                        activity.name,
-                        activity.description,
-                        activity.address,
-                        activity.type,
-                        activity.coordinates,
-                        activity.additionalDetails,
-                      ),
-                  ),
-                ),
-              ]
-            : [],
-          doc.accommodation,
-          doc.tips,
-          doc.slug,
-          doc._id.toString(),
-        ),
-    );
+    return docs.map((doc) => ItineraryMapper.toDomainEntityWithFirstDay(doc));
   }
   async getPublicItineraryBySlug(slug: string): Promise<Itinerary | null> {
     const doc = await this.itineraryModel
@@ -197,35 +131,6 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
       return null;
     }
 
-    return new Itinerary(
-      doc.title,
-      doc.summary,
-      doc.days.length > 0
-        ? doc.days.map(
-            (day) =>
-              new Day(
-                day.dayNumber,
-                day.date,
-                day.destination,
-                day.activities.map(
-                  (activity) =>
-                    new Activity(
-                      activity.time,
-                      activity.name,
-                      activity.description,
-                      activity.address,
-                      activity.type,
-                      activity.coordinates,
-                      activity.additionalDetails,
-                    ),
-                ),
-              ),
-          )
-        : [],
-      doc.accommodation,
-      doc.tips,
-      doc.slug,
-      doc._id.toString(),
-    );
+    return ItineraryMapper.toDomainEntity(doc);
   }
 }

@@ -1,0 +1,176 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { BusinessProfileRepository } from '../../domain/repositories/business-profile.repository';
+import { CreateBusinessProfileDto, UpdateBusinessProfileDto } from '../dtos/business-profile.dto';
+import { StorageService } from '../../../shared/services/storage.service';
+import { BusinessProfile } from '../../domain/entities/business-profile.entity';
+
+@Injectable()
+export class BusinessProfileService {
+  constructor(
+    private readonly businessProfileRepository: BusinessProfileRepository,
+    private readonly storageService: StorageService,
+  ) {}
+
+  async create(
+    createBusinessProfileDto: CreateBusinessProfileDto,
+    userId: string,
+  ): Promise<BusinessProfile> {
+    const existingProfile = await this.businessProfileRepository.findByUserId(userId);
+    if (existingProfile) {
+      throw new BadRequestException('User already has a business profile');
+    }
+
+    const profile = await this.businessProfileRepository.create({
+      ...createBusinessProfileDto,
+      userId,
+    });
+
+    return profile;
+  }
+
+  async update(
+    id: string,
+    updateBusinessProfileDto: UpdateBusinessProfileDto,
+    userId: string,
+  ): Promise<BusinessProfile> {
+    const profile = await this.businessProfileRepository.findById(id);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.userId !== userId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    const updatedProfile = await this.businessProfileRepository.update(
+      id,
+      updateBusinessProfileDto,
+    );
+
+    if (!updatedProfile) {
+      throw new NotFoundException('Business profile not found');
+    }
+    return updatedProfile;
+  }
+
+  async findById(id: string): Promise<BusinessProfile> {
+    const profile = await this.businessProfileRepository.findById(id);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+    return profile;
+  }
+
+  async findByUserId(userId: string): Promise<BusinessProfile> {
+    const profile = await this.businessProfileRepository.findByUserId(userId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+    return profile;
+  }
+
+  async delete(id: string, userId: string): Promise<void> {
+    const profile = await this.businessProfileRepository.findById(id);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.userId !== userId) {
+      throw new BadRequestException('Not authorized to delete this profile');
+    }
+
+    // Delete associated media files
+    if (profile.logo) {
+      await this.storageService.deleteFile(profile.logo);
+    }
+    if (profile.coverImage) {
+      await this.storageService.deleteFile(profile.coverImage);
+    }
+    if (profile.images?.length) {
+      await Promise.all(profile.images.map(img => this.storageService.deleteFile(img)));
+    }
+    if (profile.videos?.length) {
+      await Promise.all(profile.videos.map(video => this.storageService.deleteFile(video)));
+    }
+
+    await this.businessProfileRepository.delete(id);
+  }
+
+  async findAll(): Promise<BusinessProfile[]> {
+    return await this.businessProfileRepository.findAll();
+  }
+
+  async uploadMedia(
+    file: Express.Multer.File,
+    type: 'logo' | 'cover' | 'image' | 'video',
+    profileId: string,
+    userId: string,
+  ): Promise<string> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.userId !== userId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    const path = await this.storageService.uploadFile(
+      file.buffer,
+      `business-profiles/${profileId}/${type}/${file.originalname}`,
+    );
+
+    // Update profile with new media
+    const updateData: Partial<BusinessProfile> = {};
+    if (type === 'logo') {
+      if (profile.logo) {
+        await this.storageService.deleteFile(profile.logo);
+      }
+      updateData.logo = path;
+    } else if (type === 'cover') {
+      if (profile.coverImage) {
+        await this.storageService.deleteFile(profile.coverImage);
+      }
+      updateData.coverImage = path;
+    } else if (type === 'image') {
+      updateData.images = [...(profile.images || []), path];
+    } else if (type === 'video') {
+      updateData.videos = [...(profile.videos || []), path];
+    }
+
+    await this.businessProfileRepository.update(profileId, updateData);
+    return path;
+  }
+
+  async deleteMedia(
+    mediaPath: string,
+    type: 'logo' | 'cover' | 'image' | 'video',
+    profileId: string,
+    userId: string,
+  ): Promise<void> {
+    const profile = await this.businessProfileRepository.findById(profileId);
+    if (!profile) {
+      throw new NotFoundException('Business profile not found');
+    }
+
+    if (profile.userId !== userId) {
+      throw new BadRequestException('Not authorized to update this profile');
+    }
+
+    await this.storageService.deleteFile(mediaPath);
+
+    // Update profile to remove media reference
+    const updateData: Partial<BusinessProfile> = {};
+    if (type === 'logo') {
+      updateData.logo = undefined;
+    } else if (type === 'cover') {
+      updateData.coverImage = undefined;
+    } else if (type === 'image') {
+      updateData.images = profile.images?.filter(img => img !== mediaPath) || [];
+    } else if (type === 'video') {
+      updateData.videos = profile.videos?.filter(video => video !== mediaPath) || [];
+    }
+
+    await this.businessProfileRepository.update(profileId, updateData);
+  }
+}

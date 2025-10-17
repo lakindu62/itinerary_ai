@@ -12,7 +12,7 @@ const Page = async ({ params }: PageProps) => {
     
 
     return (
-        <div className="h-screen">
+        <div className="h-[calc(100vh-70px)]">
             <ItineraryViewer itinerarySlug={slug} />
         </div>
     );
