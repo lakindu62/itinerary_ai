@@ -33,11 +33,14 @@ export function SectionCards({ totalRevenue, totalGuests, eventCount, averageSel
           </CardAction> */}
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
+          {/* <div className="line-clamp-1 flex gap-2 font-medium">
             Last 30 days of sales. <IconTrendingUp className="size-4" />
           </div>
           <div className="text-muted-foreground">
             Our most profitable month.
+          </div> */}
+          <div className="line-clamp-1 flex gap-2 font-medium">
+            All events combined revenue <IconTrendingUp className="size-4" />
           </div>
         </CardFooter>
 
@@ -55,10 +58,13 @@ export function SectionCards({ totalRevenue, totalGuests, eventCount, averageSel
           </CardAction> */}
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
-          <div className="line-clamp-1 flex gap-2 font-medium">
+          {/* <div className="line-clamp-1 flex gap-2 font-medium">
             Compared to last year's avg. <IconTrendingDown className="size-4" />
           </div>
           <div className="text-muted-foreground">
+            A measure of event popularity.
+          </div> */}
+          <div className="line-clamp-1 flex gap-2 font-medium">
             A measure of event popularity.
           </div>
         </CardFooter>
@@ -78,9 +84,12 @@ export function SectionCards({ totalRevenue, totalGuests, eventCount, averageSel
         </CardHeader>
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           <div className="line-clamp-1 flex gap-2 font-medium">
-            Overall activity this quarter. <IconTrendingUp className="size-4" />
+            Total events happened <IconTrendingUp className="size-4" />
           </div>
-          <div className="text-muted-foreground">Driven by high demand.</div>
+          {/* <div className="line-clamp-1 flex gap-2 font-medium">
+            Overall activity this quarter. <IconTrendingUp className="size-4" />
+          </div> */}
+          {/* <div className="text-muted-foreground">Driven by high demand.</div> */}
         </CardFooter>
       </Card>
 
