@@ -77,18 +77,23 @@ const BrowseUsersList: React.FC<BrowseUsersListProps> = ({
         />
       </div>
 
-      {/* User Count */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
-        <Users className="h-4 w-4" />
-        <span>
-          {filteredUsers.length} {filteredUsers.length === 1 ? "user" : "users"}{" "}
-          found
-        </span>
-      </div>
+      {/* User Count - only show in grid layout */}
+      {layout === "grid" && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+          <Users className="h-4 w-4" />
+          <span>
+            {filteredUsers.length}{" "}
+            {filteredUsers.length === 1 ? "user" : "users"} found
+          </span>
+        </div>
+      )}
+
+      {/* Spacer for row layout when no user count is shown */}
+      {layout === "row" && <div className="h-2 shrink-0" />}
 
       {/* Users List/Grid - fills remaining space when in card */}
       {isLoading ? (
-        <BrowseUsersListSkeleton />
+        <BrowseUsersListSkeleton layout={layout} />
       ) : filteredUsers.length === 0 ? (
         <div className="text-center py-8">
           <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
@@ -120,7 +125,10 @@ const BrowseUsersList: React.FC<BrowseUsersListProps> = ({
   );
 
   return showCard ? (
-    <SpotlightWrapper enableVerticalFade={false} className="rounded-xl h-full flex flex-col">
+    <SpotlightWrapper
+      enableVerticalFade={false}
+      className="rounded-xl h-full flex flex-col"
+    >
       <Card className="h-full flex flex-col">{content}</Card>
     </SpotlightWrapper>
   ) : (

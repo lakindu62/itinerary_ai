@@ -65,7 +65,10 @@ const FriendsList: React.FC<FriendsListProps> = ({
   };
 
   return (
-    <SpotlightWrapper enableVerticalFade={false} className="rounded-xl h-full flex flex-col">
+    <SpotlightWrapper
+      enableVerticalFade={false}
+      className="rounded-xl h-full flex flex-col"
+    >
       <Card className="h-full flex flex-col">
         <CardContent className="p-4 flex flex-col h-full">
           {/* Header: Search + Count */}

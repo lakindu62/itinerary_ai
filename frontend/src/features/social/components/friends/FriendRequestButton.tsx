@@ -27,6 +27,7 @@ interface FriendRequestButtonProps {
   size?: "sm" | "default" | "lg";
   className?: string;
   showIcon?: boolean;
+  iconOnly?: boolean;
 }
 
 const FriendRequestButton: React.FC<FriendRequestButtonProps> = ({
@@ -35,6 +36,7 @@ const FriendRequestButton: React.FC<FriendRequestButtonProps> = ({
   size = "default",
   className = "",
   showIcon = true,
+  iconOnly = false,
 }) => {
   const [showRemoveDialog, setShowRemoveDialog] = React.useState(false);
 
@@ -165,8 +167,8 @@ const FriendRequestButton: React.FC<FriendRequestButtonProps> = ({
         disabled={isProcessing || isLoadingStatus || !buttonState.action}
         className={className}
       >
-        {showIcon && <Icon className="w-4 h-4 mr-2" />}
-        {buttonState.text}
+        {showIcon && <Icon className={iconOnly ? "w-4 h-4" : "w-4 h-4 mr-2"} />}
+        {!iconOnly && buttonState.text}
       </Button>
 
       {/* Remove Friend Confirmation Dialog */}

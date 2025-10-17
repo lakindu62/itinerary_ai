@@ -48,11 +48,13 @@ const UserCard: React.FC<UserCardProps> = ({ user, layout = "grid" }) => {
               <p className="text-xs text-muted-foreground truncate">{bio}</p>
             </div>
 
-            {/* Friend Request Button */}
+            {/* Friend Request Button - Icon only for compact display */}
             <div className="shrink-0">
               <FriendRequestButton
                 userId={user.id || user._id}
-                className="h-8 px-3 text-xs"
+                size="sm"
+                iconOnly={true}
+                className="h-8 w-8 p-0"
               />
             </div>
           </div>

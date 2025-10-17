@@ -14,7 +14,8 @@ import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 
 export default function Sidebar() {
   const { data: user, isLoading, error } = useGetCurrentUserProfileQuery();
-  const { data: friendsCount = 0, isLoading: isLoadingFriends } = useGetFriendsCountQuery();
+  const { data: friendsCount = 0, isLoading: isLoadingFriends } =
+    useGetFriendsCountQuery();
   // Fallbacks
   const fallbackProfilePic = "/alien-profile-pic-1.jpg";
   const fallbackName = "Amzal Foumi";
