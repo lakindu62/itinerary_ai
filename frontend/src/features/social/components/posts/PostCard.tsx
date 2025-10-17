@@ -18,6 +18,8 @@ import CommentForm from "../comments/CommentForm";
 import { usePostInteractions } from "../../hooks/usePostInteractions";
 import { usePostEdit } from "../../hooks/usePostEdit";
 import { useMediaManager } from "../../hooks/useMediaManager";
+import { AuthSetup } from "@frontend/lib/AuthSetup";
+import SpotlightWrapper from "@frontend/components/SpotLightWrapper";
 
 const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
   // Custom hooks for different concerns
@@ -34,7 +36,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
     handleDeletePost,
     handleShowComments,
     handleDeleteComment,
-    currentUserId,
+    handleEditComment,
   } = usePostInteractions(post, onDelete);
 
   const {
@@ -56,79 +58,82 @@ const PostCard: React.FC<PostCardProps> = ({ post, onDelete }) => {
   const { signedMediaUrls } = useMediaManager(post.mediaFiles, post.image);
 
   return (
-    <Card className="mb-4">
-      <CardContent className="p-4">
-        {/* Post Header with user info and action buttons */}
-        <PostHeader
-          post={post}
-          currentUserId={currentUserId}
-          onEdit={handleEditToggle}
-          onDelete={handleDeletePost}
-          isDeleting={isDeleting}
-          isEditing={isEditing}
-        />
-
-        {/* Content section - conditional rendering for edit mode */}
-        {isEditing ? (
-          // Edit mode UI
-          <PostEditor
+    <SpotlightWrapper enableVerticalFade={false} className="mb-4  rounded-xl">
+      <Card>
+        {/* <AuthSetup /> */}
+        <CardContent className="p-4">
+          {/* Post Header with user info and action buttons */}
+          <PostHeader
             post={post}
-            editContent={editContent}
-            editMediaFiles={editMediaFiles}
-            editMediaToRemove={editMediaToRemove}
-            editMediaPreviewUrls={editMediaPreviewUrls}
-            signedMediaUrls={signedMediaUrls}
-            isUpdating={isUpdating}
-            onContentChange={setEditContent}
-            onAddMedia={handleAddEditMedia}
-            onRemoveNewMedia={handleRemoveNewMedia}
-            onRemoveExistingMedia={handleRemoveExistingMedia}
-            onKeepExistingMedia={handleKeepExistingMedia}
-            onSave={handleSaveEdit}
-            onCancel={handleEditToggle}
+            onEdit={handleEditToggle}
+            onDelete={handleDeletePost}
+            isDeleting={isDeleting}
+            isEditing={isEditing}
           />
-        ) : (
-          // View mode content display
-          <>
-            <PostContent content={post.content} />
 
-            {/* Media Carousel */}
-            <MediaCarousel
-              mediaFiles={signedMediaUrls}
-              fallbackImage={undefined}
+          {/* Content section - conditional rendering for edit mode */}
+          {isEditing ? (
+            // Edit mode UI
+            <PostEditor
+              post={post}
+              editContent={editContent}
+              editMediaFiles={editMediaFiles}
+              editMediaToRemove={editMediaToRemove}
+              editMediaPreviewUrls={editMediaPreviewUrls}
+              signedMediaUrls={signedMediaUrls}
+              isUpdating={isUpdating}
+              onContentChange={setEditContent}
+              onAddMedia={handleAddEditMedia}
+              onRemoveNewMedia={handleRemoveNewMedia}
+              onRemoveExistingMedia={handleRemoveExistingMedia}
+              onKeepExistingMedia={handleKeepExistingMedia}
+              onSave={handleSaveEdit}
+              onCancel={handleEditToggle}
             />
-          </>
-        )}
+          ) : (
+            // View mode content display
+            <>
+              <PostContent content={post.content} />
 
-        {/* Like and comment buttons - only show in view mode */}
-        {!isEditing && (
-          <PostActions
-            likeCount={optimisticLikes}
-            commentCount={post.commentCount}
-            hasLiked={hasLiked}
-            onLike={handleLike}
-            onToggleComments={handleShowComments}
-          />
-        )}
+              {/* Media Carousel */}
+              <MediaCarousel
+                mediaFiles={signedMediaUrls}
+                fallbackImage={undefined}
+              />
+            </>
+          )}
 
-        {/* Comments Section - only show in view mode */}
-        {!isEditing && showComments && (
-          <div className="pt-3 border-t space-y-4">
-            <CommentsList
-              comments={comments}
-              loading={loadingComments}
-              onDeleteComment={handleDeleteComment}
-              currentUserId={currentUserId}
+          {/* Like and comment buttons - only show in view mode */}
+          {!isEditing && (
+            <PostActions
+              likeCount={optimisticLikes}
+              commentCount={post.commentCount}
+              hasLiked={hasLiked}
+              onLike={handleLike}
+              onToggleComments={handleShowComments}
             />
+          )}
 
-            <CommentForm
-              onSubmit={handleAddComment}
-              isSubmitting={isCommenting}
-            />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {/* Comments Section - only show in view mode */}
+          {!isEditing && showComments && (
+            <div className="pt-3 border-t space-y-4">
+              <CommentsList
+                comments={comments}
+                loading={loadingComments}
+                onDeleteComment={handleDeleteComment}
+                onEditComment={handleEditComment}
+                currentUserId="" // TODO: Handle comment ownership separately
+              />
+
+              <CommentForm
+                onSubmit={handleAddComment}
+                isSubmitting={isCommenting}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </SpotlightWrapper>
   );
 };
 

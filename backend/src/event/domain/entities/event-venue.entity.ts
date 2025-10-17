@@ -8,6 +8,7 @@ export class EventVenue {
     public province: string,
     public postalCode: string,
     public country: string,
+    public coordinates: [number, number],
     public capacity: number,
     public facilities: string[],
   ) {}

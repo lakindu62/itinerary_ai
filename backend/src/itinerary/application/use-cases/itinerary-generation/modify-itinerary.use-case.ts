@@ -59,18 +59,6 @@ export class ModifyItineraryUseCase {
     `);
     this.logger.log('prompt to modify itinerary -- ', modifyPrompt);
 
-    const formattedPrompt = await modifyPrompt.format({
-      modification: 'add a museum visit',
-      currentItinerary: JSON.stringify(currentItinerary),
-      dbData: JSON.stringify({ hotels, attractions }),
-      placesData: JSON.stringify(placesData),
-    });
-
-    this.logger.log(
-      'formatted prompt to modify itinerary -- ',
-      formattedPrompt,
-    );
-
     try {
       const chain = modifyPrompt.pipe(this.llm);
       const result = await chain.invoke({

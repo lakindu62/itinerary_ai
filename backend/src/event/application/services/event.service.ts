@@ -1,5 +1,9 @@
-
-import { Injectable, NotFoundException, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { AuthenticatedUser } from '@shared/types/user-management';
 import { EventRepository } from '../../domain/repositories/event.repository';
 import { EventVenueRepository } from '../../domain/repositories/event-venue.repository';
@@ -16,13 +20,28 @@ import { EventRsvp } from '../../domain/entities/event-rsvp.entity';
 import { EventHashtag } from '../../domain/entities/event-hashtag.entity';
 import { EventHashtagMapping } from '../../domain/entities/event-hashtag-mapping.entity';
 import { CreateEventDto, UpdateEventDto } from '../dtos/create-event.dto';
-import { CreateEventVenueDto, UpdateEventVenueDto } from '../dtos/create-event-venue.dto';
-import { CreateEventOrganizerDto, UpdateEventOrganizerDto } from '../dtos/create-event-organizer.dto';
-import { CreateEventCategoryDto, UpdateEventCategoryDto } from '../dtos/create-event-category.dto';
-import { CreateEventRsvpDto, UpdateEventRsvpDto } from '../dtos/create-event-rsvp.dto';
-import { CreateEventHashtagDto, UpdateEventHashtagDto } from '../dtos/create-event-hashtag.dto';
+import {
+  CreateEventVenueDto,
+  UpdateEventVenueDto,
+} from '../dtos/create-event-venue.dto';
+import {
+  CreateEventOrganizerDto,
+  UpdateEventOrganizerDto,
+} from '../dtos/create-event-organizer.dto';
+import {
+  CreateEventCategoryDto,
+  UpdateEventCategoryDto,
+} from '../dtos/create-event-category.dto';
+import {
+  CreateEventRsvpDto,
+  UpdateEventRsvpDto,
+} from '../dtos/create-event-rsvp.dto';
+import {
+  CreateEventHashtagDto,
+  UpdateEventHashtagDto,
+} from '../dtos/create-event-hashtag.dto';
 import { CreateEventHashtagMappingDto } from '../dtos/create-event-hashtag-mapping.dto';
-
+import { AnalyticsDto, EventPerformanceDto, RevenueOverTimeDto } from '../dtos/analytics.dto';
 
 @Injectable()
 export class EventService {
@@ -38,7 +57,9 @@ export class EventService {
 
   private _getBusinessId(user: AuthenticatedUser): string {
     if (!user.business_account_id) {
-      throw new UnauthorizedException('User is not associated with a business.');
+      throw new UnauthorizedException(
+        'User is not associated with a business.',
+      );
     }
     return user.business_account_id;
   }
@@ -50,30 +71,125 @@ export class EventService {
   async getAllEventsPublic(): Promise<Event[]> {
     return this.eventRepository.findAllPublic();
   }
-  
+
   async getEventByIdPublic(id: string): Promise<Event | null> {
     const event = await this.eventRepository.findPublicById(id);
     if (!event) {
-        throw new NotFoundException(`Event with ID ${id} not found`);
+      throw new NotFoundException(`Event with ID ${id} not found`);
     }
     return event;
   }
+
+
+  // =================================================================
+  // Business Analytics
+  // =================================================================
+
+async getAnalytics(user: AuthenticatedUser): Promise<AnalyticsDto> {
+  const businessAccountId = this._getBusinessId(user);
+
+  // Fetch all necessary data
+  const events = await this.eventRepository.findAll(businessAccountId);
+  const rsvps = await this.eventRsvpRepository.findAll(businessAccountId);
+
+  // Calculate top-level metrics
+  const totalRevenue = rsvps.reduce((sum, rsvp) => {
+    //Ensure rsvp.event is populated and has a ticketPrice
+    const price = rsvp.event?.ticketPrice || 0;
+    return sum + (rsvp.guestCount * price);
+  }, 0);
+
+    const totalGuests = rsvps.reduce((sum, rsvp) => sum + rsvp.guestCount, 0);
+    const eventCount = events.length;
+
+    // calculate performance for each event
+    const eventPerformance: EventPerformanceDto[] = events.map(event => {
+      const booked = rsvps
+        .filter(rsvp => rsvp.event.id === event.id)
+        .reduce((sum, rsvp) => sum + rsvp.guestCount, 0);
+
+        const capacity = event.maxAttendees > 0 ? event.maxAttendees : 1; // Avoid division by zero
+        const actualRevenue = booked * event.ticketPrice;
+        const expectedRevenue = capacity * event.ticketPrice;
+        const sellThrough = (booked / capacity) * 100;
+
+            return {
+              id: event.id,
+              eventName: event.eventName,
+              startDate: event.startDate, // Add this
+              expectedRevenue,
+              actualRevenue,
+              capacity,
+              booked,
+              sellThrough,
+            };    });
+
+    const averageSellThrough = eventPerformance.length > 0
+      ? eventPerformance.reduce((sum, ep) => sum + ep.sellThrough, 0) / eventPerformance.length
+      : 0;
+
+    // calculate revenue over time (by day for the last 30 days)
+      const revenueOverTimeMap = new Map<string, number>();
+      rsvps.forEach(rsvp => {
+        if (rsvp.createdAt) { // Check if createdAt exists
+          const date = new Date(rsvp.createdAt).toISOString().split('T')[0]; // Group by day
+          const price = rsvp.event?.ticketPrice || 0;
+          const revenue = rsvp.guestCount * price;
+          revenueOverTimeMap.set(date, (revenueOverTimeMap.get(date) || 0) + revenue);
+        }
+      });
+    const revenueOverTime: RevenueOverTimeDto[] = Array.from(revenueOverTimeMap.entries())
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Return the complete DTO
+    return {
+      totalRevenue,
+      totalGuests,
+      eventCount,
+      averageSellThrough,
+      eventPerformance,
+      revenueOverTime,
+    };
+  }
+
 
   // =================================================================
   // Business-Scoped Event Methods
   // =================================================================
 
-  async createEvent(createDto: CreateEventDto, user: AuthenticatedUser): Promise<Event> {
+  async createEvent(
+    createDto: CreateEventDto,
+    user: AuthenticatedUser,
+  ): Promise<Event> {
     const businessAccountId = this._getBusinessId(user);
 
-    const venue = await this.eventVenueRepository.findById(createDto.venueId, businessAccountId);
-    if (!venue) throw new NotFoundException(`Venue with ID ${createDto.venueId} not found for your business.`);
-    
-    const organizer = await this.eventOrganizerRepository.findById(createDto.organizerId, businessAccountId);
-    if (!organizer) throw new NotFoundException(`Organizer with ID ${createDto.organizerId} not found for your business.`);
+    const venue = await this.eventVenueRepository.findById(
+      createDto.venueId,
+      businessAccountId,
+    );
+    if (!venue)
+      throw new NotFoundException(
+        `Venue with ID ${createDto.venueId} not found for your business.`,
+      );
 
-    const category = await this.eventCategoryRepository.findById(createDto.categoryId, businessAccountId);
-    if (!category) throw new NotFoundException(`Category with ID ${createDto.categoryId} not found for your business.`);
+    const organizer = await this.eventOrganizerRepository.findById(
+      createDto.organizerId,
+      businessAccountId,
+    );
+    if (!organizer)
+      throw new NotFoundException(
+        `Organizer with ID ${createDto.organizerId} not found for your business.`,
+      );
+
+    const category = await this.eventCategoryRepository.findById(
+      createDto.categoryId,
+      businessAccountId,
+    );
+    if (!category)
+      throw new NotFoundException(
+        `Category with ID ${createDto.categoryId} not found for your business.`,
+      );
 
     const event = new Event(
       null,
@@ -112,18 +228,27 @@ export class EventService {
     return this.eventRepository.findAll(businessAccountId);
   }
 
-  async findEventById(id: string, user: AuthenticatedUser): Promise<Event | null> {
+  async findEventById(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<Event | null> {
     const businessAccountId = this._getBusinessId(user);
     const event = await this.eventRepository.findById(id, businessAccountId);
-     if (!event) {
-        throw new NotFoundException(`Event with ID ${id} not found for your business.`);
+    if (!event) {
+      throw new NotFoundException(
+        `Event with ID ${id} not found for your business.`,
+      );
     }
     return event;
   }
 
-  async updateEvent(id: string, updateDto: UpdateEventDto, user: AuthenticatedUser): Promise<Event | null> {
+  async updateEvent(
+    id: string,
+    updateDto: UpdateEventDto,
+    user: AuthenticatedUser,
+  ): Promise<Event | null> {
     const businessAccountId = this._getBusinessId(user);
-    
+
     // First, ensure the event exists and belongs to the business before updating
     const existingEvent = await this.findEventById(id, user); // This also throws NotFoundException if not found
 
@@ -131,42 +256,75 @@ export class EventService {
     const updatePayload: Partial<Event> = {};
 
     // Copy direct properties from DTO to payload
-    if (updateDto.eventName !== undefined) updatePayload.eventName = updateDto.eventName;
-    if (updateDto.description !== undefined) updatePayload.description = updateDto.description;
-    if (updateDto.startDate !== undefined) updatePayload.startDate = updateDto.startDate;
-    if (updateDto.endDate !== undefined) updatePayload.endDate = updateDto.endDate;
-    if (updateDto.startTime !== undefined) updatePayload.startTime = updateDto.startTime;
-    if (updateDto.endTime !== undefined) updatePayload.endTime = updateDto.endTime;
-    if (updateDto.maxAttendees !== undefined) updatePayload.maxAttendees = updateDto.maxAttendees;
-    if (updateDto.ticketPrice !== undefined) updatePayload.ticketPrice = updateDto.ticketPrice;
-    if (updateDto.eventStatus !== undefined) updatePayload.eventStatus = updateDto.eventStatus;
-    if (updateDto.imagesUrl !== undefined) updatePayload.imagesUrl = updateDto.imagesUrl;
+    if (updateDto.eventName !== undefined)
+      updatePayload.eventName = updateDto.eventName;
+    if (updateDto.description !== undefined)
+      updatePayload.description = updateDto.description;
+    if (updateDto.startDate !== undefined)
+      updatePayload.startDate = updateDto.startDate;
+    if (updateDto.endDate !== undefined)
+      updatePayload.endDate = updateDto.endDate;
+    if (updateDto.startTime !== undefined)
+      updatePayload.startTime = updateDto.startTime;
+    if (updateDto.endTime !== undefined)
+      updatePayload.endTime = updateDto.endTime;
+    if (updateDto.maxAttendees !== undefined)
+      updatePayload.maxAttendees = updateDto.maxAttendees;
+    if (updateDto.ticketPrice !== undefined)
+      updatePayload.ticketPrice = updateDto.ticketPrice;
+    if (updateDto.eventStatus !== undefined)
+      updatePayload.eventStatus = updateDto.eventStatus;
+    if (updateDto.imagesUrl !== undefined)
+      updatePayload.imagesUrl = updateDto.imagesUrl;
 
     // Map DTO IDs to Mongoose reference fields
     if (updateDto.venueId) {
-      const venue = await this.eventVenueRepository.findById(updateDto.venueId, businessAccountId);
-      if (!venue) throw new NotFoundException(`Venue with ID ${updateDto.venueId} not found for your business.`);
+      const venue = await this.eventVenueRepository.findById(
+        updateDto.venueId,
+        businessAccountId,
+      );
+      if (!venue)
+        throw new NotFoundException(
+          `Venue with ID ${updateDto.venueId} not found for your business.`,
+        );
       updatePayload.venue = venue; // Assign the full venue object (Mongoose will extract _id)
     }
     if (updateDto.organizerId) {
-      const organizer = await this.eventOrganizerRepository.findById(updateDto.organizerId, businessAccountId);
-      if (!organizer) throw new NotFoundException(`Organizer with ID ${updateDto.organizerId} not found for your business.`);
+      const organizer = await this.eventOrganizerRepository.findById(
+        updateDto.organizerId,
+        businessAccountId,
+      );
+      if (!organizer)
+        throw new NotFoundException(
+          `Organizer with ID ${updateDto.organizerId} not found for your business.`,
+        );
       updatePayload.organizer = organizer;
     }
     if (updateDto.categoryId) {
-      const category = await this.eventCategoryRepository.findById(updateDto.categoryId, businessAccountId);
-      if (!category) throw new NotFoundException(`Category with ID ${updateDto.categoryId} not found for your business.`);
+      const category = await this.eventCategoryRepository.findById(
+        updateDto.categoryId,
+        businessAccountId,
+      );
+      if (!category)
+        throw new NotFoundException(
+          `Category with ID ${updateDto.categoryId} not found for your business.`,
+        );
       updatePayload.category = category;
     }
 
-    const updatedEvent = await this.eventRepository.update(id, updatePayload, businessAccountId);
+    const updatedEvent = await this.eventRepository.update(
+      id,
+      updatePayload,
+      businessAccountId,
+    );
 
     // ... (hashtag mapping logic remains the same)
     if (updateDto.hashtagIds) {
       await this.eventHashtagMappingRepository.deleteByEventId(id);
       for (const hashtagId of updateDto.hashtagIds) {
         const hashtag = await this.eventHashtagRepository.findById(hashtagId);
-        if (hashtag && updatedEvent) { // Check updatedEvent is not null
+        if (hashtag && updatedEvent) {
+          // Check updatedEvent is not null
           const mapping = new EventHashtagMapping(updatedEvent, hashtag);
           await this.eventHashtagMappingRepository.create(mapping);
         }
@@ -179,7 +337,9 @@ export class EventService {
     const businessAccountId = this._getBusinessId(user);
     const success = await this.eventRepository.delete(id, businessAccountId);
     if (!success) {
-      throw new NotFoundException(`Event with ID "${id}" not found for your business.`);
+      throw new NotFoundException(
+        `Event with ID "${id}" not found for your business.`,
+      );
     }
   }
 
@@ -187,9 +347,26 @@ export class EventService {
   // Business-Scoped Sub-Entity Methods (Venue, Organizer, Category, RSVP)
   // =================================================================
 
-  async createVenue(createDto: CreateEventVenueDto, user: AuthenticatedUser): Promise<EventVenue> {
+  async createVenue(
+    createDto: CreateEventVenueDto,
+    user: AuthenticatedUser,
+  ): Promise<EventVenue> {
+    console.log('🚀 ~ EventService ~ createVenue ~ createDto:', createDto);
     const businessAccountId = this._getBusinessId(user);
-    const venue = new EventVenue(null, businessAccountId, createDto.venueName, createDto.address, createDto.city, createDto.province, createDto.postalCode, createDto.country, createDto.capacity, createDto.facilities);
+    const venue = new EventVenue(
+      null,
+      businessAccountId,
+      createDto.venueName,
+      createDto.address,
+      createDto.city,
+      createDto.province,
+      createDto.postalCode,
+      createDto.country,
+      createDto.coordinates,
+      createDto.capacity,
+      createDto.facilities,
+    );
+    console.log('🚀 ~ EventService ~ createVenue ~ venue:', venue);
     return this.eventVenueRepository.create(venue);
   }
 
@@ -197,26 +374,46 @@ export class EventService {
     const businessAccountId = this._getBusinessId(user);
     return this.eventVenueRepository.findAll(businessAccountId);
   }
-  
-  async getVenueById(id: string, user: AuthenticatedUser): Promise<EventVenue | null> {
-      const businessAccountId = this._getBusinessId(user);
-      return this.eventVenueRepository.findById(id, businessAccountId);
+
+  async getVenueById(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<EventVenue | null> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventVenueRepository.findById(id, businessAccountId);
   }
 
-  async updateVenue(id: string, updateDto: UpdateEventVenueDto, user: AuthenticatedUser): Promise<EventVenue | null> {
-      const businessAccountId = this._getBusinessId(user);
-      return this.eventVenueRepository.update(id, updateDto, businessAccountId);
+  async updateVenue(
+    id: string,
+    updateDto: UpdateEventVenueDto,
+    user: AuthenticatedUser,
+  ): Promise<EventVenue | null> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventVenueRepository.update(id, updateDto, businessAccountId);
   }
 
   async deleteVenue(id: string, user: AuthenticatedUser): Promise<void> {
-      const businessAccountId = this._getBusinessId(user);
-      const success = await this.eventVenueRepository.delete(id, businessAccountId);
-      if (!success) throw new NotFoundException(`Venue with ID ${id} not found.`);
+    const businessAccountId = this._getBusinessId(user);
+    const success = await this.eventVenueRepository.delete(
+      id,
+      businessAccountId,
+    );
+    if (!success) throw new NotFoundException(`Venue with ID ${id} not found.`);
   }
 
-  async createOrganizer(createDto: CreateEventOrganizerDto, user: AuthenticatedUser): Promise<EventOrganizer> {
+  async createOrganizer(
+    createDto: CreateEventOrganizerDto,
+    user: AuthenticatedUser,
+  ): Promise<EventOrganizer> {
     const businessAccountId = this._getBusinessId(user);
-    const organizer = new EventOrganizer(null, businessAccountId, createDto.organizerName, createDto.contactEmail, createDto.contactPhone, createDto.organization);
+    const organizer = new EventOrganizer(
+      null,
+      businessAccountId,
+      createDto.organizerName,
+      createDto.contactEmail,
+      createDto.contactPhone,
+      createDto.organization,
+    );
     return this.eventOrganizerRepository.create(organizer);
   }
 
@@ -224,26 +421,49 @@ export class EventService {
     const businessAccountId = this._getBusinessId(user);
     return this.eventOrganizerRepository.findAll(businessAccountId);
   }
-  
-  async getOrganizerById(id: string, user: AuthenticatedUser): Promise<EventOrganizer | null> {
-      const businessAccountId = this._getBusinessId(user);
-      return this.eventOrganizerRepository.findById(id, businessAccountId);
+
+  async getOrganizerById(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<EventOrganizer | null> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventOrganizerRepository.findById(id, businessAccountId);
   }
 
-  async updateOrganizer(id: string, updateDto: UpdateEventOrganizerDto, user: AuthenticatedUser): Promise<EventOrganizer | null> {
-      const businessAccountId = this._getBusinessId(user);
-      return this.eventOrganizerRepository.update(id, updateDto, businessAccountId);
+  async updateOrganizer(
+    id: string,
+    updateDto: UpdateEventOrganizerDto,
+    user: AuthenticatedUser,
+  ): Promise<EventOrganizer | null> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventOrganizerRepository.update(
+      id,
+      updateDto,
+      businessAccountId,
+    );
   }
 
   async deleteOrganizer(id: string, user: AuthenticatedUser): Promise<void> {
-      const businessAccountId = this._getBusinessId(user);
-      const success = await this.eventOrganizerRepository.delete(id, businessAccountId);
-      if (!success) throw new NotFoundException(`Organizer with ID ${id} not found.`);
+    const businessAccountId = this._getBusinessId(user);
+    const success = await this.eventOrganizerRepository.delete(
+      id,
+      businessAccountId,
+    );
+    if (!success)
+      throw new NotFoundException(`Organizer with ID ${id} not found.`);
   }
 
-  async createCategory(createDto: CreateEventCategoryDto, user: AuthenticatedUser): Promise<EventCategory> {
+  async createCategory(
+    createDto: CreateEventCategoryDto,
+    user: AuthenticatedUser,
+  ): Promise<EventCategory> {
     const businessAccountId = this._getBusinessId(user);
-    const category = new EventCategory(null, businessAccountId, createDto.categoryName, createDto.description);
+    const category = new EventCategory(
+      null,
+      businessAccountId,
+      createDto.categoryName,
+      createDto.description,
+    );
     return this.eventCategoryRepository.create(category);
   }
 
@@ -251,36 +471,60 @@ export class EventService {
     const businessAccountId = this._getBusinessId(user);
     return this.eventCategoryRepository.findAll(businessAccountId);
   }
-  
-  async getCategoryById(id: string, user: AuthenticatedUser): Promise<EventCategory | null> {
-      const businessAccountId = this._getBusinessId(user);
-      return this.eventCategoryRepository.findById(id, businessAccountId);
+
+  async getCategoryById(
+    id: string,
+    user: AuthenticatedUser,
+  ): Promise<EventCategory | null> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventCategoryRepository.findById(id, businessAccountId);
   }
 
-  async updateCategory(id: string, updateDto: UpdateEventCategoryDto, user: AuthenticatedUser): Promise<EventCategory | null> {
-      const businessAccountId = this._getBusinessId(user);
-      return this.eventCategoryRepository.update(id, updateDto, businessAccountId);
+  async updateCategory(
+    id: string,
+    updateDto: UpdateEventCategoryDto,
+    user: AuthenticatedUser,
+  ): Promise<EventCategory | null> {
+    const businessAccountId = this._getBusinessId(user);
+    return this.eventCategoryRepository.update(
+      id,
+      updateDto,
+      businessAccountId,
+    );
   }
 
   async deleteCategory(id: string, user: AuthenticatedUser): Promise<void> {
-      const businessAccountId = this._getBusinessId(user);
-      const success = await this.eventCategoryRepository.delete(id, businessAccountId);
-      if (!success) throw new NotFoundException(`Category with ID ${id} not found.`);
+    const businessAccountId = this._getBusinessId(user);
+    const success = await this.eventCategoryRepository.delete(
+      id,
+      businessAccountId,
+    );
+    if (!success)
+      throw new NotFoundException(`Category with ID ${id} not found.`);
   }
 
-  async createRsvp(createRsvpDto: CreateEventRsvpDto, user: AuthenticatedUser): Promise<EventRsvp> {
+  async createRsvp(
+    createRsvpDto: CreateEventRsvpDto,
+    user: AuthenticatedUser,
+  ): Promise<EventRsvp> {
     console.log('--- Starting createRsvp ---');
     console.log('Incoming DTO:', createRsvpDto);
 
-    const event = await this.eventRepository.findPublicById(createRsvpDto.eventId);
+    const event = await this.eventRepository.findPublicById(
+      createRsvpDto.eventId,
+    );
     if (!event) {
       console.error('Event not found!');
       throw new NotFoundException('Event not found');
     }
-    console.log('Found Event:', { id: event.id, maxAttendees: event.maxAttendees });
+    console.log('Found Event:', {
+      id: event.id,
+      maxAttendees: event.maxAttendees,
+    });
 
     // Capacity Check
-    const currentBookedGuests = await this.eventRsvpRepository.getTotalGuestCountForEvent(event.id!);
+    const currentBookedGuests =
+      await this.eventRsvpRepository.getTotalGuestCountForEvent(event.id!);
     const availableCapacity = event.maxAttendees - currentBookedGuests;
 
     if (createRsvpDto.guestCount <= 0) {
@@ -288,7 +532,9 @@ export class EventService {
     }
 
     if (createRsvpDto.guestCount > availableCapacity) {
-      throw new BadRequestException(`Not enough tickets available. Only ${availableCapacity} tickets remaining.`);
+      throw new BadRequestException(
+        `Not enough tickets available. Only ${availableCapacity} tickets remaining.`,
+      );
     }
 
     const eventRsvp = new EventRsvp(
@@ -308,9 +554,12 @@ export class EventService {
   }
 
   async deleteRsvp(id: string, user: AuthenticatedUser): Promise<void> {
-      const businessAccountId = this._getBusinessId(user);
-      const success = await this.eventRsvpRepository.delete(id, businessAccountId);
-      if (!success) throw new NotFoundException(`RSVP with ID ${id} not found.`);
+    const businessAccountId = this._getBusinessId(user);
+    const success = await this.eventRsvpRepository.delete(
+      id,
+      businessAccountId,
+    );
+    if (!success) throw new NotFoundException(`RSVP with ID ${id} not found.`);
   }
 
   // =================================================================
@@ -321,16 +570,21 @@ export class EventService {
     return this.eventHashtagRepository.findAll();
   }
 
-  async createHashtag(createHashtagDto: CreateEventHashtagDto): Promise<EventHashtag> {
+  async createHashtag(
+    createHashtagDto: CreateEventHashtagDto,
+  ): Promise<EventHashtag> {
     const eventHashtag = new EventHashtag(null, createHashtagDto.hashtagName);
     return this.eventHashtagRepository.create(eventHashtag);
   }
-  
+
   async getHashtagById(id: string): Promise<EventHashtag | null> {
     return this.eventHashtagRepository.findById(id);
   }
 
-  async updateHashtag(id: string, updateDto: UpdateEventHashtagDto): Promise<EventHashtag | null> {
+  async updateHashtag(
+    id: string,
+    updateDto: UpdateEventHashtagDto,
+  ): Promise<EventHashtag | null> {
     const existingHashtag = await this.eventHashtagRepository.findById(id);
     if (!existingHashtag) {
       throw new NotFoundException(`Hashtag with ID ${id} not found`);
@@ -341,10 +595,14 @@ export class EventService {
 
   async deleteHashtag(id: string): Promise<void> {
     const success = await this.eventHashtagRepository.delete(id);
-    if (!success) throw new NotFoundException(`Hashtag with ID ${id} not found.`);
+    if (!success)
+      throw new NotFoundException(`Hashtag with ID ${id} not found.`);
   }
-  
-  async getEventHashtagMappings(eventId: string, user: AuthenticatedUser): Promise<EventHashtagMapping[]> {
+
+  async getEventHashtagMappings(
+    eventId: string,
+    user: AuthenticatedUser,
+  ): Promise<EventHashtagMapping[]> {
     // First, ensure the event exists and belongs to the authenticated business
     await this.findEventById(eventId, user);
     return this.eventHashtagMappingRepository.findByEventId(eventId);

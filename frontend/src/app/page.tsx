@@ -1,46 +1,32 @@
 'use client'
 import { useAuth } from "@clerk/nextjs";
+import HomePage from "@frontend/components/common/traveller/home/HomePage";
+
 import { setClerkGetTokenFunc } from "@frontend/store/api/rootApiSlice";
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 
-export default function Home() {
-  const [isClient, setIsClient] = useState(false);
+
+function AuthSetup() {
   const { getToken } = useAuth();
-
-
+  console.log("🚀 ~ AuthSetup ~ getToken:")
   useEffect(() => {
-    setIsClient(true);
-    console.log('setting clerk set token func')
-    setClerkGetTokenFunc(getToken);
+    setClerkGetTokenFunc(() => getToken());
   }, [getToken]);
 
-  if (!isClient) {
-    return (
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-sm">AI</span>
-          </div>
-          <p className="text-muted-foreground">Loading Travel Planner...</p>
-        </div>
-      </div>
-    );
-  }
+  return null;
+}
+export default function Home() {
+
+
+
+
+
 
   return (
-    <React.Suspense fallback={
-      <div className="h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary-glow rounded-lg flex items-center justify-center mx-auto mb-4">
-            <span className="text-primary-foreground font-bold text-sm">AI</span>
-          </div>
-          <p className="text-muted-foreground">Loading Travel Planner...</p>
-        </div>
-      </div>
-    }>
-      {React.createElement(
-        React.lazy(() => import("@frontend/features/itinerary/components/TravelChatbot"))
-      )}
-    </React.Suspense>
+    <div>
+      <AuthSetup />
+      <HomePage />
+    </div>
+
   );
 }

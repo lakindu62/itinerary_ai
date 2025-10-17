@@ -1,7 +1,8 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 
-export type EventVenueDocument = EventVenue & Document & { _id: Types.ObjectId };
+export type EventVenueDocument = EventVenue &
+  Document & { _id: Types.ObjectId };
 
 @Schema({
   timestamps: true,
@@ -28,6 +29,9 @@ export class EventVenue {
 
   @Prop()
   country: string;
+
+  @Prop()
+  coordinates: [number, number];
 
   @Prop()
   capacity: number;

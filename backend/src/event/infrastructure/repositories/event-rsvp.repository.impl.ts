@@ -51,6 +51,7 @@ export class EventRsvpRepositoryImpl extends EventRsvpRepository {
       doc.userId,
       doc.rsvpStatus,
       doc.guestCount,
+      doc.createdAt, // Pass createdAt
     );
   }
 

@@ -1,12 +1,41 @@
-import { Controller, Post, Get, Body, Param, Patch, Delete, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Patch,
+  Delete,
+  Query,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { EventService } from '../../application/services/event.service';
-import { CreateEventDto, UpdateEventDto } from '../../application/dtos/create-event.dto';
-import { CreateEventRsvpDto, UpdateEventRsvpDto } from '../../application/dtos/create-event-rsvp.dto';
-import { CreateEventHashtagDto, UpdateEventHashtagDto } from '../../application/dtos/create-event-hashtag.dto';
-import { CreateEventCategoryDto, UpdateEventCategoryDto } from '../../application/dtos/create-event-category.dto';
-import { CreateEventOrganizerDto, UpdateEventOrganizerDto } from '../../application/dtos/create-event-organizer.dto';
-import { CreateEventVenueDto, UpdateEventVenueDto } from '../../application/dtos/create-event-venue.dto';
+import {
+  CreateEventDto,
+  UpdateEventDto,
+} from '../../application/dtos/create-event.dto';
+import {
+  CreateEventRsvpDto,
+  UpdateEventRsvpDto,
+} from '../../application/dtos/create-event-rsvp.dto';
+import {
+  CreateEventHashtagDto,
+  UpdateEventHashtagDto,
+} from '../../application/dtos/create-event-hashtag.dto';
+import {
+  CreateEventCategoryDto,
+  UpdateEventCategoryDto,
+} from '../../application/dtos/create-event-category.dto';
+import {
+  CreateEventOrganizerDto,
+  UpdateEventOrganizerDto,
+} from '../../application/dtos/create-event-organizer.dto';
+import {
+  CreateEventVenueDto,
+  UpdateEventVenueDto,
+} from '../../application/dtos/create-event-venue.dto';
 import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
 import { AuthenticatedUser } from '@shared/types/user-management';
 
@@ -27,18 +56,34 @@ export class EventController {
 
   // ================= BUSINESS-SCOPED ROUTES =================
 
+  //analytics
+  @UseGuards(ClerkAuthGuard)
+  @Get('analytics')
+  getAnalytics(@Req() req: Request) {
+    return this.eventService.getAnalytics(req.user as AuthenticatedUser);
+  }
+
   // --- Hashtag Mapping (Specific route, must be before generic :id) ---
   @UseGuards(ClerkAuthGuard)
   @Get('/hashtag-mapping')
-  getEventHashtagMappings(@Query('eventId') eventId: string, @Req() req: Request) {
-    return this.eventService.getEventHashtagMappings(eventId, req.user as AuthenticatedUser);
+  getEventHashtagMappings(
+    @Query('eventId') eventId: string,
+    @Req() req: Request,
+  ) {
+    return this.eventService.getEventHashtagMappings(
+      eventId,
+      req.user as AuthenticatedUser,
+    );
   }
 
   // --- Full Event CRUD ---
   @UseGuards(ClerkAuthGuard)
   @Post()
   createEvent(@Body() createDto: CreateEventDto, @Req() req: Request) {
-    return this.eventService.createEvent(createDto, req.user as AuthenticatedUser);
+    return this.eventService.createEvent(
+      createDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -55,8 +100,16 @@ export class EventController {
 
   @UseGuards(ClerkAuthGuard)
   @Patch(':id')
-  updateEvent(@Param('id') id: string, @Body() updateDto: UpdateEventDto, @Req() req: Request) {
-    return this.eventService.updateEvent(id, updateDto, req.user as AuthenticatedUser);
+  updateEvent(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateEventDto,
+    @Req() req: Request,
+  ) {
+    return this.eventService.updateEvent(
+      id,
+      updateDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -69,7 +122,10 @@ export class EventController {
   @UseGuards(ClerkAuthGuard)
   @Post('venue')
   createVenue(@Body() createDto: CreateEventVenueDto, @Req() req: Request) {
-    return this.eventService.createVenue(createDto, req.user as AuthenticatedUser);
+    return this.eventService.createVenue(
+      createDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -77,7 +133,7 @@ export class EventController {
   getVenues(@Req() req: Request) {
     return this.eventService.getVenues(req.user as AuthenticatedUser);
   }
-  
+
   @UseGuards(ClerkAuthGuard)
   @Get('venue/:id')
   getVenueById(@Param('id') id: string, @Req() req: Request) {
@@ -86,8 +142,16 @@ export class EventController {
 
   @UseGuards(ClerkAuthGuard)
   @Patch('venue/:id')
-  updateVenue(@Param('id') id: string, @Body() updateDto: UpdateEventVenueDto, @Req() req: Request) {
-    return this.eventService.updateVenue(id, updateDto, req.user as AuthenticatedUser);
+  updateVenue(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateEventVenueDto,
+    @Req() req: Request,
+  ) {
+    return this.eventService.updateVenue(
+      id,
+      updateDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -99,8 +163,14 @@ export class EventController {
   // --- Organizer CRUD ---
   @UseGuards(ClerkAuthGuard)
   @Post('organizer')
-  createOrganizer(@Body() createDto: CreateEventOrganizerDto, @Req() req: Request) {
-    return this.eventService.createOrganizer(createDto, req.user as AuthenticatedUser);
+  createOrganizer(
+    @Body() createDto: CreateEventOrganizerDto,
+    @Req() req: Request,
+  ) {
+    return this.eventService.createOrganizer(
+      createDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -112,13 +182,24 @@ export class EventController {
   @UseGuards(ClerkAuthGuard)
   @Get('organizer/:id')
   getOrganizerById(@Param('id') id: string, @Req() req: Request) {
-    return this.eventService.getOrganizerById(id, req.user as AuthenticatedUser);
+    return this.eventService.getOrganizerById(
+      id,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
   @Patch('organizer/:id')
-  updateOrganizer(@Param('id') id: string, @Body() updateDto: UpdateEventOrganizerDto, @Req() req: Request) {
-    return this.eventService.updateOrganizer(id, updateDto, req.user as AuthenticatedUser);
+  updateOrganizer(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateEventOrganizerDto,
+    @Req() req: Request,
+  ) {
+    return this.eventService.updateOrganizer(
+      id,
+      updateDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -130,8 +211,14 @@ export class EventController {
   // --- Category CRUD ---
   @UseGuards(ClerkAuthGuard)
   @Post('category')
-  createCategory(@Body() createDto: CreateEventCategoryDto, @Req() req: Request) {
-    return this.eventService.createCategory(createDto, req.user as AuthenticatedUser);
+  createCategory(
+    @Body() createDto: CreateEventCategoryDto,
+    @Req() req: Request,
+  ) {
+    return this.eventService.createCategory(
+      createDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -148,8 +235,16 @@ export class EventController {
 
   @UseGuards(ClerkAuthGuard)
   @Patch('category/:id')
-  updateCategory(@Param('id') id: string, @Body() updateDto: UpdateEventCategoryDto, @Req() req: Request) {
-    return this.eventService.updateCategory(id, updateDto, req.user as AuthenticatedUser);
+  updateCategory(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateEventCategoryDto,
+    @Req() req: Request,
+  ) {
+    return this.eventService.updateCategory(
+      id,
+      updateDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -162,7 +257,10 @@ export class EventController {
   @UseGuards(ClerkAuthGuard)
   @Post('rsvp')
   createRsvp(@Body() createRsvpDto: CreateEventRsvpDto, @Req() req: Request) {
-    return this.eventService.createRsvp(createRsvpDto, req.user as AuthenticatedUser);
+    return this.eventService.createRsvp(
+      createRsvpDto,
+      req.user as AuthenticatedUser,
+    );
   }
 
   @UseGuards(ClerkAuthGuard)
@@ -187,14 +285,17 @@ export class EventController {
   createHashtag(@Body() createHashtagDto: CreateEventHashtagDto) {
     return this.eventService.createHashtag(createHashtagDto);
   }
-  
+
   @Get('hashtag/:id')
   getHashtagById(@Param('id') id: string) {
     return this.eventService.getHashtagById(id);
   }
 
   @Patch('hashtag/:id')
-  updateHashtag(@Param('id') id: string, @Body() updateDto: UpdateEventHashtagDto) {
+  updateHashtag(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateEventHashtagDto,
+  ) {
     return this.eventService.updateHashtag(id, updateDto);
   }
 

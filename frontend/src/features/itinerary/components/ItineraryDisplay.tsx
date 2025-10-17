@@ -3,7 +3,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Clock, Calendar, ChevronDown, ChevronUp, DollarSign, Users } from 'lucide-react';
+import { MapPin, Clock, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { ActivityDto, ConversationContextDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 
@@ -58,9 +58,9 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
   };
 
   return (
-    <ScrollArea className="flex-1 h-full">
-      <div className="h-full flex flex-col bg-card">
-        <div className="p-4 border-b">
+    <ScrollArea className="flex-1 h-full  ">
+      <div className="h-full flex flex-col bg-card border-none">
+        <div className="p-4 ">
           <div className="flex items-center space-x-2 mb-2">
             <Calendar className="w-4 h-4 text-primary" />
             <h2 className="font-semibold">{itinerary.title}</h2>
@@ -81,12 +81,12 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
         <div className="p-4 space-y-4">
           {/* Accommodation */}
           {itinerary.accommodation && (
-            <Card className="p-3 bg-blue-50/50">
-              <h4 className="font-medium text-sm text-gray-800 mb-1 flex items-center">
+            <Card className="p-3 bg-blue-950">
+              <h4 className="font-medium text-sm text-gray-300 mb-1 flex items-center">
                 <MapPin className="w-3 h-3 mr-1" />
                 Accommodation
               </h4>
-              <p className="text-xs text-gray-600">{itinerary.accommodation}</p>
+              <p className="text-xs text-gray-400">{itinerary.accommodation}</p>
             </Card>
           )}
 
