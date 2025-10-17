@@ -1,0 +1,67 @@
+[
+  {
+    "id": "business-1759769563020",
+    "businessName": "New Lake Resturnat",
+    "ownerId": "user_33dsdpbgNpFqQyoayF6JTvhwMTy",
+    "description": "ghdgjdjdjd",
+    "category": "Resturant",
+    "location": "Chillaw",
+    "coverImage": "",
+    "sliderImages": [],
+    "menuItems": [],
+    "posts": [],
+    "reels": [],
+    "reviews": [],
+    "ratings": [
+      {
+        "type": "rating",
+        "customerName": "yttdduduu",
+        "customerEmail": "tds@gmail.com",
+        "rating": 5,
+        "title": "efefasfasf",
+        "comment": "asfasfasfasfsaf",
+        "category": "Overall Experience",
+        "isApproved": true,
+        "isPublic": true,
+        "helpful": 0,
+        "id": "1759770214756",
+        "createdAt": "2025-10-06T17:03:34.756Z",
+        "updatedAt": "2025-10-06T17:04:07.878Z"
+      }
+    ],
+    "updatedAt": "2025-10-06T18:16:24.757Z",
+    "type": "menu",
+    "isAvailable": false
+  },
+  {
+    "id": "business-1760125611356",
+    "businessName": "Business 2",
+    "ownerId": "user_123",
+    "description": "",
+    "category": "Overall Experience",
+    "location": "",
+    "coverImage": "",
+    "sliderImages": [],
+    "menuItems": [],
+    "posts": [],
+    "reels": [],
+    "reviews": [],
+    "ratings": [
+      {
+        "type": "rating",
+        "customerName": "sarada",
+        "customerEmail": "ed@sd",
+        "rating": 5,
+        "title": "dea",
+        "comment": "deae",
+        "category": "Overall Experience",
+        "isApproved": false,
+        "isPublic": true,
+        "helpful": 0,
+        "id": "1760125611356",
+        "createdAt": "2025-10-10T19:46:51.356Z",
+        "updatedAt": "2025-10-10T19:46:51.356Z"
+      }
+    ]
+  }
+]

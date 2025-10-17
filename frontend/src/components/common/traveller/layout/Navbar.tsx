@@ -9,11 +9,12 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useState } from "react";
 import AuthModal from "../auth/AuthModal";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { useAuth } from "@/hooks/useAuth";
 import { ObjectId } from "bson";
 // import { currentUser } from "@clerk/nextjs/server";
 
 function Navbar() {
-
+    const { isBusinessUser, isLoaded } = useAuth();
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
     const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
     const [authMode, setAuthMode] = useState<'sign-in' | 'sign-up'>('sign-in');
@@ -57,6 +58,20 @@ function Navbar() {
                                 <span className="hidden lg:inline">Home</span>
                             </Link>
                         </Button>
+
+                        {/* Business Dashboard Button - Only show for business users */}
+                        <SignedIn>
+                            {isLoaded && isBusinessUser && (
+                                <Button variant="outline" className="flex items-center gap-2" asChild>
+                                    <Link href="/business-dashboard">
+                                        <Users className="w-4 h-4" />
+                                        <span className="hidden lg:inline">Seller Dashboard</span>
+                                    </Link>
+                                </Button>
+                            )}
+                        </SignedIn>
+
+
 
                         <Button variant="ghost" className="flex items-center gap-2" asChild>
                             <Link href="/notifications">

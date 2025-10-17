@@ -1,0 +1,33 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { BusinessMediaMongoRepository } from '../../infrastructure/repositories/business-media.mongo.repository';
+import { BusinessMedia } from '../../domain/entities/business-media.entity';
+import { MediaType } from '../../application/dtos/create-media.dto';
+
+@Injectable()
+export class MediaService {
+  constructor(
+    private readonly businessMediaRepository: BusinessMediaMongoRepository,
+  ) {}
+
+  async createMedia(data: Partial<BusinessMedia>): Promise<BusinessMedia> {
+    return await this.businessMediaRepository.create(data);
+  }
+
+  async getMediaByType(businessProfileId: string, type: MediaType): Promise<BusinessMedia[]> {
+    const allMedia = await this.businessMediaRepository.findByBusinessId(businessProfileId);
+    return allMedia.filter(media => media.type === type);
+  }
+
+  async getMediaById(id: string): Promise<BusinessMedia> {
+    const media = await this.businessMediaRepository.findById(id);
+    if (!media) {
+      throw new NotFoundException('Media not found');
+    }
+    return media;
+  }
+
+  async deleteMedia(id: string): Promise<void> {
+    await this.getMediaById(id); // Verify it exists
+    await this.businessMediaRepository.delete(id);
+  }
+}
