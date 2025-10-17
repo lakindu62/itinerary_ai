@@ -110,6 +110,7 @@ export class AiItineraryResponseMapper {
     );
 
     return new Itinerary(
+      'will be added',
       aiResponse.title,
       aiResponse.summary,
       days,

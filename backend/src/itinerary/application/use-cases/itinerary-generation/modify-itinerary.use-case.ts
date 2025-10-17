@@ -70,6 +70,7 @@ export class ModifyItineraryUseCase {
 
       const itineraryData = parseModelJson(result.content) as Itinerary;
       const itinerary = new Itinerary(
+        'will be added',
         itineraryData.title,
         itineraryData.summary,
         itineraryData.days,

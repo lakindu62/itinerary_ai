@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@frontend/components/ui/resizable';
 import ItineraryDisplay from './ItineraryDisplay';
 import MapComponent from './MapComponent';
-import { ActivityDto, ItineraryDto, ConversationContextDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { ActivityDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { useGetPublicItineraryBySlugQuery } from '../api/itinerary.api';
 
 interface ItineraryViewerProps {
@@ -37,14 +37,14 @@ const ItineraryViewer: React.FC<ItineraryViewerProps> = ({
     }, []);
     if (isLoading) return <div>Loading itinerary...</div>;
     if (error) return <div>Error loading itinerary.</div>;
-    if (!itinerary) return <div>No itinerary found for slug: {slug}</div>;
+    if (!itinerary) return <div>No itinerary found for slug: {itinerarySlug}</div>;
     return (
-        <div className={`h-full bg-card pt-20`}>
-            <div className="h-full rounded-[30px]">
-                <ResizablePanelGroup className='border rounded-[30px]' direction="horizontal">
+        <div className={`h-full bg-card pt-2 rounded-t-3xl`}>
+            <div className="h-full bg-card rounded-[30px]">
+                <ResizablePanelGroup className='border bg-background  rounded-[30px]' direction="horizontal">
                     {/* Itinerary Panel */}
                     <ResizablePanel defaultSize={50} minSize={25}>
-                        <div className="flex-1 h-full" style={{ minHeight: '300px' }}>
+                        <div className="flex-1  bg-card h-full" style={{ minHeight: '300px' }}>
                             <ItineraryDisplay
                                 itinerary={itinerary!}
                                 context={undefined}

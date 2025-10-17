@@ -260,3 +260,9 @@ export const createRsvp = async (rsvpData: { eventId: string; guestCount: number
     }
     return response.json();
 };
+
+export const getBusinessAnalytics = async (getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch('/events/analytics', getToken);
+    if (!response.ok) throw new Error('Failed to fetch analytics data');
+    return response.json();
+};

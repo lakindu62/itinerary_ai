@@ -28,7 +28,7 @@ function Navbar() {
     const id = new ObjectId().toString()
     return (
 
-        <nav className="sticky px-4 py-4 top-0   h-fit   w-full  border-b  backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 bg-slate-800/10 no-underline group cursor-pointer  shadow-2xl shadow-zinc-900 rounded-b-full p-px text-sm font-semibold leading-6 text-white inline-block">
+        <nav className="sticky px-4 py-4 top-0   h-fit   w-full  dark:border-b  backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 bg-slate-800/10 no-underline group cursor-pointer   dark:shadow-2xl dark:shadow-zinc-900 rounded-b-full p-px text-sm font-semibold leading-6 text-white inline-block">
             <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-blue-400/0 via-blue-600/90 to-blue-400/0 transition-opacity duration-500 group-hover:opacity-40" />
             <div className="max-w-7xl mx-auto ">
                 <div className="flex items-center justify-between ">
@@ -51,20 +51,32 @@ function Navbar() {
                     <div className="hidden md:flex items-center space-x-4">
                         <ModeToggle />
 
-                        <Button variant="ghost" className="flex items-center gap-2" asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800"
+                            asChild
+                        >
                             <Link href="/">
                                 <HomeIcon className="w-4 h-4" />
                                 <span className="hidden lg:inline">Home</span>
                             </Link>
                         </Button>
 
-                        <Button variant="ghost" className="flex items-center gap-2" asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800"
+                            asChild
+                        >
                             <Link href="/notifications">
                                 <BellIcon className="w-4 h-4" />
                                 <span className="hidden lg:inline">Notifications</span>
                             </Link>
                         </Button>
-                        <Button variant="ghost" className="flex items-center gap-2" asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-800"
+                            asChild
+                        >
                             <Link href="/social">
                                 <Users className="w-4 h-4" />
                                 <span className="hidden lg:inline">Social</span>
