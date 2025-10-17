@@ -75,22 +75,6 @@ export class UserRepositoryImpl extends UserRepository {
       throw error;
     }
   }
-
-  async findAll(): Promise<User[]> {
-    this.logger.debug(`[UserRepositoryImpl.findAll] Finding all users`);
-
-    try {
-      const userDocs = await this.userModel.find().exec();
-      return userDocs.map((doc) => this.toDomain(doc));
-    } catch (error) {
-      this.logger.error(
-        `[UserRepositoryImpl.findAll] Failed to find all users`,
-        error.stack,
-      );
-      throw error;
-    }
-  }
-
   private toDomain(userDoc: UserDocument): User {
     return new User(
       userDoc._id.toString(),

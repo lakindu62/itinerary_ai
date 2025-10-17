@@ -6,7 +6,6 @@ export abstract class UserRepository {
   abstract update(id: string, updates: Partial<User>): Promise<User>;
   abstract findById(id: string): Promise<User | null>;
   abstract findByIds(ids: string[]): Promise<User[]>;
-  abstract findAll(): Promise<User[]>;
   //   abstract findByClerkUserId(clerkUserId: string): Promise<User | null>;
   //   abstract findByEmail(email: string): Promise<User | null>;
   //   abstract findByBusinessAccount(businessAccountId: string): Promise<User[]>;

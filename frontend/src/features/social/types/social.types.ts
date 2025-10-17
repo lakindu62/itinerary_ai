@@ -1,7 +1,6 @@
 // User profile type for Sidebar and CreatePost
 export type UserProfile = {
   _id: string;
-  id?: string; // Added for API compatibility (backend returns 'id' instead of '_id')
   clerkUserId: string;
   email: string;
   firstName: string;
@@ -63,7 +62,6 @@ export type Post = {
   mediaFiles?: string[];
   userInfo?: PostUserInfo; // User details from backend
   isOwner?: boolean; // Whether current user owns this post
-  isArchived?: boolean; // Whether post is archived (private to owner)
 };
 
 export interface PostCardProps {
@@ -82,10 +80,8 @@ export interface PostHeaderProps {
   currentUserId?: string; // Optional since we use post.isOwner now
   onEdit: () => void;
   onDelete: () => void;
-  onToggleArchive?: () => void; // Toggle archive status
   isDeleting: boolean;
   isEditing: boolean;
-  isTogglingArchive?: boolean; // Loading state for archive toggle
 }
 
 export interface PostContentProps {
