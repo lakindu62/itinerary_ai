@@ -40,16 +40,28 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
         <CardContent className={compact ? "p-2" : "p-3"}>
           <div className="flex items-center gap-3">
             {/* Avatar - smaller in compact mode */}
-            <Avatar className={compact ? "w-10 h-10 border-2" : "w-12 h-12 border-2"}>
+            <Avatar
+              className={compact ? "w-10 h-10 border-2" : "w-12 h-12 border-2"}
+            >
               {profilePic ? (
                 <AvatarImage src={profilePic} alt={name} />
               ) : (
-                <UserIcon className={compact ? "w-10 h-10 text-muted-foreground" : "w-12 h-12 text-muted-foreground"} />
+                <UserIcon
+                  className={
+                    compact
+                      ? "w-10 h-10 text-muted-foreground"
+                      : "w-12 h-12 text-muted-foreground"
+                  }
+                />
               )}
             </Avatar>
 
             {/* User Info - max-w to force truncation in compact mode */}
-            <div className={compact ? "flex-1 min-w-0 max-w-[120px]" : "flex-1 min-w-0"}>
+            <div
+              className={
+                compact ? "flex-1 min-w-0 max-w-[120px]" : "flex-1 min-w-0"
+              }
+            >
               <h4 className="font-medium text-sm truncate">{name}</h4>
               <p className="text-xs text-muted-foreground truncate">{bio}</p>
             </div>
