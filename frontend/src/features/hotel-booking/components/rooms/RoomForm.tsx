@@ -181,13 +181,13 @@ export default function RoomForm({ selectedHotelId, room, onSuccess, onCancel }:
             </div>
           )}
           
-          <div className="flex items-center space-x-2 text-xs text-gray-500">
+          {/* <div className="flex items-center space-x-2 text-xs text-gray-500">
             <span>👤 User: NadPerz</span>
             <span>•</span>
             <span>📅 {new Date().toLocaleDateString()}</span>
             <span>•</span>
             <span>💾 Images stored in room-bucket</span>
-          </div>
+          </div> */}
         </div>
       </CardHeader>
       

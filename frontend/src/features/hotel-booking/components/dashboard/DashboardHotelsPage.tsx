@@ -132,7 +132,7 @@ const handleViewDetails = (hotel: Hotel) => {
 
       {/* Create/Edit Hotel Form Modal */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <HotelForm
               hotel={editingHotel}

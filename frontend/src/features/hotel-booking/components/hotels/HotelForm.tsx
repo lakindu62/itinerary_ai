@@ -157,9 +157,9 @@ export default function HotelForm({ hotel, onSuccess, onCancel }: HotelFormProps
             : 'Fill in the details to add a new hotel property'
           }
         </p>
-        <p className="text-xs text-blue-600">
+        {/* <p className="text-xs text-blue-600">
           📦 Images will be stored in hotel-bucket/images/hotels_NadPerz_timestamp_filename
-        </p>
+        </p> */}
       </CardHeader>
       
       <CardContent>

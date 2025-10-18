@@ -19,14 +19,14 @@ export default function HotelDetailPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
+      {/* <div className="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
         <h2 className="font-bold text-yellow-800">DEBUG INFO:</h2>
         <p className="text-yellow-700">Hotel ID: {hotelId}</p>
         <p className="text-yellow-700">Page: Hotel Details (should NOT be room creation)</p>
         <p className="text-yellow-700">Hotel Loading: {isLoading ? 'Yes' : 'No'}</p>
         <p className="text-yellow-700">Hotel Found: {hotel ? 'Yes' : 'No'}</p>
       </div>
-      
+       */}
       <HotelDetailsPage 
         hotel={hotel} 
         isLoading={isLoading} 

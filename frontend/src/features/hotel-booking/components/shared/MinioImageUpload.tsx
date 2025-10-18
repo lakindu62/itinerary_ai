@@ -150,9 +150,9 @@ export default function MinioImageUpload({
                     Click to upload or drag and drop
                   </p>
                   <p className="text-xs text-gray-400">PNG, JPG up to 5MB</p>
-                  <p className="text-xs text-blue-500 mt-1">
+                  {/* <p className="text-xs text-blue-500 mt-1">
                     📦 Minio: {bucket}/{folder}
-                  </p>
+                  </p> */}
                 </>
               )}
             </div>
