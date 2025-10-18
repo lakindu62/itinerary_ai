@@ -9,6 +9,7 @@ import {
   ItineraryVisibilityDto,
 } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { mapItineraryToDto } from '../mappers/itinerary-dto.mapper';
+import { UpdateActivityBudgetDto } from '../dtos/update-activity-budget.dto';
 
 @Injectable()
 export class ItineraryService {
@@ -70,5 +71,26 @@ export class ItineraryService {
     const itinerary = await this.itineraryRepository.findByShareToken(token);
     if (!itinerary) throw new NotFoundException('Itinerary not found');
     return mapItineraryToDto(itinerary);
+  }
+
+  async updateActivityBudget(
+    userId: string,
+    itineraryId: string,
+    activityId: string,
+    budgetData: UpdateActivityBudgetDto,
+  ): Promise<ItineraryDto> {
+    const itinerary = await this.itineraryRepository.findById(itineraryId);
+    if (!itinerary) throw new NotFoundException('Itinerary not found');
+    if (itinerary.user.toString() !== userId.toString())
+      throw new ForbiddenException();
+
+    const updatedItinerary =
+      await this.itineraryRepository.updateActivityBudget(
+        itineraryId,
+        activityId,
+        budgetData,
+      );
+
+    return mapItineraryToDto(updatedItinerary);
   }
 }

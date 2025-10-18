@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MapPin, Calendar, Download, Share2 } from 'lucide-react';
+import { generatePdf } from '@/lib/pdf';
+import { ItineraryPDFTemplate } from '@/components/pdf/templates/ItineraryPDFTemplate';
 
 
 import { ActivityDto, ConversationContextDto, isEventActivity, isHotelActivity, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
@@ -17,15 +19,13 @@ interface ItineraryDisplayProps {
   context?: ConversationContextDto;
   onPlaceSelect: (activity: ActivityDto | null) => void;
   selectedPlace: ActivityDto | null;
-  mapPanelWidth?: number;
 }
 
 const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
   itinerary,
   context,
   onPlaceSelect,
-  selectedPlace,
-  mapPanelWidth
+  selectedPlace
 }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   // Remove expandedDays, setExpandedDays, toggleDayExpansion
@@ -64,8 +64,23 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      const fileName = (itinerary.title || 'itinerary')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+      await generatePdf(
+        <ItineraryPDFTemplate data={itinerary} />,
+        { fileName }
+      );
+    } catch {
+      // silently fail per requirements (no toast)
+    }
+  };
+
   return (
-    <ScrollArea ref={containerRef} className="flex-1 h-full relative ">
+    <ScrollArea ref={containerRef} className="flex-1 h-[calc(100vh-130px)] relative ">
       <div className="h-full flex flex-col bg-background border-none">
         <div className="p-4 border  m-4 pt-4 pb-10 pl-6 pr-4 rounded-3xl">
           <div className='flex justify-between '>
@@ -75,10 +90,10 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
               <Button onClick={handleShare} disabled={isSharing} className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Share">
                 <Share2 className="w-5 h-5" />
               </Button>
-              <Button className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Download">
+              <Button onClick={handleDownload} className='bg-black/5 dark:bg-white/5' size="icon" variant="ghost" aria-label="Download">
                 <Download className="w-5 h-5" />
               </Button>
-              <ItinerarySettings itineraryId={itinerary.id!} visibility={itinerary.visibility} />
+              <ItinerarySettings itineraryId={itinerary.id!} visibility={(itinerary as unknown as { visibility?: string }).visibility} />
             </div>
           </div>
           <div className="flex items-center space-x-2 mb-2">
@@ -149,15 +164,15 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
                         onClick={() => handleActivityClick(activity, day.dayNumber, activityIndex)}
                       >
                         <div className="flex items-start space-x-3">
-                          {(isHotelActivity(activity) || isEventActivity(activity)) && (
+                          {(isHotelActivity(activity)) && (
                             <div className="flex-shrink-0 mt-1">
-                              <Image
+                              {activity.additionalDetails.imageUrl && <Image
                                 className="rounded-lg"
                                 width={100}
                                 height={100}
                                 alt={activity.name || 'activity image'}
                                 src={activity.additionalDetails.imageUrl || '/images/placeholder.svg'}
-                              />
+                              />}
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
@@ -230,7 +245,13 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({
           isSheetOpen={isSheetOpen}
           setIsSheetOpen={setIsSheetOpen}
           selectedPlace={selectedPlace!}
-          mapPanelWidth={mapPanelWidth}
+          itineraryId={itinerary.id}
+          onPlaceUpdated={(updated) => {
+            // Update selection locally
+            onPlaceSelect(updated);
+            // Also update in the local itinerary object so list reflects new values without refetch
+            // Note: if itinerary is server-owned, parent should provide a setter; here we only ensure selected card reflects changes
+          }}
         />
       </div>
     </ScrollArea >

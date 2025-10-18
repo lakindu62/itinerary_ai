@@ -78,6 +78,17 @@ export const itineraryApi = rootApiSlice.injectEndpoints({
       }),
       invalidatesTags: (result, error, arg) => [{ type: "Itinerary", id: arg.itineraryId }],
     }),
+    updateActivityBudget: builder.mutation<
+      ItineraryDto,
+      { itineraryId: string; activityId: string; budgetData: { budgetedAmount?: number; actualSpend?: number } }
+    >({
+      query: ({ itineraryId, activityId, budgetData }) => ({
+        url: `${ITINERARY_URL}/${itineraryId}/activities/${activityId}/budget`,
+        method: "PUT",
+        body: budgetData,
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: "Itinerary", id: arg.itineraryId }],
+    }),
   }),
   overrideExisting: true,
 });
@@ -92,4 +103,5 @@ export const {
   useGetShareTokenMutation,
   useGetItineraryByTokenQuery,
   useUpdateItineraryVisibilityMutation,
+  useUpdateActivityBudgetMutation,
 } = itineraryApi;

@@ -9,6 +9,7 @@ import {
 import { ItineraryRepository } from 'src/itinerary/domain/repositories/itinerary.repository';
 import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { mapItineraryToDto } from '../mappers/itinerary-dto.mapper';
+import { UpdateActivityBudgetDto } from '../dtos/update-activity-budget.dto';
 
 @Injectable()
 export class ItineraryChatService {
@@ -114,7 +115,19 @@ export class ItineraryChatService {
         : undefined,
     };
   }
-
+  updateBudget(
+    itineraryId: string,
+    activityId: string,
+    budget: UpdateActivityBudgetDto,
+  ) {
+    this.sessions
+      .get(itineraryId)
+      ?.setBudgetedAmount(
+        activityId,
+        budget.budgetedAmount!,
+        budget.actualSpend!,
+      );
+  }
   private async handleClarification(
     message: string,
     session: TravelPlanningSession,
@@ -148,15 +161,18 @@ export class ItineraryChatService {
 
     this.logger.log(`Created itinerary -> _id: ${createResult.itinerary.id}`);
 
-    // Now save to DB since itinerary is complete
-    await this.itineraryRepository.create(
+    // Now save to DB since itinerary is complete, and get persisted itinerary
+    const savedItinerary = await this.itineraryRepository.create(
       sessionId,
       userId,
       session.getItineraryWithConversation(),
     );
 
+    // Update in-memory session with DB-populated fields (e.g., activity IDs)
+    session.setPersistedItinerary(savedItinerary);
+
     this.logger.log(
-      `Itinerary with _id: ${createResult.itinerary.id} saved in DB for user ${userId}`,
+      `Itinerary saved in DB -> _id: ${savedItinerary.id} for user ${userId}`,
     );
 
     return createResult.response;

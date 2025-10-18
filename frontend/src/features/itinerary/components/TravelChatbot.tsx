@@ -2,13 +2,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@frontend/components/ui/resizable';
 import ChatInterface from './ChatInterface';
-import MapComponent from './MapComponent';
+import MapComponent from './MapInterface';
 import ItineraryDisplay from './ItineraryDisplay';
 import ChatLoading from '@/components/common/ChatLoading';
 import ErrorState from '@/components/common/ErrorState';
 
 import { ActivityDto, ChatItineraryResponseDto, ConversationMessageDto } from '@shared/types/itinerary/chat-itinerary.response.dto'
 import { useGetChatItineraryQuery, useChatItineraryMutation } from '../api/itinerary.api';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@frontend/components/ui/tabs';
+import BudgetDisplay from './BudgetDisplay';
 
 // Helper interface for map display
 export interface Place {
@@ -190,56 +192,73 @@ const TravelChatbot = ({ id, initialQuery }: { id: string, initialQuery: string 
 
   return (
 
-      <div className="h-[calc(100vh-69px)] rounded-[30px] white">
-        <ResizablePanelGroup className='border rounded-t-[30px] ' direction="horizontal">
-          <ResizablePanel defaultSize={session?.currentItinerary ? 33 : 50} minSize={25}>
-            <div className="h-full flex flex-col ">
-              <ChatInterface
-                messages={messages}
-                isLoading={isLoading}
-                context={session?.conversation?.context || { stage: 'initial' }}
-                onSendMessage={handleSendMessage}
-                initialQuery={initialQuery}
-                conversationId={id}
-              />
-            </div>
-          </ResizablePanel>
-          {session?.conversation.context.stage != 'modifying' && <ResizablePanel className='defaultSize={66}'>
-            <ChatLoading
-              type="trip-design"
+    <div className="h-[calc(100vh-69px)] rounded-[30px] white">
+      <ResizablePanelGroup className='border rounded-t-[30px] ' direction="horizontal">
+        <ResizablePanel defaultSize={session?.currentItinerary ? 33 : 50} minSize={25}>
+          <div className="h-full flex flex-col ">
+            <ChatInterface
+              messages={messages}
+              isLoading={isLoading}
+              context={session?.conversation?.context || { stage: 'initial' }}
+              onSendMessage={handleSendMessage}
+              initialQuery={initialQuery}
+              conversationId={id}
             />
-          </ResizablePanel>}
-          {session?.conversation.context.stage === 'modifying' && (
-            <>
-              <ResizableHandle className='border-none bg-card-background' />
-              <ResizablePanel defaultSize={33} minSize={25}>
-                <div className="flex-1  h-full" style={{ minHeight: '300px' }}>
-                  <ItineraryDisplay
-                    itinerary={session.currentItinerary!}
-                    context={session.conversation?.context || { stage: 'initial' }}
-                    onPlaceSelect={setSelectedPlace}
-                    selectedPlace={selectedPlace}
-                    mapPanelWidth={mapPanelWidth}
-                  />
-                </div>
-              </ResizablePanel>
-            </>
-          )}
-          {session?.conversation.context.stage === 'modifying' && (
-            <>
-              <ResizableHandle />
-              <ResizablePanel onResize={(e)=>setMapPanelWidth(e)}  defaultSize={session.currentItinerary ? 34 : 50} minSize={25}>
-                <div className="h-full" ref={mapPanelRef}>
-                  <MapComponent
-                    itinerary={session.currentItinerary ?? null}
-                    selectedPlace={selectedPlace}
-                    onPlaceSelect={setSelectedPlace}
-                  />
-                </div>
-              </ResizablePanel>
-            </>)}
-        </ResizablePanelGroup>
-      </div>
+          </div>
+        </ResizablePanel>
+        {session?.conversation.context.stage != 'modifying' && <ResizablePanel className='defaultSize={66}'>
+          <ChatLoading
+            type="trip-design"
+          />
+        </ResizablePanel>}
+        {session?.conversation.context.stage === 'modifying' && (
+          <>
+            <ResizableHandle className='border-none bg-card-background' />
+            <ResizablePanel defaultSize={33} minSize={25}>
+              <div className="flex-1  relative h-full" style={{ minHeight: '300px' }}>
+                {/* <ItineraryDetailsInterface itinerary={session.currentItinerary!}
+                  context={session.conversation?.context || { stage: 'initial' }}
+                  onPlaceSelect={setSelectedPlace}
+                  selectedPlace={selectedPlace}
+                  mapPanelWidth={mapPanelWidth} /> */}
+                <Tabs defaultValue="itinerary" className="w-full ">
+                  <TabsList className='mx-4 mt-4'>
+                    <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+                    <TabsTrigger value="budget">Budget</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="itinerary" className="flex-1   h-full" style={{ minHeight: '300px' }}>
+                    <ItineraryDisplay
+                      itinerary={session.currentItinerary!}
+                      context={session.conversation?.context || { stage: 'initial' }}
+                      onPlaceSelect={setSelectedPlace}
+                      selectedPlace={selectedPlace}
+                      mapPanelWidth={mapPanelWidth}
+                    />
+                  </TabsContent>
+                  <TabsContent value="budget" className="flex-1  h-full" style={{ minHeight: '300px' }}>
+                    <BudgetDisplay itinerary={session.currentItinerary!} />
+                  </TabsContent>
+                </Tabs>
+
+              </div>
+            </ResizablePanel>
+          </>
+        )}
+        {session?.conversation.context.stage === 'modifying' && (
+          <>
+            <ResizableHandle />
+            <ResizablePanel onResize={(e) => setMapPanelWidth(e)} defaultSize={session.currentItinerary ? 34 : 50} minSize={25}>
+              <div className="h-full" ref={mapPanelRef}>
+                <MapComponent
+                  itinerary={session.currentItinerary ?? null}
+                  selectedPlace={selectedPlace}
+                  onPlaceSelect={setSelectedPlace}
+                />
+              </div>
+            </ResizablePanel>
+          </>)}
+      </ResizablePanelGroup>
+    </div>
 
   );
 };

@@ -81,6 +81,7 @@ export class AiItineraryResponseMapper {
           dayData.activities.map(
             (activityData) =>
               new Activity(
+                null,
                 activityData.time,
                 activityData.name,
                 activityData.description,

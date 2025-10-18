@@ -16,6 +16,7 @@ import {
 import { ItineraryMapper } from './mappers/itinerary-mapper';
 import { ItineraryVisibilityEnum } from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { randomBytes } from 'crypto';
+import { UpdateActivityBudgetDto } from '../../application/dtos/update-activity-budget.dto';
 
 @Injectable()
 export class ItineraryRepositoryImpl extends ItineraryRepository {
@@ -46,21 +47,25 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
       itinerary: Itinerary;
       conversation: Conversation;
     },
-  ): Promise<void> {
+  ): Promise<Itinerary> {
     const doc = new this.itineraryModel({
       _id: new Types.ObjectId(sessionId),
       ...itineraryWithConversation.itinerary,
       conversation: itineraryWithConversation.conversation,
       user: userId,
     });
-    await doc.save();
-    // return this.toDomainEntity(saved);
+    const saved = await doc.save();
+    const i = ItineraryMapper.toDomainEntity(saved);
+    console.log('🚀 ~ ItineraryRepositoryImpl ~ create ~ i:', i);
+
+    return i;
   }
 
   async getTravelPlanningSession(
     sessionId: string,
   ): Promise<TravelPlanningSession | null> {
     const doc = await this.itineraryModel.findById(sessionId).exec();
+
     if (!doc) {
       return null;
     }
@@ -154,6 +159,48 @@ export class ItineraryRepositoryImpl extends ItineraryRepository {
   async findByShareToken(token: string): Promise<Itinerary | null> {
     const doc = await this.itineraryModel.findOne({ shareToken: token }).exec();
     if (!doc) return null;
+    return ItineraryMapper.toDomainEntity(doc);
+  }
+
+  async updateActivityBudget(
+    itineraryId: string,
+    activityId: string,
+    budgetData: UpdateActivityBudgetDto,
+  ): Promise<Itinerary> {
+    console.log(
+      '🚀 ~ ItineraryRepositoryImpl ~ updateActivityBudget ~ budgetData:',
+      budgetData,
+    );
+    const doc = await this.itineraryModel.findById(itineraryId).exec();
+    if (!doc) {
+      throw new Error('Itinerary not found');
+    }
+
+    // Find the activity by ID across all days
+    let activityFound = false;
+    for (const day of doc.days) {
+      const activity = day.activities.find(
+        (a) => a._id.toString() === activityId,
+      );
+      if (activity) {
+        activityFound = true;
+        if (budgetData.budgetedAmount !== undefined) {
+          activity.budgetedAmount = budgetData.budgetedAmount;
+        }
+        if (budgetData.actualSpend !== undefined) {
+          activity.actualSpend = budgetData.actualSpend;
+        }
+        break;
+      }
+    }
+
+    if (!activityFound) {
+      throw new Error('Activity not found');
+    }
+
+    // Save the document
+    await doc.save();
+
     return ItineraryMapper.toDomainEntity(doc);
   }
 }
