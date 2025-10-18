@@ -23,6 +23,9 @@ export class EventRsvp {
 
   @Prop({ required: true })
   guestCount: number;
+
+  @Prop()
+  createdAt: Date; // Add createdAt field
 }
 
 export const EventRsvpSchema = SchemaFactory.createForClass(EventRsvp);

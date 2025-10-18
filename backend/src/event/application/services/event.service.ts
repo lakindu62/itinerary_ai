@@ -41,6 +41,7 @@ import {
   UpdateEventHashtagDto,
 } from '../dtos/create-event-hashtag.dto';
 import { CreateEventHashtagMappingDto } from '../dtos/create-event-hashtag-mapping.dto';
+import { AnalyticsDto, EventPerformanceDto, RevenueOverTimeDto } from '../dtos/analytics.dto';
 
 @Injectable()
 export class EventService {
@@ -78,6 +79,80 @@ export class EventService {
     }
     return event;
   }
+
+
+  // =================================================================
+  // Business Analytics
+  // =================================================================
+
+async getAnalytics(user: AuthenticatedUser): Promise<AnalyticsDto> {
+  const businessAccountId = this._getBusinessId(user);
+
+  // Fetch all necessary data
+  const events = await this.eventRepository.findAll(businessAccountId);
+  const rsvps = await this.eventRsvpRepository.findAll(businessAccountId);
+
+  // Calculate top-level metrics
+  const totalRevenue = rsvps.reduce((sum, rsvp) => {
+    //Ensure rsvp.event is populated and has a ticketPrice
+    const price = rsvp.event?.ticketPrice || 0;
+    return sum + (rsvp.guestCount * price);
+  }, 0);
+
+    const totalGuests = rsvps.reduce((sum, rsvp) => sum + rsvp.guestCount, 0);
+    const eventCount = events.length;
+
+    // calculate performance for each event
+    const eventPerformance: EventPerformanceDto[] = events.map(event => {
+      const booked = rsvps
+        .filter(rsvp => rsvp.event && rsvp.event.id === event.id) // Add null check here
+        .reduce((sum, rsvp) => sum + rsvp.guestCount, 0);
+
+        const capacity = event.maxAttendees > 0 ? event.maxAttendees : 1; // Avoid division by zero
+        const actualRevenue = booked * event.ticketPrice;
+        const expectedRevenue = capacity * event.ticketPrice;
+        const sellThrough = (booked / capacity) * 100;
+
+            return {
+              id: event.id,
+              eventName: event.eventName,
+              startDate: event.startDate, // Add this
+              expectedRevenue,
+              actualRevenue,
+              capacity,
+              booked,
+              sellThrough,
+            };    });
+
+    const averageSellThrough = eventPerformance.length > 0
+      ? eventPerformance.reduce((sum, ep) => sum + ep.sellThrough, 0) / eventPerformance.length
+      : 0;
+
+    // calculate revenue over time (by day for the last 30 days)
+      const revenueOverTimeMap = new Map<string, number>();
+      rsvps.forEach(rsvp => {
+        if (rsvp.createdAt) { // Check if createdAt exists
+          const date = new Date(rsvp.createdAt).toISOString().split('T')[0]; // Group by day
+          const price = rsvp.event?.ticketPrice || 0;
+          const revenue = rsvp.guestCount * price;
+          revenueOverTimeMap.set(date, (revenueOverTimeMap.get(date) || 0) + revenue);
+        }
+      });
+    const revenueOverTime: RevenueOverTimeDto[] = Array.from(revenueOverTimeMap.entries())
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Return the complete DTO
+    return {
+      totalRevenue,
+      totalGuests,
+      eventCount,
+      averageSellThrough,
+      eventPerformance,
+      revenueOverTime,
+    };
+  }
+
 
   // =================================================================
   // Business-Scoped Event Methods

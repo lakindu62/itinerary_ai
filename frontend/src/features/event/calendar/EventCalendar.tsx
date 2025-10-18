@@ -3,6 +3,7 @@ import { Calendar, luxonLocalizer, Views } from 'react-big-calendar';
 import { DateTime } from 'luxon';
 import { useAuth } from '@clerk/nextjs';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import '@/app/admin/event/calendar/calendar-theme.css'; // Import dark mode styles
 import { getBusinessEvents } from '../lib/event-api';
 import EventForm from '../create/EventForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,29 +11,24 @@ import { ScrollArea } from '@frontend/components/ui/scroll-area';
 
 const localizer = luxonLocalizer(DateTime);
 
-type SlotInfoType = {
+type SlotInfo = {
   start: Date;
   end: Date;
-  slots: Date[];
-  action: string;
+  slots: Date[] | string[];
+  action: 'select' | 'click' | 'doubleClick';
 };
 
 const EventCalendar = () => {
    const { getToken } = useAuth(); 
   const [events, setEvents] = useState<any[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<SlotInfoType | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
 
   useEffect(() => {
     const fetchEvents = async () => {
+      if (!getToken) return; // Wait for getToken to be available
       try {
         const eventData = await getBusinessEvents(getToken);
-        // const formattedEvents = eventData.map(event => ({
-        //   ...event,
-        //   start: DateTime.fromISO(event.startDate).toJSDate(),
-        //   end: DateTime.fromISO(event.endDate).toJSDate(),
-        //   title: event.eventName,
-        // }));
         const formattedEvents = eventData.map(event => ({
           ...event,
           start: DateTime.fromISO(`${event.startDate}T${event.startTime || '00:00'}`).toJSDate(),
@@ -46,14 +42,9 @@ const EventCalendar = () => {
     };
 
     fetchEvents();
-  }, []);
+  }, [getToken]);
 
-  // const handleSelectSlot = (slotInfo) => {
-  //   setSelectedSlot(slotInfo);
-  //   setIsDialogOpen(true);
-  // };
-
-  const handleSelectSlot = (slotInfo) => {
+  const handleSelectSlot = (slotInfo: SlotInfo) => {
   const now = DateTime.now();
   const slotStart = DateTime.fromJSDate(slotInfo.start);
 
@@ -109,8 +100,8 @@ const EventCalendar = () => {
             <ScrollArea className="h-full">
               <EventForm
                 initialValues={{
-                  startDate: DateTime.fromJSDate(selectedSlot.start).toISODate(),
-                  endDate: DateTime.fromJSDate(selectedSlot.end).toISODate(),
+                  startDate: DateTime.fromJSDate(selectedSlot.start).toISODate() ?? undefined,
+                  endDate: DateTime.fromJSDate(selectedSlot.end).toISODate() ?? undefined,
                   startTime: DateTime.fromJSDate(selectedSlot.start).toFormat('HH:mm'),
                   endTime: DateTime.fromJSDate(selectedSlot.end).toFormat('HH:mm'),
                 }}

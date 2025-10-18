@@ -8,16 +8,32 @@ import {
   Logger,
   Param,
   Get,
+  ValidationPipe,
+  UsePipes,
+  Put,
 } from '@nestjs/common';
 import { ItineraryService } from 'src/itinerary/application/services/itinerary.service';
 import { ItineraryChatService } from 'src/itinerary/application/services/itinerary-chat.service';
 import { ChatItineraryRequestDto } from 'src/itinerary/application/dtos/requests/chatItinerary.dto';
+import { UpdateActivityBudgetDto } from 'src/itinerary/application/dtos/update-activity-budget.dto';
 import { ItineraryChatServiceMock } from 'src/itinerary/application/services/mocks/itinerary-chat.service.mock';
-import { ChatItineraryResponseDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import {
+  ChatItineraryResponseDto,
+  ItineraryDto,
+  ItineraryVisibilityDto,
+} from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
 import { UserRole } from '@shared/types/user-management';
 import { Roles } from 'src/shared/decorators/roles.decorator';
 import { Request } from 'express';
+import { AuthenticatedUser } from '@shared/types/user-management';
+@UsePipes(
+  new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }),
+)
 @Controller('itineraries')
 export class ItineraryController {
   private readonly logger = new Logger(ItineraryController.name);
@@ -54,6 +70,29 @@ export class ItineraryController {
 
   @UseGuards(ClerkAuthGuard)
   @Roles([UserRole.TRAVELER])
+  @Post(':id/visibility')
+  async updateVisibility(
+    @Param('id') itineraryId: string,
+    @Body() visibility: ItineraryVisibilityDto,
+    @Req() req: Request,
+  ) {
+    const userId = req.user?._id;
+    console.log(
+      '🚀 ~ ItineraryController ~ updateVisibility ~ userId:',
+      userId,
+    );
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    return await this.itineraryService.setVisibility(
+      userId,
+      itineraryId,
+      visibility,
+    );
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
   @Post('chat')
   async chatItinerary(
     @Body()
@@ -79,6 +118,54 @@ export class ItineraryController {
       userId,
       message,
       conversationId,
+    );
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
+  @Post(':id/share-token')
+  async getShareToken(
+    @Param('id') itineraryId: string,
+    @Req() req: Request & { user?: AuthenticatedUser },
+  ): Promise<{ token: string }> {
+    console.log(itineraryId);
+    const user: AuthenticatedUser | undefined = req.user;
+    const userId: string | undefined = user?._id;
+    if (!userId || userId.length === 0) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    const result = await this.itineraryService.getOrCreateShareToken(
+      userId,
+      itineraryId,
+    );
+    return { token: result.token };
+  }
+
+  @Get('share/:token')
+  async getByShareToken(@Param('token') token: string): Promise<ItineraryDto> {
+    const dto = await this.itineraryService.getItineraryByToken(token);
+    return dto;
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
+  @Put(':itineraryId/activities/:activityId/budget')
+  async updateActivityBudget(
+    @Param('itineraryId') itineraryId: string,
+    @Param('activityId') activityId: string,
+    @Body() budgetData,
+    @Req() req: Request,
+  ): Promise<ItineraryDto> {
+    const userId = req.user?._id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    this.itineraryChatService.updateBudget(itineraryId, activityId, budgetData);
+    return await this.itineraryService.updateActivityBudget(
+      userId,
+      itineraryId,
+      activityId,
+      budgetData,
     );
   }
 }

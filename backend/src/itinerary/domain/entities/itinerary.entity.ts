@@ -3,6 +3,7 @@ import { Day } from '../value-objects/itinerary/day.vo';
 export class Itinerary {
   public readonly visibility: ItineraryVisibility;
   constructor(
+    public readonly user: string,
     public readonly title: string,
     public readonly summary: string,
     public readonly days: Day[],
@@ -69,6 +70,7 @@ export class Itinerary {
 
   updateAccommodation(newAccommodation: string): Itinerary {
     return new Itinerary(
+      this.user,
       this.title,
       this.summary,
       this.days,
@@ -79,6 +81,7 @@ export class Itinerary {
 
   addTip(newTip: string): Itinerary {
     return new Itinerary(
+      this.user,
       this.title,
       this.summary,
       this.days,
@@ -94,11 +97,26 @@ export class Itinerary {
   toString(): string {
     return `Itinerary: ${this.title} (${this.getTotalDays()} days, ${this.getTotalActivities()} activities)`;
   }
+
+  setBudgetedAmount(
+    activityId: string,
+    budgetedAmount: number,
+    actualSpend: number,
+  ): void {
+    for (const day of this.days) {
+      const activity = day.activities.find((a) => a.id === activityId);
+      if (activity) {
+        activity.setBudgetedAmount(budgetedAmount);
+        activity.setActualSpend(actualSpend);
+        return;
+      }
+    }
+    throw new Error('Activity not found');
+  }
 }
 
 export enum ItineraryVisibility {
   PRIVATE = 'private',
-  LINK = 'link',
   PUBLIC = 'public',
   ALL_FRIENDS = 'all_friends',
   SPECIFIC_FRIENDS = 'specific_friends',

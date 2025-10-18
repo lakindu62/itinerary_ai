@@ -1,11 +1,40 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ItineraryRepository } from '../../domain/repositories/itinerary.repository';
-import { ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import {
+  ItineraryDto,
+  ItineraryVisibilityDto,
+} from '@shared/types/itinerary/chat-itinerary.response.dto';
 import { mapItineraryToDto } from '../mappers/itinerary-dto.mapper';
+import { UpdateActivityBudgetDto } from '../dtos/update-activity-budget.dto';
 
 @Injectable()
 export class ItineraryService {
   constructor(private readonly itineraryRepository: ItineraryRepository) {}
+
+  async setVisibility(
+    userId: string,
+    itineraryId: string,
+    payload: ItineraryVisibilityDto,
+  ) {
+    const itin = await this.itineraryRepository.findById(itineraryId);
+    if (!itin) throw new NotFoundException('Itinerary not found');
+    console.log(
+      '🚀 ~ ItineraryService ~ setVisibility ~ itin.user.toString() !== userId.toString():',
+      itin.user.toString(),
+      userId.toString(),
+    );
+    if (itin.user.toString() !== userId.toString())
+      throw new ForbiddenException();
+
+    return this.itineraryRepository.updateVisibility(
+      itineraryId,
+      payload.visibility,
+    );
+  }
 
   async getMyItineraries(userId: string): Promise<ItineraryDto[]> {
     const items = await this.itineraryRepository.getMyItineraries(userId); // returns domain Itinerary[]
@@ -24,5 +53,44 @@ export class ItineraryService {
       return null;
     }
     return mapItineraryToDto(itinerary);
+  }
+
+  async getOrCreateShareToken(
+    userId: string,
+    itineraryId: string,
+  ): Promise<{ token: string }> {
+    const itin = await this.itineraryRepository.findById(itineraryId);
+    if (!itin) throw new NotFoundException('Itinerary not found');
+    if (itin.user.toString() !== userId.toString())
+      throw new ForbiddenException();
+    const token = await this.itineraryRepository.ensureShareToken(itineraryId);
+    return { token };
+  }
+
+  async getItineraryByToken(token: string): Promise<ItineraryDto> {
+    const itinerary = await this.itineraryRepository.findByShareToken(token);
+    if (!itinerary) throw new NotFoundException('Itinerary not found');
+    return mapItineraryToDto(itinerary);
+  }
+
+  async updateActivityBudget(
+    userId: string,
+    itineraryId: string,
+    activityId: string,
+    budgetData: UpdateActivityBudgetDto,
+  ): Promise<ItineraryDto> {
+    const itinerary = await this.itineraryRepository.findById(itineraryId);
+    if (!itinerary) throw new NotFoundException('Itinerary not found');
+    if (itinerary.user.toString() !== userId.toString())
+      throw new ForbiddenException();
+
+    const updatedItinerary =
+      await this.itineraryRepository.updateActivityBudget(
+        itineraryId,
+        activityId,
+        budgetData,
+      );
+
+    return mapItineraryToDto(updatedItinerary);
   }
 }

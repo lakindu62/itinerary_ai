@@ -53,8 +53,14 @@ export class EventRepositoryImpl extends EventRepository {
   }
 
   async findPublicById(id: string): Promise<Event | null> {
+    // Data is already populated, so no .populate() needed
     const doc = await this.eventModel.findById(id).exec();
-    return doc ? this.toDomainEntity(doc) : null;
+    if (!doc) return null;
+
+    const mappings = await this.mappingRepository.findByEventId(id);
+    const hashtags = mappings.map((m: any) => m.hashtag);
+
+    return this.toDomainEntity(doc, hashtags);
   }
 
 

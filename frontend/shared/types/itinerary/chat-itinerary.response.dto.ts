@@ -1,10 +1,23 @@
 export type ConversationStageDto = "initial" | "clarifying" | "creating" | "modifying";
 
+import { IsEnum } from "class-validator";
+
+export enum ItineraryVisibilityEnum {
+  PRIVATE = "private",
+  PUBLIC = "public",
+  ALL_FRIENDS = "all_friends",
+  SPECIFIC_FRIENDS = "specific_friends",
+}
+
+export class ItineraryVisibilityDto {
+  @IsEnum(ItineraryVisibilityEnum)
+  visibility: ItineraryVisibilityEnum;
+}
+
 export interface ConversationMessageDto {
   role: "user" | "assistant";
   content: string;
 }
-
 export interface ConversationContextDto {
   stage: ConversationStageDto;
   destination?: string;
@@ -31,11 +44,14 @@ export type Coordinates = [number, number];
 type NonEventNonHotelType = "restaurant" | "attraction" | "other";
 
 interface BaseFields {
+  id: string;
   time: string;
   name: string;
   description: string;
   address: string;
   coordinates: Coordinates;
+  budgetedAmount?: number;
+  actualSpend?: number;
 }
 
 export interface POIActivityDto extends BaseFields {

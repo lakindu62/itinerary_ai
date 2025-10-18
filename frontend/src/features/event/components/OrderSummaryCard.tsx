@@ -67,7 +67,7 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ eventId, ticketPric
   };
 
   return (
-    <div className="bg-[#EBE6FF] rounded-lg p-6">
+    <div className="bg-[#EBE6FF] dark:bg-muted/40 rounded-lg p-6 text-foreground">
       <h3 className="text-lg font-bold text-center mb-4">Order Summary</h3>
       <div className="flex justify-between items-center mb-4">
         <span>Per Ticket:</span>
@@ -90,7 +90,7 @@ const OrderSummaryCard: React.FC<OrderSummaryCardProps> = ({ eventId, ticketPric
         <span>Rs. {total}</span>
       </div>
       <Button
-        className="w-full bg-[#5B30D6] hover:bg-[#4a26b3] text-white font-bold rounded-lg"
+        className="w-full bg-[#5B30D6] hover:bg-[#4a26b3] dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-primary-foreground font-bold rounded-lg"
         onClick={handleGetTicket}
         disabled={isSubmitting}
       >

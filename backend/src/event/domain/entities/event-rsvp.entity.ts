@@ -8,5 +8,6 @@ export class EventRsvp {
     public userId: string,
     public rsvpStatus: string,
     public guestCount: number,
+    public readonly createdAt?: Date,
   ) {}
 }

@@ -54,6 +54,7 @@ export class TravelPlanningSession {
     tips: string[],
   ): void {
     this.currentItinerary = new Itinerary(
+      'will be added',
       title,
       summary,
       days,
@@ -79,11 +80,31 @@ export class TravelPlanningSession {
     }
 
     this.currentItinerary = new Itinerary(
+      'will be added',
       title,
       summary,
       days,
       accommodation,
       tips,
+    );
+  }
+
+  setPersistedItinerary(itinerary: Itinerary): void {
+    this.currentItinerary = itinerary;
+  }
+
+  setBudgetedAmount(
+    activityId: string,
+    budgetedAmount: number,
+    actualSpend: number,
+  ): void {
+    if (!this.currentItinerary) {
+      throw new Error('Cannot set budgeted amount: no itinerary exists');
+    }
+    this.currentItinerary.setBudgetedAmount(
+      activityId,
+      budgetedAmount,
+      actualSpend,
     );
   }
 

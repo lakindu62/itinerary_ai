@@ -81,6 +81,7 @@ export class AiItineraryResponseMapper {
           dayData.activities.map(
             (activityData) =>
               new Activity(
+                null,
                 activityData.time,
                 activityData.name,
                 activityData.description,
@@ -110,6 +111,7 @@ export class AiItineraryResponseMapper {
     );
 
     return new Itinerary(
+      'will be added',
       aiResponse.title,
       aiResponse.summary,
       days,

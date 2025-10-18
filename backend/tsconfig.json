@@ -23,7 +23,6 @@
   },
   "include": [
     "src/**/*",
-    "../shared/types/**/*",
-    "src/types/**/*"
+    "../shared/types/**/*"  // ← Add this line
   ]
 }

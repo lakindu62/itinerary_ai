@@ -11,10 +11,10 @@ export type SingleEventType = {
   endTime: string;
   maxAttendees: number;
   imagesUrl?: string[];
-  venue: { venueName: string; address: string; city: string; state: string; zipCode: string; };
-  organizer: { organizerName: string; };
+  venue: { venueName: string; address: string; city: string; state: string; zipCode: string; coordinates: { lat: number; lng: number; }; };
+  organizer: { id: string; organizerName: string; contactEmail: string; contactPhone: string; organization: string; };
   category: { categoryName: string; };
-  hashtags: { hashtag: { name:string } }[];
+  hashtags: { id: string; hashtagName: string; }[]; // Corrected this line
   ticketPrice: number;
   eventStatus: 'active' | 'inactive' | 'completed';
 };
@@ -258,5 +258,11 @@ export const createRsvp = async (rsvpData: { eventId: string; guestCount: number
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create RSVP');
     }
+    return response.json();
+};
+
+export const getBusinessAnalytics = async (getToken: GetToken): Promise<any> => {
+    const response = await authenticatedFetch('/events/analytics', getToken);
+    if (!response.ok) throw new Error('Failed to fetch analytics data');
     return response.json();
 };

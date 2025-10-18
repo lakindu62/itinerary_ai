@@ -94,12 +94,12 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg overflow-hidden flex flex-col md:flex-row w-full items-center">
+    <div className="bg-card rounded-lg overflow-hidden flex flex-col md:flex-row w-full items-center">
       {/* Event Image Container */}
       <div className="w-full md:w-1/3 flex-shrink-0 p-4">
-        <div className="w-full h-48 rounded-lg overflow-hidden bg-gray-100">
+        <div className="w-full h-48 rounded-lg overflow-hidden bg-muted">
           {imageLoading && (
-            <div className="w-full h-full flex items-center justify-center text-gray-500">Loading...</div>
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground">Loading...</div>
           )}
           {!imageLoading && (imageError || !imageSignedUrl) && (
             <div className="w-full h-full flex items-center justify-center">
@@ -121,20 +121,20 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       <div className="flex-1 flex flex-col justify-between p-6 pt-0 md:pt-6 self-stretch">
         <div>
           <div className="flex justify-between items-start mb-2">
-            <h2 className="text-2xl font-bold text-gray-800">{event.eventName}</h2>
+            <h2 className="text-2xl font-bold text-card-foreground">{event.eventName}</h2>
             {getStatusBadge()}
           </div>
-          <p className="text-gray-600 mb-4">{event.description}</p>
+          <p className="text-muted-foreground mb-4">{event.description}</p>
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-          <div className="text-sm text-gray-500 mb-4 md:mb-0">
+          <div className="text-sm text-muted-foreground mb-4 md:mb-0">
             <p>{formattedDateTime}</p>
             <p>{event.venue?.city || 'Online'}</p>
-            <p className="font-semibold">{event.ticketPrice > 0 ? `From Rs.${event.ticketPrice}` : 'Free'}</p>
+            <p className="font-semibold text-foreground">{event.ticketPrice > 0 ? `From Rs.${event.ticketPrice}` : 'Free'}</p>
           </div>
           <Link href={`/events/${event.id}`} passHref>
-          <Button className="bg-[#5B30D6] hover:bg-[#4a26b3] text-white font-bold rounded-lg px-6">
+          <Button className="bg-[#5B30D6] hover:bg-[#4a26b3] dark:bg-primary dark:hover:bg-primary/90 text-white dark:text-primary-foreground font-bold rounded-lg px-6">
             Get Ticket
           </Button>
           </Link>

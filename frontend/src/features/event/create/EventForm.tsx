@@ -450,7 +450,7 @@ const EventForm: React.FC<EventFormProps> = ({ initialValues, onSuccess }) => {
                     {field.value.length === 0 && (
                       <span className="text-sm text-muted-foreground">No hashtags selected</span>
                     )}
-                    {field.value.map((id) => {
+                    {field.value.map((id: string) => {
                       const tag = hashtags.find((h) => h.id === id);
                       if (!tag) return null;
                       return (

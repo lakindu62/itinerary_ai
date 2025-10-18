@@ -11,6 +11,7 @@ export class Post {
     public updatedAt?: string,
     public image?: string, // Keep for backward compatibility
     public mediaFiles?: string[], // New field for multiple files
+    public isArchived: boolean = false, // Privacy: archived posts only visible to owner
   ) {}
 }
 
@@ -27,6 +28,7 @@ export class PostWithLikeStatus {
     public image?: string, // Keep for backward compatibility
     public mediaFiles?: string[], // New field for multiple files
     public isOwner: boolean = false, // Add ownership flag
+    public isArchived: boolean = false, // Privacy: archived posts only visible to owner
   ) {}
 }
 
@@ -53,5 +55,6 @@ export class PostWithUserInfo {
     public mediaFiles?: string[],
     public userInfo?: PostUserInfo,
     public isOwner?: boolean,
+    public isArchived?: boolean, // Privacy: archived posts only visible to owner
   ) {}
 }

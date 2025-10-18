@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { getHashtags, deleteHashtag } from '../lib/event-api';
 import Link from 'next/link';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface Hashtag {
   id: string;
@@ -74,7 +75,8 @@ const HashtagList = () => {
                 <TableCell>
                   <Link href={`/admin/event/hashtags/edit/${hashtag.id}`} passHref>
                     <Button variant="outline" size="sm" className="mr-2">
-                      Edit
+                      <Pencil className="h-4 w-4" />  
+
                     </Button>
                   </Link>
                   <Button
@@ -82,7 +84,8 @@ const HashtagList = () => {
                     size="sm"
                     onClick={() => handleDelete(hashtag.id)}
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" /> 
+
                   </Button>
                 </TableCell>
               </TableRow>
