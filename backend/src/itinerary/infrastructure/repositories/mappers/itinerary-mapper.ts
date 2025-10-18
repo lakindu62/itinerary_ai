@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { Itinerary } from 'src/itinerary/domain/entities/itinerary.entity';
-import { ItineraryDocument } from '../../schemas/itinerary.schema';
+import {
+  ItineraryDocument,
+  DayDocument,
+  ActivitySubdoc,
+} from '../../schemas/itinerary.schema';
 import { Day } from 'src/itinerary/domain/value-objects/itinerary';
 import { Activity } from 'src/itinerary/domain/value-objects/itinerary/activity.vo';
 
@@ -9,21 +13,24 @@ export class ItineraryMapper {
   /**
    * Maps activity from document to domain entity
    */
-  private static mapActivity(activity: Activity): Activity {
+  private static mapActivity(activitySchema: ActivitySubdoc): Activity {
     return new Activity(
-      activity.time,
-      activity.name,
-      activity.description,
-      activity.address,
-      activity.type,
-      activity.coordinates,
-      activity.additionalDetails,
+      activitySchema._id?.toString(),
+      activitySchema.time,
+      activitySchema.name,
+      activitySchema.description,
+      activitySchema.address,
+      activitySchema.type,
+      activitySchema.coordinates,
+      activitySchema.additionalDetails,
+      activitySchema.budgetedAmount,
+      activitySchema.actualSpend,
     );
   }
   /**
    * Maps day from document to domain entity
    */
-  private static mapDay(day: Day): Day {
+  private static mapDay(day: DayDocument): Day {
     return new Day(
       day.dayNumber,
       day.date,
@@ -40,7 +47,7 @@ export class ItineraryMapper {
       doc.user.toString(),
       doc.title,
       doc.summary,
-      doc.days.length > 0 ? doc.days.map((day: Day) => this.mapDay(day)) : [],
+      doc.days.length > 0 ? doc.days.map((day) => this.mapDay(day)) : [],
       doc.accommodation,
       doc.tips,
       doc.slug,
@@ -56,7 +63,7 @@ export class ItineraryMapper {
       doc.user.toString(),
       doc.title,
       doc.summary,
-      doc.days.length > 0 ? [this.mapDay(doc.days[0] as Day)] : [],
+      doc.days.length > 0 ? [this.mapDay(doc.days[0])] : [],
       doc.accommodation,
       doc.tips,
       doc.slug,

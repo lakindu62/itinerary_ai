@@ -11,6 +11,7 @@ export class AdditionalDetails {
 
 export class Activity {
   constructor(
+    public readonly id: string | null,
     public readonly time: string,
     public readonly name: string,
     public readonly description: string,
@@ -18,14 +19,16 @@ export class Activity {
     public readonly type: string,
     public readonly coordinates: [number, number], // [longitude, latitude]
     public readonly additionalDetails?: AdditionalDetails,
+    public budgetedAmount?: number,
+    public actualSpend?: number,
   ) {
     this.validate();
   }
 
   private validate(): void {
-    if (!this.time || !this.time.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
-      throw new Error('Invalid time format. Use HH:MM format.');
-    }
+    // if (!this.time || !this.time.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+    //   throw new Error('Invalid time format. Use HH:MM format.');
+    // }
     if (!this.name || this.name.trim().length === 0) {
       throw new Error('Activity name is required');
     }
@@ -45,6 +48,12 @@ export class Activity {
     if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
       throw new Error('Invalid coordinate values');
     }
+    if (this.budgetedAmount !== undefined && this.budgetedAmount < 0) {
+      throw new Error('Budgeted amount cannot be negative');
+    }
+    if (this.actualSpend !== undefined && this.actualSpend < 0) {
+      throw new Error('Actual spend cannot be negative');
+    }
   }
 
   equals(other: Activity): boolean {
@@ -55,7 +64,9 @@ export class Activity {
       this.address === other.address &&
       this.type === other.type &&
       this.coordinates[0] === other.coordinates[0] &&
-      this.coordinates[1] === other.coordinates[1]
+      this.coordinates[1] === other.coordinates[1] &&
+      this.budgetedAmount === other.budgetedAmount &&
+      this.actualSpend === other.actualSpend
     );
   }
 
@@ -76,5 +87,13 @@ export class Activity {
 
   toString(): string {
     return `${this.time} - ${this.name} (${this.type}) at ${this.address}`;
+  }
+
+  setBudgetedAmount(budgetedAmount: number): void {
+    this.budgetedAmount = budgetedAmount;
+  }
+
+  setActualSpend(actualSpend: number): void {
+    this.actualSpend = actualSpend;
   }
 }

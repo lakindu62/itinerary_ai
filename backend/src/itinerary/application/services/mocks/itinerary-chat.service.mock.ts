@@ -32,6 +32,7 @@ export class ItineraryChatServiceMock {
 
     const day1 = new Day(1, '2024-07-08', 'Kandy', [
       new Activity(
+        'activity-1',
         '09:00',
         'Breakfast at Hotel',
         "Enjoy a hearty breakfast at Jetwing Vil Uyana to fuel up for the day's adventures.",
@@ -40,6 +41,7 @@ export class ItineraryChatServiceMock {
         [80.7718, 7.9403],
       ),
       new Activity(
+        'activity-2',
         '10:00',
         'Knuckles Range Trekking Consultation',
         "Meet with Knuckles Adventure or The Border Adventures in Kandy to discuss and arrange a guided trek in the Knuckles Mountain Range for the following day. Finalize the trekking route and necessary permits.  Consider a half-day trek if a full-day isn't feasible.",
@@ -48,6 +50,7 @@ export class ItineraryChatServiceMock {
         [80.6369672, 7.2914406],
       ),
       new Activity(
+        'activity-3',
         '11:00',
         'Visit Knuckles Trekking Hiking Camping by Lanka Adventure Holidays',
         'Discuss trekking and camping options for Knuckles range. Arrange overnight camping if desired for the second day.',
@@ -56,6 +59,7 @@ export class ItineraryChatServiceMock {
         [80.6161049, 7.2744463],
       ),
       new Activity(
+        'activity-4',
         '12:00',
         'Lunch',
         'Enjoy a local Sri Lankan lunch at a restaurant near Kandy Lake.  Ask the trekking company for recommendations.',
@@ -64,6 +68,7 @@ export class ItineraryChatServiceMock {
         [80.633, 7.294],
       ),
       new Activity(
+        'activity-5',
         '14:00',
         'Udawatta Kele Sanctuary Exploration',
         'Hike through the Udawatta Kele Sanctuary, a protected forest reserve. Look out for diverse birdlife and monkeys.  Allow at least 2-3 hours for a good exploration.',
@@ -72,6 +77,7 @@ export class ItineraryChatServiceMock {
         [80.6424033, 7.2988782],
       ),
       new Activity(
+        'activity-6',
         '17:00',
         'Kandy Viewpoint',
         'Visit Kandy Viewpoint for panoramic views of the city and Kandy Lake.',
@@ -80,6 +86,7 @@ export class ItineraryChatServiceMock {
         [80.63980029999999, 7.288958699999999],
       ),
       new Activity(
+        'activity-7',
         '19:00',
         'Dinner at Hotel or Local Restaurant',
         'Enjoy dinner at Jetwing Vil Uyana or explore local restaurants in Kandy for an authentic Sri Lankan culinary experience.',
@@ -91,6 +98,7 @@ export class ItineraryChatServiceMock {
 
     const day2 = new Day(2, '2024-07-09', 'Knuckles Mountain Range', [
       new Activity(
+        'activity-8',
         '07:00',
         'Early Breakfast and Departure',
         'Have an early breakfast at the hotel and depart for the Knuckles Mountain Range for a full day of trekking. Ensure you have packed lunch, water, and appropriate hiking gear.',
@@ -99,6 +107,7 @@ export class ItineraryChatServiceMock {
         [80.7718, 7.9403],
       ),
       new Activity(
+        'activity-9',
         '08:30',
         'Knuckles Mountain Range Trekking',
         "Embark on a guided trek in the Knuckles Mountain Range. Explore the diverse landscapes, waterfalls, and scenic viewpoints. The trek's duration will depend on the chosen route (full-day or half-day). If overnight camping was arranged, stay at the campsite.",
@@ -107,6 +116,7 @@ export class ItineraryChatServiceMock {
         [80.8667, 7.4667],
       ),
       new Activity(
+        'activity-10',
         '17:00',
         'Return to Kandy (or Campsite)',
         'Begin the journey back to Kandy from the Knuckles Mountain Range after completing the trek. If camping, prepare for overnight stay.',
@@ -115,6 +125,7 @@ export class ItineraryChatServiceMock {
         [80.8667, 7.4667],
       ),
       new Activity(
+        'activity-11',
         '19:00',
         'Dinner and Relaxation',
         'Enjoy a relaxing dinner at Jetwing Vil Uyana or a local restaurant in Kandy after returning from the trek. If camping, dinner will be at the campsite.',

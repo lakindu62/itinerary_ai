@@ -89,6 +89,25 @@ export class TravelPlanningSession {
     );
   }
 
+  setPersistedItinerary(itinerary: Itinerary): void {
+    this.currentItinerary = itinerary;
+  }
+
+  setBudgetedAmount(
+    activityId: string,
+    budgetedAmount: number,
+    actualSpend: number,
+  ): void {
+    if (!this.currentItinerary) {
+      throw new Error('Cannot set budgeted amount: no itinerary exists');
+    }
+    this.currentItinerary.setBudgetedAmount(
+      activityId,
+      budgetedAmount,
+      actualSpend,
+    );
+  }
+
   getCurrentItinerary(): Itinerary | undefined {
     return this.currentItinerary;
   }

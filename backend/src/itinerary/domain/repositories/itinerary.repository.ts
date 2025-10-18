@@ -2,6 +2,7 @@ import { Itinerary } from '../entities/itinerary.entity';
 import { Conversation } from '../entities/conversation.entity';
 import { TravelPlanningSession } from '../aggregates/travel-planning-session.aggregate';
 import { ItineraryVisibilityEnum } from '@shared/types/itinerary/chat-itinerary.response.dto';
+import { UpdateActivityBudgetDto } from '../../application/dtos/update-activity-budget.dto';
 
 export abstract class ItineraryRepository {
   abstract create(
@@ -11,7 +12,7 @@ export abstract class ItineraryRepository {
       itinerary: Itinerary;
       conversation: Conversation;
     },
-  ): Promise<void>;
+  ): Promise<Itinerary>;
   abstract getTravelPlanningSession(
     sessionId: string,
   ): Promise<TravelPlanningSession | null>;
@@ -29,4 +30,9 @@ export abstract class ItineraryRepository {
   abstract getPublicItineraryBySlug(slug: string): Promise<Itinerary | null>;
   abstract ensureShareToken(itineraryId: string): Promise<string>;
   abstract findByShareToken(token: string): Promise<Itinerary | null>;
+  abstract updateActivityBudget(
+    itineraryId: string,
+    activityId: string,
+    budgetData: UpdateActivityBudgetDto,
+  ): Promise<Itinerary>;
 }

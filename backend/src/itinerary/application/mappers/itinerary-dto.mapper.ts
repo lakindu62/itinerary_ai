@@ -9,11 +9,14 @@ import {
 
 function mapActivity(a: Activity): ActivityDto {
   const base = {
+    id: a.id ?? undefined,
     time: a.time,
     name: a.name,
     description: a.description,
     address: a.address,
     coordinates: a.coordinates,
+    budgetedAmount: a.budgetedAmount,
+    actualSpend: a.actualSpend,
   } as const;
 
   switch (a.type) {

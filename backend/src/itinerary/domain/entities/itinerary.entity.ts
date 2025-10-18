@@ -97,6 +97,22 @@ export class Itinerary {
   toString(): string {
     return `Itinerary: ${this.title} (${this.getTotalDays()} days, ${this.getTotalActivities()} activities)`;
   }
+
+  setBudgetedAmount(
+    activityId: string,
+    budgetedAmount: number,
+    actualSpend: number,
+  ): void {
+    for (const day of this.days) {
+      const activity = day.activities.find((a) => a.id === activityId);
+      if (activity) {
+        activity.setBudgetedAmount(budgetedAmount);
+        activity.setActualSpend(actualSpend);
+        return;
+      }
+    }
+    throw new Error('Activity not found');
+  }
 }
 
 export enum ItineraryVisibility {

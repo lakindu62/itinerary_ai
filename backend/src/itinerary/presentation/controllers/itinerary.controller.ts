@@ -10,10 +10,12 @@ import {
   Get,
   ValidationPipe,
   UsePipes,
+  Put,
 } from '@nestjs/common';
 import { ItineraryService } from 'src/itinerary/application/services/itinerary.service';
 import { ItineraryChatService } from 'src/itinerary/application/services/itinerary-chat.service';
 import { ChatItineraryRequestDto } from 'src/itinerary/application/dtos/requests/chatItinerary.dto';
+import { UpdateActivityBudgetDto } from 'src/itinerary/application/dtos/update-activity-budget.dto';
 import { ItineraryChatServiceMock } from 'src/itinerary/application/services/mocks/itinerary-chat.service.mock';
 import {
   ChatItineraryResponseDto,
@@ -143,5 +145,27 @@ export class ItineraryController {
   async getByShareToken(@Param('token') token: string): Promise<ItineraryDto> {
     const dto = await this.itineraryService.getItineraryByToken(token);
     return dto;
+  }
+
+  @UseGuards(ClerkAuthGuard)
+  @Roles([UserRole.TRAVELER])
+  @Put(':itineraryId/activities/:activityId/budget')
+  async updateActivityBudget(
+    @Param('itineraryId') itineraryId: string,
+    @Param('activityId') activityId: string,
+    @Body() budgetData,
+    @Req() req: Request,
+  ): Promise<ItineraryDto> {
+    const userId = req.user?._id;
+    if (!userId) {
+      throw new UnauthorizedException('User not authenticated');
+    }
+    this.itineraryChatService.updateBudget(itineraryId, activityId, budgetData);
+    return await this.itineraryService.updateActivityBudget(
+      userId,
+      itineraryId,
+      activityId,
+      budgetData,
+    );
   }
 }

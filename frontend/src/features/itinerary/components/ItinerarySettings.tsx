@@ -12,13 +12,13 @@ import { useUpdateItineraryVisibilityMutation } from "@/features/itinerary/api/i
 import { ItineraryVisibilityEnum } from "@shared/types/itinerary/chat-itinerary.response.dto"
 import { useEffect, useState } from "react"
 
-export function ItinerarySettings({ itineraryId, visibility }: { itineraryId: string, visibility: string }) {
+export function ItinerarySettings({ itineraryId, visibility }: { itineraryId: string, visibility?: string }) {
     console.log("🚀 ~ ItinerarySettings ~ itineraryId:", itineraryId)
-    const [selectedVisibility, setSelectedVisibility] = useState<string | undefined>(visibility);
+    const [selectedVisibility, setSelectedVisibility] = useState<string | undefined>(visibility ?? ItineraryVisibilityEnum.PRIVATE);
     const [updateVisibility] = useUpdateItineraryVisibilityMutation();
 
     useEffect(() => {
-        setSelectedVisibility(visibility);
+        setSelectedVisibility(visibility ?? ItineraryVisibilityEnum.PRIVATE);
     }, [visibility]);
     return (
         <DropdownMenu >
@@ -30,7 +30,7 @@ export function ItinerarySettings({ itineraryId, visibility }: { itineraryId: st
             <DropdownMenuContent className="w-56 " align="start">
                 <DropdownMenuItem className="flex justify-between">
                     <div>Privacy</div>
-                    <div><SelectDemo selectedVisibility={selectedVisibility} defaultVisibility={visibility} setSelectedVisibility={async (v: string) => {
+                    <div><SelectDemo selectedVisibility={selectedVisibility!} defaultVisibility={visibility ?? ItineraryVisibilityEnum.PRIVATE} setSelectedVisibility={async (v: string) => {
                         setSelectedVisibility(v);
                         try {
                             await updateVisibility({ itineraryId, visibility: v as ItineraryVisibilityEnum }).unwrap();

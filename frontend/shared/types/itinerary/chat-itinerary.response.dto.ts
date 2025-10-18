@@ -44,11 +44,14 @@ export type Coordinates = [number, number];
 type NonEventNonHotelType = "restaurant" | "attraction" | "other";
 
 interface BaseFields {
+  id: string;
   time: string;
   name: string;
   description: string;
   address: string;
   coordinates: Coordinates;
+  budgetedAmount?: number;
+  actualSpend?: number;
 }
 
 export interface POIActivityDto extends BaseFields {

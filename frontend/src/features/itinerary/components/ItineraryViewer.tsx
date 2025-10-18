@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@frontend/components/ui/resizable';
 import ItineraryDisplay from './ItineraryDisplay';
-import MapComponent from './MapComponent';
+import MapComponent from './MapInterface';
 import { ActivityDto, ItineraryDto } from '@shared/types/itinerary/chat-itinerary.response.dto';
 
 
