@@ -105,7 +105,7 @@ async getAnalytics(user: AuthenticatedUser): Promise<AnalyticsDto> {
     // calculate performance for each event
     const eventPerformance: EventPerformanceDto[] = events.map(event => {
       const booked = rsvps
-        .filter(rsvp => rsvp.event.id === event.id)
+        .filter(rsvp => rsvp.event && rsvp.event.id === event.id) // Add null check here
         .reduce((sum, rsvp) => sum + rsvp.guestCount, 0);
 
         const capacity = event.maxAttendees > 0 ? event.maxAttendees : 1; // Avoid division by zero

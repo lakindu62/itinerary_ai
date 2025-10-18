@@ -18,6 +18,7 @@ interface Venue {
   postalCode: string;
   country: string;
   capacity: number;
+  coordinates: [number, number];
   facilities: string[];
 }
 

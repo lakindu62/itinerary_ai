@@ -13,6 +13,7 @@ export default function ConditionalNavbar() {
         pathname.startsWith("/sign-in/") ||
         pathname.startsWith("/business/") ||
         pathname.startsWith("/admin/") ||
+        pathname.startsWith("/admin") ||
         pathname === "/" ||
         pathname.startsWith("/dashboard");
     

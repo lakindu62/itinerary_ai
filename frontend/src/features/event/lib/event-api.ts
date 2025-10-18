@@ -11,10 +11,10 @@ export type SingleEventType = {
   endTime: string;
   maxAttendees: number;
   imagesUrl?: string[];
-  venue: { venueName: string; address: string; city: string; state: string; zipCode: string; };
-  organizer: { organizerName: string; };
+  venue: { venueName: string; address: string; city: string; state: string; zipCode: string; coordinates: { lat: number; lng: number; }; };
+  organizer: { id: string; organizerName: string; contactEmail: string; contactPhone: string; organization: string; };
   category: { categoryName: string; };
-  hashtags: { hashtag: { name:string } }[];
+  hashtags: { id: string; hashtagName: string; }[]; // Corrected this line
   ticketPrice: number;
   eventStatus: 'active' | 'inactive' | 'completed';
 };

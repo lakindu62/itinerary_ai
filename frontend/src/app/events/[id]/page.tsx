@@ -35,19 +35,19 @@ const SingleEventPage = () => {
   }, [id]);
 
   return (
-    <div className="bg-[#E3E2F7] min-h-screen font-sans p-4 sm:p-8">
+    <div className="bg-[#E3E2F7] dark:bg-background min-h-screen font-sans p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
         <Button
           variant="ghost"
           onClick={() => router.back()}
-          className="mb-6 text-gray-700 hover:bg-gray-200"
+          className="mb-6 text-muted-foreground hover:bg-accent"
         >
           <ChevronLeft className="w-5 h-5 mr-2" />
           Back
         </Button>
         
         {loading && <div className="text-center py-10">Loading Event...</div>}
-        {error && <div className="text-center py-10 text-red-600 bg-white rounded-xl p-8">{error}</div>}
+        {error && <div className="text-center py-10 text-destructive bg-card rounded-xl p-8">{error}</div>}
         {!loading && event && (
           <SingleEventView event={event} />
         )}

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { getBusinessOrganizers, deleteBusinessOrganizer } from '../lib/event-api';
 import Link from 'next/link';
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface Organizer {
   id: string;
@@ -83,7 +84,8 @@ const OrganizerList = () => {
                 <TableCell>
                   <Link href={`/admin/event/organizers/edit/${organizer.id}`} passHref>
                     <Button variant="outline" size="sm" className="mr-2">
-                      Edit
+                      <Pencil className="h-4 w-4" />  
+
                     </Button>
                   </Link>
                   <Button
@@ -91,7 +93,8 @@ const OrganizerList = () => {
                     size="sm"
                     onClick={() => handleDelete(organizer.id)}
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" /> 
+
                   </Button>
                 </TableCell>
               </TableRow>

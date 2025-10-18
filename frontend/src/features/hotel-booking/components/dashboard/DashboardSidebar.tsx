@@ -79,7 +79,9 @@ export default function DashboardSidebar() {
           {/* Logo */}
           <div className="flex items-center px-6 py-4 border-b">
             <Building2 className="h-8 w-8 text-gray-800 mr-3" />
-            <span className="text-xl font-bold text-gray-800">HotelManager</span>
+            <Link href="/admin/">
+              <span className="text-xl font-bold text-gray-800">HotelManager</span>
+            </Link>
           </div>
 
           {/* User Info */}
