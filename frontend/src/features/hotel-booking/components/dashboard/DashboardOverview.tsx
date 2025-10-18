@@ -15,9 +15,12 @@ import {
   BarChart3,
   Eye,
   MapPin,
-  Loader2
+  Loader2,
+  Download,
+  FileText
 } from 'lucide-react';
 import { useHotels } from '../../hooks/useHotels';
+import { downloadDashboardPDF, DashboardAnalytics } from '@/utils/pdfGenerator';
 
 export default function DashboardOverview() {
   const { myHotels, isLoading: isLoadingHotels } = useHotels();
@@ -137,8 +140,44 @@ export default function DashboardOverview() {
     });
   };
 
+  const handleDownloadPDF = async (includeScreenshot: boolean = false) => {
+    try {
+      console.log(`📄 Dashboard: ${currentUser} downloading PDF report...`, {
+        timestamp: currentTimestamp,
+        user: currentUser,
+        includeScreenshot
+      });
+
+      const analyticsData: DashboardAnalytics = {
+        user: currentUser,
+        timestamp: currentTimestamp,
+        totalHotels: realStats.totalHotels,
+        totalRooms: realStats.totalRooms,
+        totalBookings: realStats.totalBookings,
+        confirmedBookings: realStats.confirmedBookings,
+        pendingBookings: realStats.pendingBookings,
+        stripeRevenue: realStats.stripeRevenue,
+        avgRating: realStats.avgRating,
+        conversionRate: realStats.conversionRate,
+        hotels: myHotels.map(hotel => ({
+          id: hotel.id,
+          title: hotel.title,
+          city: hotel.city,
+          country: hotel.country
+        }))
+      };
+
+      await downloadDashboardPDF(analyticsData, includeScreenshot, 'dashboard-overview');
+      
+      console.log(`✅ PDF downloaded successfully for ${currentUser}`);
+    } catch (error) {
+      console.error(`❌ Error downloading PDF for ${currentUser}:`, error);
+      alert('Failed to generate PDF report. Please try again.');
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" id="dashboard-overview">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-6">
           {/* Header with Real User Context */}
@@ -160,6 +199,22 @@ export default function DashboardOverview() {
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh Data
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleDownloadPDF(false)}
+                className="flex items-center"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Download Report
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleDownloadPDF(true)}
+                className="flex items-center"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                PDF with Screenshot
               </Button>
               <Button
                 onClick={handleViewAnalytics}
@@ -250,6 +305,68 @@ export default function DashboardOverview() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Quick Actions Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="mr-2 h-5 w-5" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Generate PDF Report */}
+                <Button
+                  onClick={() => handleDownloadPDF(false)}
+                  className="flex flex-col items-center justify-center h-20 bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200"
+                  variant="outline"
+                >
+                  <FileText className="h-6 w-6 mb-2" />
+                  <span className="text-sm font-medium">PDF Report</span>
+                </Button>
+
+                {/* Generate PDF with Screenshot */}
+                <Button
+                  onClick={() => handleDownloadPDF(true)}
+                  className="flex flex-col items-center justify-center h-20 bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200"
+                  variant="outline"
+                >
+                  <Download className="h-6 w-6 mb-2" />
+                  <span className="text-sm font-medium">PDF + Screenshot</span>
+                </Button>
+
+                {/* View Analytics */}
+                <Button
+                  onClick={handleViewAnalytics}
+                  className="flex flex-col items-center justify-center h-20 bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                  variant="outline"
+                >
+                  <BarChart3 className="h-6 w-6 mb-2" />
+                  <span className="text-sm font-medium">View Analytics</span>
+                </Button>
+
+                {/* Refresh Data */}
+                <Button
+                  onClick={handleRefreshData}
+                  className="flex flex-col items-center justify-center h-20 bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200"
+                  variant="outline"
+                >
+                  <RefreshCw className="h-6 w-6 mb-2" />
+                  <span className="text-sm font-medium">Refresh Data</span>
+                </Button>
+              </div>
+              
+              {/* Quick Actions Description */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>PDF Report:</strong> Download a comprehensive analytics report with key metrics and insights.
+                  <br />
+                  <strong>PDF + Screenshot:</strong> Include a visual snapshot of your dashboard along with the detailed report.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

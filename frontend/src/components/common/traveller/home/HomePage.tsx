@@ -76,6 +76,9 @@ const HomePage = () => {
                         <GradientButton href="/social">
                             My Socials
                         </GradientButton>
+                        <GradientButton href="/business-profile">
+                            Businesses
+                        </GradientButton>
                     </div>
                     {/* Top Right Controls - Clerk Auth */}
                     <div className="flex items-center gap-4">

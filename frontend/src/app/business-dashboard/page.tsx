@@ -17,10 +17,13 @@ import {
   Eye,
   Users,
   DollarSign,
-  Calendar
+  Calendar,
+  Download,
+  RefreshCw
 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { BusinessProfileApiService } from '@/services/business-profile-api.service'
+import { downloadBusinessDashboardPDF, BusinessDashboardAnalytics } from '@/utils/businessPdfGenerator'
 
 // Import dashboard components
 import SliderManagement from './components/SliderManagement'
@@ -138,6 +141,42 @@ export default function BusinessDashboard() {
       setLoading(false)
     }
   }
+
+  // PDF Download handlers
+  const handleDownloadPDF = async (includeScreenshot: boolean = false) => {
+    try {
+      console.log(`📄 Business Dashboard: ${userId} downloading PDF report...`, {
+        userId,
+        includeScreenshot
+      });
+
+      // Prepare business analytics data for PDF
+      const analyticsData: BusinessDashboardAnalytics = {
+        user: userId || 'Business User',
+        timestamp: new Date().toISOString(),
+        avgRating: businessProfile?.ratings?.length ? 
+          businessProfile.ratings.reduce((acc: number, rating: any) => acc + rating.rating, 0) / businessProfile.ratings.length : 
+          0,
+        businessProfile: {
+          businessName: businessProfile?.businessName || 'Business Profile',
+          menuItems: businessProfile?.menuItems?.length || 0,
+          sliderImages: businessProfile?.sliderImages?.length || 0,
+          posts: businessProfile?.posts?.length || 0,
+          reels: businessProfile?.reels?.length || 0,
+          ratings: businessProfile?.ratings?.length || 0,
+          reviews: businessProfile?.reviews?.length || 0,
+          pendingRatings: businessProfile?.ratings?.filter((r: any) => !r.isApproved)?.length || 0
+        }
+      };
+
+      await downloadBusinessDashboardPDF(analyticsData, includeScreenshot, 'business-dashboard-overview');
+      
+      console.log(`✅ Business PDF downloaded successfully for ${userId}`);
+    } catch (error) {
+      console.error(`❌ Error downloading business PDF for ${userId}:`, error);
+      alert('Failed to generate PDF report. Please try again.');
+    }
+  };
 
   // Show loading while checking authentication
   if (!isLoaded) {
@@ -293,7 +332,7 @@ export default function BusinessDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 p-6">
+    <div className="min-h-screen bg-gray-50 pt-20 p-6" id="business-dashboard-overview">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -417,6 +456,22 @@ export default function BusinessDashboard() {
                       >
                         <FileText className="mr-2 h-4 w-4" />
                         Create Post
+                      </Button>
+                      <Button 
+                        onClick={() => handleDownloadPDF(false)} 
+                        className="w-full justify-start"
+                        variant="outline"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF Report
+                      </Button>
+                      <Button 
+                        onClick={() => handleDownloadPDF(true)} 
+                        className="w-full justify-start"
+                        variant="outline"
+                      >
+                        <BarChart3 className="mr-2 h-4 w-4" />
+                        PDF with Screenshot
                       </Button>
                     </>
                   )}

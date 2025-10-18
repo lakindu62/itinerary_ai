@@ -237,3 +237,33 @@ input[data-slot="input"] {
 .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* PDF Generation Safe Styles - Override problematic color functions */
+.pdf-safe * {
+  /* Override oklch/lab colors with safe alternatives */
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+.pdf-safe .text-blue-600 { color: #2563eb !important; }
+.pdf-safe .text-green-600 { color: #16a34a !important; }
+.pdf-safe .text-purple-600 { color: #9333ea !important; }
+.pdf-safe .text-orange-600 { color: #ea580c !important; }
+.pdf-safe .text-yellow-600 { color: #ca8a04 !important; }
+.pdf-safe .text-red-600 { color: #dc2626 !important; }
+.pdf-safe .text-gray-600 { color: #4b5563 !important; }
+.pdf-safe .text-gray-900 { color: #111827 !important; }
+.pdf-safe .text-gray-500 { color: #6b7280 !important; }
+
+.pdf-safe .bg-blue-50 { background-color: #eff6ff !important; }
+.pdf-safe .bg-green-50 { background-color: #f0fdf4 !important; }
+.pdf-safe .bg-purple-50 { background-color: #faf5ff !important; }
+.pdf-safe .bg-orange-50 { background-color: #fff7ed !important; }
+.pdf-safe .bg-gray-50 { background-color: #f9fafb !important; }
+
+.pdf-safe .border-blue-200 { border-color: #bfdbfe !important; }
+.pdf-safe .border-green-200 { border-color: #bbf7d0 !important; }
+.pdf-safe .border-purple-200 { border-color: #e9d5ff !important; }
+.pdf-safe .border-orange-200 { border-color: #fed7aa !important; }
+.pdf-safe .border-gray-200 { border-color: #e5e7eb !important; }
