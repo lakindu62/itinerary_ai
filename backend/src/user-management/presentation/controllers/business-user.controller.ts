@@ -11,7 +11,7 @@ import { ClerkAuthGuard } from 'src/shared/guards/clerk-auth-guard';
 
 @Controller('business')
 export class BusinessUserController {
-  constructor(private readonly businessUserService: BusinessAccountService) {}
+  constructor(private readonly businessUserService: BusinessAccountService) { }
 
   @Post('/onboarding/complete')
   @UseGuards(ClerkAuthGuard)
