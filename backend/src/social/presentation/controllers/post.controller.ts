@@ -27,7 +27,7 @@ import { Request } from 'express';
 //   interface Request {
 //     user?: AuthenticatedUser;
 //   }
-// }
+// } //
 @Controller('social/posts')
 export class PostController {
   private readonly logger = new Logger(PostController.name);
