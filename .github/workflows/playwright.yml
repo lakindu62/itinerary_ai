@@ -1,0 +1,47 @@
+name: Playwright Tests
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    # Set the working directory for all 'run' steps to your 'tests' folder
+    defaults:
+      run:
+        working-directory: ./tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Test Dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+
+      # Option A: Run tests against a deployed staging environment (Recommended for CI)
+      # Uncomment the env block below and point it to your staging URL. Update your playwright.config.ts to use process.env.BASE_URL || 'http://localhost:5173'
+      - name: Run Playwright tests
+        run: npx playwright test
+        # env:
+        #   BASE_URL: https://staging.itinerary.ai
+
+      # Option B: Run everything locally in CI (Harder to configure due to DBs & Microservices)
+      # 1. Start your backend (nest.js) and frontend (next.js) here before running tests
+      # 2. Wait for ports 5173 and 3000 to be ready before running playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 30
