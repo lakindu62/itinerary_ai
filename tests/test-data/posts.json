@@ -1,0 +1,23 @@
+[
+  {
+    "id": "mock-post-001",
+    "user": "mock-user-clerk-id",
+    "content": "This is a mocked post from the Playwright API stub.",
+    "likeCount": 12,
+    "commentCount": 3,
+    "userLiked": false,
+    "isOwner": false,
+    "isArchived": false,
+    "createdAt": "2026-01-01T10:00:00.000Z",
+    "updatedAt": "2026-01-01T10:00:00.000Z",
+    "mediaFiles": [],
+    "userInfo": {
+      "_id": "mock-user-001",
+      "clerkUserId": "mock-user-clerk-id",
+      "firstName": "Mock",
+      "lastName": "User",
+      "email": "mock@example.com",
+      "profilePicture": "/alien-profile-pic-1.jpg"
+    }
+  }
+]
