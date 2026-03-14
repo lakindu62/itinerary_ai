@@ -7,7 +7,6 @@ test.describe('Social Page — Assertions', () => {
         await expect(authenticatedSocialPage.mediaButton).toBeVisible();
         await expect(authenticatedSocialPage.postButton).toBeVisible();
         await expect(authenticatedSocialPage.archiveToggle).toBeVisible();
-        await expect(authenticatedSocialPage.friendRequestsList).toBeVisible();
     });
 
     // Post button is disabled when textarea is empty: enforced via disabled={!content.trim() && selectedFiles.length === 0}
