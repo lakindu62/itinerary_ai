@@ -18,6 +18,10 @@ export const test = base.extend<MyFixtures>({
             credentials.validUser.password
         );
 
+        // Wait for Clerk to finish its post-login redirect before navigating.
+        // Without this, goto('/social') can run before the auth cookie is applied.
+        await page.waitForURL((url) => !url.pathname.includes('/sign-in'), { timeout: 15000 });
+
         const socialPage = new SocialPage(page);
         await socialPage.goto();
         await expect(socialPage.postTextarea).toBeVisible();
