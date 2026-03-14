@@ -1,19 +1,14 @@
 name: Playwright Tests
 on:
   push:
-    branches: [main, master]
+    branches: [development]
   pull_request:
-    branches: [main, master]
+    branches: [development]
 
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
-
-    # Set the working directory for all 'run' steps to your 'tests' folder
-    defaults:
-      run:
-        working-directory: ./tests
 
     steps:
       - uses: actions/checkout@v4
@@ -23,21 +18,40 @@ jobs:
           node-version: 20
 
       - name: Install Test Dependencies
+        working-directory: ./tests
         run: npm ci
 
       - name: Install Playwright Browsers
+        working-directory: ./tests
         run: npx playwright install --with-deps
 
-      # Option A: Run tests against a deployed staging environment (Recommended for CI)
-      # Uncomment the env block below and point it to your staging URL. Update your playwright.config.ts to use process.env.BASE_URL || 'http://localhost:5173'
-      - name: Run Playwright tests
-        run: npx playwright test
-        # env:
-        #   BASE_URL: https://staging.itinerary.ai
+      # Start Services in Background
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
 
-      # Option B: Run everything locally in CI (Harder to configure due to DBs & Microservices)
-      # 1. Start your backend (nest.js) and frontend (next.js) here before running tests
-      # 2. Wait for ports 5173 and 3000 to be ready before running playwright test
+      - name: Start Frontend Dev Server
+        working-directory: ./frontend
+        run: npm run dev &
+
+      - name: Setup Backend (Requires DB setup first)
+        working-directory: ./backend
+        run: |
+          npm ci
+          # Setup Postgres/Prisma steps here...
+
+      - name: Start Backend Dev Server
+        working-directory: ./backend
+        run: npm run start:dev &
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Wait for services to be ready
+        run: npx wait-on http://localhost:5173 http://localhost:3000
+
+      - name: Run Playwright tests
+        working-directory: ./tests
+        run: npx playwright test
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
