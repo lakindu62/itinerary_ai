@@ -27,6 +27,7 @@ export default defineConfig({
     ['list'],
     ['line'],
     ['json', { outputFile: 'results.json' }],
+    ['allure-playwright'],
   ],
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
