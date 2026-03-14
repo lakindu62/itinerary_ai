@@ -5,8 +5,13 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+<<<<<<< HEAD
 results.json
 
 # Allure
 allure-report/
 allure-results/
+=======
+/.auth/
+results.json
+>>>>>>> f52220e72413289d323c241e91c49480704b35bc

@@ -64,7 +64,7 @@ jobs:
           CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
 
       - name: Wait for services to be ready
-        run: npx wait-on http://localhost:5173 http://localhost:3000
+        run: npx wait-on -t 120000 tcp:127.0.0.1:5173 tcp:127.0.0.1:3000
 
       - name: Run Playwright tests
         working-directory: ./tests
