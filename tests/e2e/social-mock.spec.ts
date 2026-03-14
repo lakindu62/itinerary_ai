@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { SignInPage } from '../page-objects/sign-in.page';
 import { SocialPage } from '../page-objects/social.page';
 import credentials from '../test-data/credentials.json';
@@ -12,17 +12,11 @@ import mockPosts from '../test-data/posts.json';
 
 test.describe('Social Page — API Mocking', () => {
 
-    test.beforeEach(async ({ page }) => {
-        const signInPage = new SignInPage(page);
-        await signInPage.goto();
-        await signInPage.signIn(
-            credentials.validUser.email,
-            credentials.validUser.password
-        );
-    });
+    // We remove the beforeEach block entirely and inject `authenticatedPage` into each test.
+    // `authenticatedPage` is already logged in, allowing us to setup `page.route` BEFORE navigating to `/social`.
 
     // Happy path: the frontend renders content from the stubbed response.
-    test('should display mocked post in the feed', async ({ page }) => {
+    test('should display mocked post in the feed', async ({ authenticatedPage: page }) => {
         await page.route('**/api/social/posts', (route) => {
             route.fulfill({
                 status: 200,
@@ -38,7 +32,7 @@ test.describe('Social Page — API Mocking', () => {
     });
 
     // Empty state: returning an empty array causes the UI to render its empty state message.
-    test('should show empty state when API returns no posts', async ({ page }) => {
+    test('should show empty state when API returns no posts', async ({ authenticatedPage: page }) => {
         await page.route('**/api/social/posts', (route) => {
             route.fulfill({
                 status: 200,
@@ -54,7 +48,7 @@ test.describe('Social Page — API Mocking', () => {
     });
 
     // Error handling: a 500 response should not crash the page.
-    test('should handle API error gracefully', async ({ page }) => {
+    test('should handle API error gracefully', async ({ authenticatedPage: page }) => {
         await page.route('**/api/social/posts', (route) => {
             route.fulfill({
                 status: 500,
