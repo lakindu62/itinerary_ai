@@ -130,6 +130,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({
             onClick={onEdit}
             disabled={isDeleting}
             className="h-8 w-8 p-0"
+            aria-label={isEditing ? "Cancel edit" : "Edit post"}
           >
             {isEditing ? (
               <XIcon className="h-4 w-4" />
@@ -145,6 +146,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({
             onClick={onDelete}
             disabled={isDeleting}
             className="h-8 w-8 p-0"
+            aria-label="Delete post"
           >
             <TrashIcon className="h-4 w-4" />
           </Button>

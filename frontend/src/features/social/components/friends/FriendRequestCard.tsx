@@ -73,6 +73,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
                 onClick={() => onAccept(request.id)}
                 disabled={isProcessing}
                 className="h-7 w-7 p-0"
+                aria-label="Accept friend request"
               >
                 <Check className="w-3.5 h-3.5" />
               </Button>
@@ -82,6 +83,7 @@ const FriendRequestCard: React.FC<FriendRequestCardProps> = ({
                 onClick={() => onReject(request.id)}
                 disabled={isProcessing}
                 className="h-7 w-7 p-0"
+                aria-label="Reject friend request"
               >
                 <X className="w-3.5 h-3.5" />
               </Button>

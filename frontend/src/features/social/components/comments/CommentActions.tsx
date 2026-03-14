@@ -87,6 +87,7 @@ const CommentActions: React.FC<CommentActionsProps> = ({
           size="sm"
           onClick={() => setIsEditing(true)}
           className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Edit comment"
         >
           <Edit2Icon className="h-3 w-3" />
         </Button>
@@ -97,6 +98,7 @@ const CommentActions: React.FC<CommentActionsProps> = ({
           size="sm"
           onClick={() => onDelete(comment.id)}
           className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label="Delete comment"
         >
           <TrashIcon className="h-3 w-3" />
         </Button>

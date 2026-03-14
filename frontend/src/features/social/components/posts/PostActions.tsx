@@ -18,11 +18,12 @@ const PostActions: React.FC<PostActionsProps> = ({
         size="sm"
         className={hasLiked ? "text-red-500" : ""}
         onClick={onLike}
+        aria-label="Like post"
       >
         <HeartIcon className="size-4" />
         <span className="ml-2">{likeCount}</span>
       </Button>
-      <Button variant="ghost" size="sm" onClick={onToggleComments}>
+      <Button variant="ghost" size="sm" onClick={onToggleComments} aria-label="Toggle comments">
         <MessageCircleIcon className="size-4" />
         <span className="ml-2">{commentCount}</span>
       </Button>
