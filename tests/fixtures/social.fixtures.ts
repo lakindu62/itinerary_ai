@@ -28,7 +28,7 @@ export const test = base.extend<MyFixtures>({
         await page.context().clearCookies();
     },
 
-    // 2. Specialized Fixture: Uses authenticatedPage, then navigates to social
+    // Specialized Fixture: Uses authenticatedPage, then navigates to social
     authenticatedSocialPage: async ({ authenticatedPage }, use) => {
         const socialPage = new SocialPage(authenticatedPage);
         await socialPage.goto();
