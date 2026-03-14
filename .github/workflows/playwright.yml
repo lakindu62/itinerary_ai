@@ -33,6 +33,12 @@ jobs:
       - name: Start Frontend Dev Server
         working-directory: ./frontend
         run: npm run dev &
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.NEXT_PUBLIC_API_BASE_URL }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL: ${{ secrets.NEXT_PUBLIC_CLERK_SIGN_IN_URL }}
 
       - name: Setup Backend (Requires DB setup first)
         working-directory: ./backend
@@ -44,7 +50,18 @@ jobs:
         working-directory: ./backend
         run: npm run start:dev &
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          NODE_ENV: development
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET_NAME: ${{ secrets.MINIO_BUCKET_NAME }}
+          MINIO_REGION: ${{ secrets.MINIO_REGION }}
+          CLERK_WEBHOOK_SIGNING_SECRET: ${{ secrets.CLERK_WEBHOOK_SIGNING_SECRET }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
 
       - name: Wait for services to be ready
         run: npx wait-on http://localhost:5173 http://localhost:3000
