@@ -3,6 +3,7 @@ import { SignInPage } from '../page-objects/sign-in.page';
 import { SocialPage } from '../page-objects/social.page';
 import credentials from '../test-data/credentials.json';
 import mockPosts from '../test-data/posts.json';
+import mockFriends from '../test-data/friends.json';
 
 // API Mocking: Intercept the backend posts request and return controlled stub data.
 // This decouples the tests from the real database state.
@@ -75,6 +76,34 @@ test.describe('Social Page — API Mocking', () => {
 
         // Ensure the layout still renders properly despite the API error
         await expect(socialPage.postTextarea).toBeVisible();
+    });
+
+    test.describe('Friendships API Mocking', () => {
+        test('should render mocked friends in the friends list', async ({ authenticatedPage: page }) => {
+            // Mock the friendships list endpoint
+            await page.route('**/api/social/friendships', async route => {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify(mockFriends),
+                });
+            });
+
+            // Make sure posts are also mocked so the page doesn't hang pending real requests
+            await page.route('**/api/social/posts', async route => {
+                await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify(mockPosts),
+                });
+            });
+
+            const socialPage = new SocialPage(page);
+            await socialPage.goto();
+
+            // We assert the mocked friend's name becomes visible in the UI
+            await expect(page.getByText('Playwright MockUser')).toBeVisible();
+        });
     });
 
 });

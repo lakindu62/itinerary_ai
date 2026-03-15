@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": "friendship_mock_xyz123",
+      "requesterId": "user_mocked",
+      "receiverId": "user_current",
+      "status": "ACCEPTED",
+      "createdAt": "2023-10-27T10:00:00Z",
+      "updatedAt": "2023-10-27T10:00:00Z",
+      "friend": {
+        "id": "user_mocked",
+        "firstName": "Playwright",
+        "lastName": "MockUser",
+        "username": "playwright_mock",
+        "imageUrl": "https://img.clerk.com/mocked"
+      }
+    }
+  ]
+}
