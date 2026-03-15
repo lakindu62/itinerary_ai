@@ -3,11 +3,11 @@ import { test, expect } from '../fixtures/social.fixtures';
 test.describe('Social Page — Assertions', () => {
 
     // Conditionally log local storage to assist with debugging if a test fails
-    test.afterEach(async ({ page }, testInfo) => {
-        if (testInfo.status !== testInfo.expectedStatus) {
-            console.log(`Test [${testInfo.title}] Failed! Dumping local storage for debugging:`, await page.evaluate(() => localStorage));
-        }
-    });
+    // test.afterEach(async ({ page }, testInfo) => {
+    //     if (testInfo.status !== testInfo.expectedStatus) {
+    //         console.log(`Test [${testInfo.title}] Failed! Dumping local storage for debugging:`, await page.evaluate(() => localStorage));
+    //     }
+    // });
 
     test('should display social page layout after login', async ({ authenticatedSocialPage }) => {
         await expect(authenticatedSocialPage.postTextarea).toBeVisible();
